@@ -66,13 +66,13 @@ footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px s
   <div style="display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:10px; margin-top:10px;">
     <div>
       <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">RHEED screen</div>
-      <div style="position:relative; width:100%; height:200px; background:var(--surface-1); border-radius:var(--radius);">
+      <div style="position:relative; width:100%; height:290px; background:var(--surface-1); border-radius:var(--radius);">
         <canvas id="cScr" role="img" aria-label="Computed RHEED pattern">RHEED pattern.</canvas>
       </div>
     </div>
     <div>
       <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">LEED screen</div>
-      <div style="position:relative; width:100%; height:200px; background:var(--surface-1); border-radius:var(--radius);">
+      <div style="position:relative; width:100%; height:290px; background:var(--surface-1); border-radius:var(--radius);">
         <canvas id="cLeed" role="img" aria-label="Computed LEED pattern">LEED pattern.</canvas>
       </div>
     </div>
@@ -234,7 +234,7 @@ footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px s
   function drawRheed(){
     var K=A0/lamR(), tg=S.tg*Math.PI/180, A=S.az*Math.PI/180;
     var cosA=Math.cos(A), sinA=Math.sin(A), m=S.m, aw=A0/(S.sz*10), base=A0/COH;
-    var g=paint('cScr',270,function(u,v,RW,RH){
+    var g=paint('cScr',340,function(u,v,RW,RH){
       var asp=RH/RW, BT=2*RH_PH*asp-0.012;
       var beta=BT-v*(BT+0.012); if(beta<=0) return 0;
       var phi=-RH_PH+u*2*RH_PH;
@@ -264,8 +264,8 @@ footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px s
   function drawLeed(){
     var KL=A0/lamL(), A=S.az*Math.PI/180, cosA=Math.cos(A), sinA=Math.sin(A);
     var m=S.m, aw=A0/(S.sz*10), base=A0/COH;
-    var g=paint('cLeed',190,function(u,v,RW,RH){
-      var X=u*2-1, Y=-(v*2-1); var rr=Math.sqrt(X*X+Y*Y);
+    var g=paint('cLeed',260,function(u,v,RW,RH){
+      var mn=Math.min(RW,RH); var X=(u*2-1)*RW/mn, Y=-(v*2-1)*RH/mn; var rr=Math.sqrt(X*X+Y*Y);
       if(rr>1) return 0;
       if(rr<0.055) return 0;
       var Qx=KL*X, Qy=KL*Y;
@@ -274,7 +274,7 @@ footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px s
           if(Math.abs(d)>4*sr) continue; I+=SHELLS[i][1]*Math.exp(-d*d/(2*sr*sr)); }
         return I*0.9; }
       var sg=base+((m==='dom'||m==='isl')?aw:(m==='two'||m==='vic'||m==='multi')?aw*0.5:0);
-      var sp=Math.sqrt(sg*sg+Math.pow(KL*2/RW,2));
+      var sp=Math.sqrt(sg*sg+Math.pow(KL*2/mn,2));
       return lattice(Qx,Qy,0,sp,sp,cosA,sinA)*Math.max(0.15,1-rr*0.75);
     });
     var x=g.x, w=g.w, h=g.h, R=Math.min(w,h)/2;
