@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2차원 블로흐 파 · 정사각 격자</title>
+<style>
+  :root{
+    --ink:#1a1a18; --ink2:#56554d; --paper:#faf9f5; --card:#ffffff;
+    --line:#d8d6cc; --line2:#c4c2b6;
+    --color-text-primary:#1a1a18; --color-text-secondary:#56554d;
+    --color-border-tertiary:rgba(120,118,108,0.30);
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    --border-radius-md:7px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);background-image:radial-gradient(rgba(0,0,0,0.018) 1px,transparent 1px);background-size:22px 22px;color:var(--ink);font-family:var(--font-sans);line-height:1.6;padding:32px 18px 60px;}
+  .wrap{max-width:1000px;margin:0 auto;}
+  header{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:8px;}
+  h1{font-family:Georgia,serif;font-weight:600;font-size:28px;letter-spacing:-0.01em;margin:0 0 4px;}
+  .sub{font-family:Georgia,serif;font-style:italic;color:var(--ink2);font-size:15px;}
+  .intro{font-size:13.5px;color:var(--ink2);margin:13px 0 20px;max-width:820px;}
+  .intro code{font-family:Consolas,monospace;background:#f0eee6;padding:1px 5px;border-radius:4px;font-size:12.5px;color:var(--ink);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.04),0 8px 24px -16px rgba(0,0,0,0.25);}
+  .modebtn{padding:5px 12px;font-size:13.5px;border-radius:var(--border-radius-md);border:1px solid var(--line2);background:transparent;color:var(--ink);cursor:pointer;font-family:inherit;}
+  .modebtn:hover{background:#f3f1e9;}
+  .modebtn[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:500;}
+  .row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:14px;}
+  .row2{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:14px;}
+  .grp{display:flex;gap:6px;align-items:center;}
+  .grp > span{font-size:13px;color:var(--ink2);margin-right:2px;}
+  .ctrl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);}
+  .ctrl input[type=range]{width:130px;accent-color:#EF9F27;}
+  .ctrl .val{min-width:40px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+  canvas{width:100%;height:420px;display:block;}
+  #readout{font-size:13px;color:var(--ink2);margin-top:14px;line-height:1.65;border-top:1px solid var(--line);padding-top:12px;min-height:40px;}
+  #readout b{color:var(--ink);}
+  footer{margin-top:18px;font-size:12px;color:#908e84;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>2차원 블로흐 파 &middot; 정사각 격자</h1>
+  <div class="sub">블로흐 상태 · 등에너지선 · 파속/블로흐 진동 · 바니어 함수</div>
+</header>
+<p class="intro">
+  정사각 격자 <code>V(x,y)=2V₀[cos(2πx/a)+cos(2πy/a)]</code>를 평면파 49개로 전개해 각 <code>k</code>에서 대각화합니다.
+  네 모드로 같은 모형의 다른 얼굴을 봅니다: 실공간 블로흐 상태, BZ의 등에너지선(페르미면), 힘을 받은 파속의 블로흐 진동, 그리고 한 자리에 묶인 바니어 함수.
+  (자유전자 극한·X점 갭·수렴·군속도=∇E·바니어 국소화/주기성 전부 numpy로 검산.)
+</p>
+
+<div class="card">
+  <div class="row">
+    <div class="grp" style="gap:7px;">
+      <button class="modebtn mode" data-m="bloch" aria-pressed="true">블로흐 상태</button>
+      <button class="modebtn mode" data-m="fermi" aria-pressed="false">등에너지선</button>
+      <button class="modebtn mode" data-m="packet" aria-pressed="false">파속 · 블로흐 진동</button>
+      <button class="modebtn mode" data-m="wannier" aria-pressed="false">바니어 함수</button>
+    </div>
+  </div>
+  <div class="row2">
+    <div class="grp" id="gBand"><span>밴드</span>
+      <button class="modebtn bandbtn" data-n="0" aria-pressed="true">1</button>
+      <button class="modebtn bandbtn" data-n="1" aria-pressed="false">2</button>
+      <button class="modebtn bandbtn" data-n="2" aria-pressed="false">3</button>
+      <button class="modebtn bandbtn" data-n="3" aria-pressed="false">4</button>
+    </div>
+    <div class="grp" id="gView"><span id="viewlab">실공간</span>
+      <button class="modebtn viewbtn" data-v="abs" aria-pressed="true">|ψ|²</button>
+      <button class="modebtn viewbtn" data-v="re" aria-pressed="false">Re ψ</button>
+    </div>
+    <div class="ctrl"><label>V₀</label><input type="range" id="v0" min="0" max="0.15" step="0.005" value="0.05"><span class="val" id="v0v">0.050</span></div>
+    <div class="ctrl" id="gS"><label>경로 k</label><input type="range" id="s" min="0" max="1" step="0.004" value="0.293"><span class="val" id="sv">X</span></div>
+    <div class="ctrl" id="gEF" style="display:none;"><label>등에너지 E</label><input type="range" id="ef" min="0" max="1" step="0.01" value="0.5"><span class="val" id="efv">0.50</span></div>
+    <div class="ctrl" id="gNk" style="display:none;"><label>합한 k (Nk×Nk)</label><input type="range" id="nk" min="1" max="18" step="1" value="14"><span class="val" id="nkv">14</span></div>
+    <div class="grp" id="gGauge" style="display:none;"><span>게이지</span>
+      <button class="modebtn gaugebtn" data-g="smooth" aria-pressed="true">매끄럽게</button>
+      <button class="modebtn gaugebtn" data-g="random" aria-pressed="false">무작위</button>
+    </div>
+    <div class="ctrl" id="gF" style="display:none;"><label>힘 F</label><input type="range" id="fmag" min="0.004" max="0.05" step="0.002" value="0.018"><span class="val" id="fmagv">0.018</span></div>
+    <div class="ctrl" id="gFa" style="display:none;"><label>방향 θ°</label><input type="range" id="fang" min="0" max="90" step="5" value="0"><span class="val" id="fangv">0</span></div>
+    <div class="grp" id="gPlay" style="display:none;">
+      <button class="modebtn" id="playbtn">▶ 재생</button>
+      <button class="modebtn" id="resetbtn">↺</button>
+    </div>
+  </div>
+  <canvas id="cv"></canvas>
+  <div id="readout"></div>
+</div>
+<footer>근자유전자 정사각 격자 · 2D central equation (49 평면파) · 실대칭 Jacobi 대각화 · 오프라인 단독 실행.</footer>
+</div>
+
+<script>
+(function(){
+function cv1(n,f){const v=getComputedStyle(document.documentElement).getPropertyValue(n).trim();return v||f;}
+const A=10.0,B=2*Math.PI/A,M=3;
+const G=[];for(let i=0;i<2*M+1;i++)for(let j=0;j<2*M+1;j++)G.push([i-M,j-M]);
+const NPW=G.length,posMap={};G.forEach((g,a)=>posMap[g[0]+','+g[1]]=a);
+const GXB=G.map(g=>g[0]*B),GYB=G.map(g=>g[1]*B);
+
+function buildH(kx,ky,V0){const H=[];for(let i=0;i<NPW;i++)H.push(new Float64Array(NPW));
+  const kpx=kx*B,kpy=ky*B;
+  for(let a=0;a<NPW;a++){const qx=kpx+GXB[a],qy=kpy+GYB[a];H[a][a]=0.5*(qx*qx+qy*qy);
+    for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){const nb=posMap[(G[a][0]+d[0])+','+(G[a][1]+d[1])];if(nb!==undefined)H[a][nb]=V0;}}
+  return H;}
+function jacobi(A_,n,wantVec){const a=A_.map(r=>Float64Array.from(r)),V=wantVec?[]:null;
+  if(wantVec)for(let i=0;i<n;i++){const r=new Float64Array(n);r[i]=1;V.push(r);}
+  for(let s=0;s<100;s++){let off=0;for(let p=0;p<n;p++)for(let q=p+1;q<n;q++)off+=a[p][q]*a[p][q];if(off<1e-18)break;
+    for(let p=0;p<n;p++)for(let q=p+1;q<n;q++){if(Math.abs(a[p][q])<1e-16)continue;
+      const phi=0.5*Math.atan2(2*a[p][q],a[q][q]-a[p][p]),c=Math.cos(phi),si=Math.sin(phi);
+      for(let i=0;i<n;i++){const aip=a[i][p],aiq=a[i][q];a[i][p]=c*aip-si*aiq;a[i][q]=si*aip+c*aiq;}
+      for(let i=0;i<n;i++){const api=a[p][i],aqi=a[q][i];a[p][i]=c*api-si*aqi;a[q][i]=si*api+c*aqi;}
+      if(wantVec)for(let i=0;i<n;i++){const vip=V[i][p],viq=V[i][q];V[i][p]=c*vip-si*viq;V[i][q]=si*vip+c*viq;}}}
+  const idx=[...Array(n).keys()].sort((i,j)=>a[i][i]-a[j][j]);
+  const vals=idx.map(i=>a[i][i]);
+  if(!wantVec)return {vals};
+  return {vals,vecs:idx.map(col=>{const u=new Float64Array(n);for(let i=0;i<n;i++)u[i]=V[i][col];return u;})};}
+function eigVals(kx,ky,V0){return jacobi(buildH(kx,ky,V0),NPW,false).vals;}
+let diagCache={key:'',data:null};
+function diagAt(kx,ky){const key=kx.toFixed(4)+','+ky.toFixed(4)+'|'+state.V0;if(diagCache.key===key)return diagCache.data;
+  const d=jacobi(buildH(kx,ky,state.V0),NPW,true);diagCache={key,data:d};return d;}
+
+const PTS=[[0,0],[0.5,0],[0.5,0.5],[0,0]];
+const segLen=[0.5,0.5,Math.hypot(0.5,0.5)],Ltot=segLen.reduce((a,b)=>a+b,0);
+const cum=[0];for(const l of segLen)cum.push(cum[cum.length-1]+l);
+function kOfS(s){let D=s*Ltot;for(let i=0;i<3;i++){if(D<=cum[i+1]||i===2){const t=(D-cum[i])/segLen[i];return [PTS[i][0]+t*(PTS[i+1][0]-PTS[i][0]),PTS[i][1]+t*(PTS[i+1][1]-PTS[i][1])];}}return [0,0];}
+const tickS=[0,cum[1]/Ltot,cum[2]/Ltot,1],tickL=['Γ','X','M','Γ'];
+let bandCache={key:'',data:null};
+function bandPath(){if(bandCache.key===state.V0.toFixed(4))return bandCache.data;
+  const NS=130,S=[],E=[[],[],[],[]];
+  for(let i=0;i<=NS;i++){const s=i/NS,k=kOfS(s);S.push(s);const w=eigVals(k[0],k[1],state.V0);for(let n=0;n<4;n++)E[n].push(w[n]);}
+  const data={S,E};bandCache={key:state.V0.toFixed(4),data};return data;}
+
+// E_n(kx,ky) grid over BZ (eigenvalues only)
+let femCache={key:'',data:null};
+function femGrid(n){const key=state.V0.toFixed(4)+'|'+n;if(femCache.key===key)return femCache.data;
+  const Ng=32,E=[];let mn=1e9,mx=-1e9;
+  for(let i=0;i<Ng;i++){E.push(new Float64Array(Ng));for(let j=0;j<Ng;j++){const kx=-0.5+i/(Ng-1),ky=-0.5+j/(Ng-1);const e=eigVals(kx,ky,state.V0)[n];E[i][j]=e;if(e<mn)mn=e;if(e>mx)mx=e;}}
+  const data={Ng,E,mn,mx};femCache={key,data};return data;}
+
+// 2D Wannier W(r) on 3x3-cell grid (complex), projection or random gauge
+let wanCache={key:'',data:null};
+function wannier(){const key=state.V0.toFixed(4)+'|'+state.n+'|'+state.Nk+'|'+state.gauge;if(wanCache.key===key)return wanCache.data;
+  const Nk=state.Nk,Ng=80,span=3*A,r0=A/2,sig=1.8,n=state.n;
+  const xs=new Float64Array(Ng);for(let i=0;i<Ng;i++)xs[i]=span*i/(Ng-1);
+  const Wre=[],Wim=[];for(let i=0;i<Ng;i++){Wre.push(new Float64Array(Ng));Wim.push(new Float64Array(Ng));}
+  let seed=98765;function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
+  const nx=[0,1,0,1][n],ny=[0,0,1,1][n];
+  for(let ik=0;ik<Nk;ik++)for(let jk=0;jk<Nk;jk++){
+    const kx=-0.5+ik/Nk,ky=-0.5+jk/Nk;const C=diag2(kx,ky,n);
+    let phr=1,phi=0;
+    if(state.gauge==='random'){const th=2*Math.PI*rnd();phr=Math.cos(th);phi=Math.sin(th);}
+    else{let Ar=0,Ai=0;for(let a=0;a<NPW;a++){const qx=kx*B+GXB[a],qy=ky*B+GYB[a];
+        let poly=1;for(let t=0;t<nx;t++)poly*=qx;for(let t=0;t<ny;t++)poly*=qy; // (qx)^nx (qy)^ny ; i^(nx+ny) is global phase, drop
+        const w=poly*Math.exp(-sig*sig*(qx*qx+qy*qy)/2),ph=qx*r0+qy*r0; // gh = w*e^{+i q.r0}
+        const ghr=w*Math.cos(ph),ghi=w*Math.sin(ph);
+        Ar+=C[a]*ghr;Ai+=C[a]*ghi;} // C real; A=sum conj(C)*gh = sum C*gh
+      const mag=Math.hypot(Ar,Ai)||1;phr=Ar/mag;phi=-Ai/mag;} // conj(A)/|A|
+    // psi_k on grid (separable), times phase
+    const cx=[],sx=[],cy=[],sy=[];
+    for(let i=0;i<Ng;i++){const cc=new Float64Array(NPW),ss=new Float64Array(NPW);const x=xs[i];
+      for(let a=0;a<NPW;a++){const p=(kx*B+GXB[a])*x;cc[a]=Math.cos(p);ss[a]=Math.sin(p);}cx.push(cc);sx.push(ss);}
+    for(let j=0;j<Ng;j++){const cc=new Float64Array(NPW),ss=new Float64Array(NPW);const y=xs[j];
+      for(let a=0;a<NPW;a++){const p=(ky*B+GYB[a])*y;cc[a]=Math.cos(p);ss[a]=Math.sin(p);}cy.push(cc);sy.push(ss);}
+    for(let i=0;i<Ng;i++){const cxa=cx[i],sxa=sx[i];for(let j=0;j<Ng;j++){const cya=cy[j],sya=sy[j];let re=0,im=0;
+      for(let a=0;a<NPW;a++){const ca=C[a];const cc=cxa[a]*cya[a]-sxa[a]*sya[a],ss=sxa[a]*cya[a]+cxa[a]*sya[a];re+=ca*cc;im+=ca*ss;}
+      // multiply by phase (phr,phi)
+      Wre[i][j]+=re*phr-im*phi;Wim[i][j]+=re*phi+im*phr;}}
+  }
+  // global phase removal: theta=0.5*angle(sum W^2)
+  let s2r=0,s2i=0;for(let i=0;i<Ng;i++)for(let j=0;j<Ng;j++){const r=Wre[i][j],m=Wim[i][j];s2r+=r*r-m*m;s2i+=2*r*m;}
+  const th=0.5*Math.atan2(s2i,s2r),ct=Math.cos(th),st=Math.sin(th);
+  let mx=1e-12;for(let i=0;i<Ng;i++)for(let j=0;j<Ng;j++){const r=Wre[i][j],m=Wim[i][j];const nr=r*ct+m*st;Wre[i][j]=nr;Wim[i][j]=-r*st+m*ct;const ab=Math.hypot(Wre[i][j],Wim[i][j]);if(ab>mx)mx=ab;}
+  const data={Ng,xs,Wre,Wim,mx};wanCache={key,data};return data;}
+let d2Cache={key:'',data:null};
+function diag2(kx,ky,n){const key=kx.toFixed(4)+','+ky.toFixed(4)+'|'+state.V0;
+  if(d2Cache.key!==key){d2Cache={key,data:jacobi(buildH(kx,ky,state.V0),NPW,true)};}
+  return d2Cache.data.vecs[n];}
+
+const state={mode:'bloch',n:0,view:'abs',V0:0.05,s:0.293,EF:0.5,Nk:14,gauge:'smooth',F:0.018,Fang:0,playing:false,t:0,kc:[0,0],rr:[0,0],traj:[]};
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');let W,H,rafId=null;
+function resize(){const cw=cv.clientWidth,ch=cv.clientHeight,dpr=window.devicePixelRatio||1;cv.width=cw*dpr;cv.height=ch*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);W=cw;H=ch;draw();}
+function txt(s,x,y,col,size,align,baseline){ctx.fillStyle=col;ctx.font=(size||11)+'px var(--font-sans),sans-serif';ctx.textAlign=align||'left';ctx.textBaseline=baseline||'alphabetic';ctx.fillText(s,x,y);}
+function frame(x0,y0,w,h){ctx.strokeStyle=cv1('--color-border-tertiary','rgba(120,120,120,0.3)');ctx.lineWidth=1;ctx.strokeRect(x0,y0,w,h);}
+function divcol(t){t=Math.max(-1,Math.min(1,t));if(t>=0){const a=t;return 'rgb('+((250-50*a)|0)+','+((249-189*a)|0)+','+((245-195*a)|0)+')';}const a=-t;return 'rgb('+((250-210*a)|0)+','+((249-159*a)|0)+','+((245-45*a)|0)+')';}
+function seqcol(t){t=Math.max(0,Math.min(1,Math.sqrt(t)));const r=(250+(20-250)*t)|0,g=(249+(70-249)*t)|0,b=(245+(95-245)*t)|0;return 'rgb('+r+','+g+','+b+')';}
+function ecol(t){t=Math.max(0,Math.min(1,t));const stops=[[40,90,200],[30,160,150],[240,200,60],[210,70,50]];const x=t*3,i=Math.min(2,Math.floor(x)),f=x-i;const A0=stops[i],B0=stops[i+1];return 'rgb('+((A0[0]+(B0[0]-A0[0])*f)|0)+','+((A0[1]+(B0[1]-A0[1])*f)|0)+','+((A0[2]+(B0[2]-A0[2])*f)|0)+')';}
+const BAND=['#1D9E75','#EF9F27','#378ADD','#9b59b6'];
+
+function drawBZinset(x,y,sz,k){ctx.fillStyle='rgba(255,255,255,0.82)';ctx.fillRect(x,y,sz,sz);ctx.strokeStyle='rgba(120,118,108,0.5)';ctx.lineWidth=1;ctx.strokeRect(x,y,sz,sz);
+  const mx=kk=>x+(kk+0.5)*sz,my=kk=>y+(0.5-kk)*sz;
+  ctx.strokeStyle='rgba(60,60,55,0.7)';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(mx(0),my(0));ctx.lineTo(mx(0.5),my(0));ctx.lineTo(mx(0.5),my(0.5));ctx.lineTo(mx(0),my(0));ctx.stroke();
+  ctx.fillStyle='#1a1a18';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText('Γ',mx(0),my(0)+9);ctx.fillText('X',mx(0.5)+5,my(0)+3);ctx.fillText('M',mx(0.5)+6,my(0.5));
+  ctx.fillStyle='#EF9F27';ctx.beginPath();ctx.arc(mx(k[0]),my(k[1]),3.2,0,7);ctx.fill();}
+
+function drawBands(P){const bp=bandPath(),tcol=cv1('--color-text-secondary','#777');
+  let emin=1e9,emax=-1e9;for(let n=0;n<4;n++)for(const e of bp.E[n]){if(e<emin)emin=e;if(e>emax)emax=e;}
+  const pad=(emax-emin)*0.06;emin-=pad;emax+=pad;
+  const px=s=>P.x0+s*P.w,py=e=>P.y0+P.h-(e-emin)/(emax-emin)*P.h;
+  frame(P.x0,P.y0,P.w,P.h);
+  ctx.strokeStyle='rgba(120,120,110,0.25)';ctx.lineWidth=0.8;ctx.setLineDash([2,3]);
+  for(let t=1;t<3;t++){ctx.beginPath();ctx.moveTo(px(tickS[t]),P.y0);ctx.lineTo(px(tickS[t]),P.y0+P.h);ctx.stroke();}ctx.setLineDash([]);
+  for(let n=0;n<4;n++){ctx.strokeStyle=BAND[n];ctx.lineWidth=n===state.n?2.6:1.3;ctx.globalAlpha=n===state.n?1:0.5;ctx.beginPath();
+    bp.S.forEach((s,i)=>{const X=px(s),Y=py(bp.E[n][i]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});ctx.stroke();ctx.globalAlpha=1;}
+  const k=kOfS(state.s),E=diagAt(k[0],k[1]).vals[state.n];
+  ctx.strokeStyle='#1a1a18';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(px(state.s),P.y0);ctx.lineTo(px(state.s),P.y0+P.h);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=BAND[state.n];ctx.strokeStyle='#1a1a18';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(px(state.s),py(E),5,0,7);ctx.fill();ctx.stroke();
+  for(let t=0;t<4;t++)txt(tickL[t],px(tickS[t]),P.y0+P.h+13,tcol,11,'center','top');
+  txt('밴드 구조',P.x0+6,P.y0+12,tcol,11.5,'left','top');
+  ctx.save();ctx.translate(P.x0-28,P.y0+P.h/2);ctx.rotate(-Math.PI/2);txt('Energy',0,0,tcol,11,'center');ctx.restore();
+  drawBZinset(P.x0+P.w-66,P.y0+8,58,k);}
+
+function psiGrid(C,kx,ky,Ng,span){const xs=new Float64Array(Ng);for(let i=0;i<Ng;i++)xs[i]=span*i/(Ng-1);
+  const cx=[],sx=[],cy=[],sy=[];
+  for(let i=0;i<Ng;i++){const cc=new Float64Array(NPW),ss=new Float64Array(NPW),x=xs[i];for(let a=0;a<NPW;a++){const p=(kx*B+GXB[a])*x;cc[a]=Math.cos(p);ss[a]=Math.sin(p);}cx.push(cc);sx.push(ss);}
+  for(let j=0;j<Ng;j++){const cc=new Float64Array(NPW),ss=new Float64Array(NPW),y=xs[j];for(let a=0;a<NPW;a++){const p=(ky*B+GYB[a])*y;cc[a]=Math.cos(p);ss[a]=Math.sin(p);}cy.push(cc);sy.push(ss);}
+  const re=[],im=[];for(let i=0;i<Ng;i++){re.push(new Float64Array(Ng));im.push(new Float64Array(Ng));const cxa=cx[i],sxa=sx[i];
+    for(let j=0;j<Ng;j++){const cya=cy[j],sya=sy[j];let r=0,m=0;for(let a=0;a<NPW;a++){const cc=cxa[a]*cya[a]-sxa[a]*sya[a],ss=sxa[a]*cya[a]+cxa[a]*sya[a];r+=C[a]*cc;m+=C[a]*ss;}re[i][j]=r;im[i][j]=m;}}
+  return {re,im};}
+
+function drawReal(P){const k=kOfS(state.s),dg=diagAt(k[0],k[1]),C=dg.vecs[state.n],tcol=cv1('--color-text-secondary','#777');
+  const NG=96,cell=P.w/NG,span=3*A,g=psiGrid(C,k[0],k[1],NG,span);
+  let mx=1e-12;for(let i=0;i<NG;i++)for(let j=0;j<NG;j++){const v=state.view==='abs'?(g.re[i][j]*g.re[i][j]+g.im[i][j]*g.im[i][j]):g.re[i][j];if(Math.abs(v)>mx)mx=Math.abs(v);}
+  for(let i=0;i<NG;i++)for(let j=0;j<NG;j++){const v=state.view==='abs'?(g.re[i][j]*g.re[i][j]+g.im[i][j]*g.im[i][j]):g.re[i][j];
+    ctx.fillStyle=state.view==='abs'?seqcol(v/mx):divcol(0.95*v/mx);ctx.fillRect(P.x0+i*cell,P.y0+P.w-(j+1)*cell,cell+0.6,cell+0.6);}
+  frame(P.x0,P.y0,P.w,P.w);
+  ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=1.3;
+  for(let m=0;m<3;m++)for(let nn=0;nn<3;nn++){ctx.beginPath();ctx.arc(P.x0+((m+0.5)/3)*P.w,P.y0+P.w-((nn+0.5)/3)*P.w,3,0,7);ctx.stroke();}
+  const lab=state.view==='abs'?'|ψ(x,y)|²':'Re ψ(x,y)';
+  txt(lab,P.x0+6,P.y0+13,'#fff',11.5,'left','top');txt(lab,P.x0+5,P.y0+12,tcol,11.5,'left','top');
+  txt('흰 고리=퍼텐셜 우물, 3×3 셀',P.x0+P.w-5,P.y0+P.w-5,'#fff',9.5,'right','bottom');
+  txt('x →',P.x0+P.w-5,P.y0+P.w+12,tcol,10,'right','top');
+  ctx.save();ctx.translate(P.x0-9,P.y0+P.w/2);ctx.rotate(-Math.PI/2);txt('y',0,0,tcol,10,'center');ctx.restore();}
+
+function bzMap(P){return {mx:kk=>P.x0+(kk+0.5)*P.w,my:kk=>P.y0+(0.5-kk)*P.w};}
+function drawFermi(P){const fg=femGrid(state.n),tcol=cv1('--color-text-secondary','#777'),Ng=fg.Ng;
+  const m=bzMap(P),cell=P.w/(Ng-1);
+  for(let i=0;i<Ng-1;i++)for(let j=0;j<Ng-1;j++){const t=(fg.E[i][j]-fg.mn)/(fg.mx-fg.mn+1e-12);ctx.fillStyle=ecol(t);ctx.fillRect(m.mx(-0.5+i/(Ng-1)),m.my(-0.5+(j+1)/(Ng-1)),cell+1,cell+1);}
+  // faint contours + main level
+  const levels=[];for(let q=1;q<=5;q++)levels.push(fg.mn+q/6*(fg.mx-fg.mn));
+  const mainL=fg.mn+state.EF*(fg.mx-fg.mn);
+  function drawLevel(L,col,wd){ctx.strokeStyle=col;ctx.lineWidth=wd;ctx.beginPath();
+    for(let i=0;i<Ng-1;i++)for(let j=0;j<Ng-1;j++){const x0=-0.5+i/(Ng-1),y0=-0.5+j/(Ng-1),x1=-0.5+(i+1)/(Ng-1),y1=-0.5+(j+1)/(Ng-1);
+      const E00=fg.E[i][j],E10=fg.E[i+1][j],E11=fg.E[i+1][j+1],E01=fg.E[i][j+1];const pts=[];
+      function ed(ea,eb,ax,ay,bx,by){if((ea-L)*(eb-L)<0){const t=(L-ea)/(eb-ea);pts.push([ax+(bx-ax)*t,ay+(by-ay)*t]);}}
+      ed(E00,E10,x0,y0,x1,y0);ed(E10,E11,x1,y0,x1,y1);ed(E11,E01,x1,y1,x0,y1);ed(E01,E00,x0,y1,x0,y0);
+      if(pts.length>=2){ctx.moveTo(m.mx(pts[0][0]),m.my(pts[0][1]));ctx.lineTo(m.mx(pts[1][0]),m.my(pts[1][1]));
+        if(pts.length===4){ctx.moveTo(m.mx(pts[2][0]),m.my(pts[2][1]));ctx.lineTo(m.mx(pts[3][0]),m.my(pts[3][1]));}}}
+    ctx.stroke();}
+  for(const L of levels)drawLevel(L,'rgba(255,255,255,0.45)',0.8);
+  drawLevel(mainL,'#1a1a18',2.4);
+  frame(P.x0,P.y0,P.w,P.w);
+  ctx.fillStyle='#fff';ctx.font='10px sans-serif';ctx.textAlign='center';
+  ctx.fillText('Γ',m.mx(0),m.my(0)+11);ctx.fillText('X',m.mx(0.5)-7,m.my(0)-4);ctx.fillText('M',m.mx(0.5)-7,m.my(0.5)+11);ctx.fillText('X',m.mx(0)+7,m.my(0.5)+11);
+  txt('밴드 '+(state.n+1)+' 등에너지선  E_n(kx,ky)',P.x0+6,P.y0+13,'#fff',11.5,'left','top');
+  txt('kx',P.x0+P.w/2,P.y0+P.w+13,tcol,10,'center','top');
+  ctx.save();ctx.translate(P.x0-10,P.y0+P.w/2);ctx.rotate(-Math.PI/2);txt('ky',0,0,tcol,10,'center');ctx.restore();}
+
+function velAt(kx,ky){const h=0.004;const ex=(eigVals(kx+h,ky,state.V0)[0]-eigVals(kx-h,ky,state.V0)[0])/(2*h*B);
+  const ey=(eigVals(kx,ky+h,state.V0)[0]-eigVals(kx,ky-h,state.V0)[0])/(2*h*B);return [ex,ey];}
+function drawPacket(P,Q){const tcol=cv1('--color-text-secondary','#777');
+  // left P: BZ + band1 heatmap + k-packet
+  const fg=femGrid(0),Ng=fg.Ng,m=bzMap(P),cell=P.w/(Ng-1);
+  for(let i=0;i<Ng-1;i++)for(let j=0;j<Ng-1;j++){const t=(fg.E[i][j]-fg.mn)/(fg.mx-fg.mn+1e-12);ctx.fillStyle=ecol(t);ctx.fillRect(m.mx(-0.5+i/(Ng-1)),m.my(-0.5+(j+1)/(Ng-1)),cell+1,cell+1);}
+  frame(P.x0,P.y0,P.w,P.w);
+  const kc=state.kc;const v=velAt(kc[0],kc[1]);
+  // velocity arrow
+  const cxp=m.mx(kc[0]),cyp=m.my(kc[1]),vs=120;ctx.strokeStyle='#1a1a18';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(cxp,cyp);ctx.lineTo(cxp+v[0]*vs,cyp-v[1]*vs);ctx.stroke();
+  ctx.fillStyle='#EF9F27';ctx.strokeStyle='#1a1a18';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(cxp,cyp,6,0,7);ctx.fill();ctx.stroke();
+  // force direction
+  const fa=state.Fang*Math.PI/180;ctx.strokeStyle='#c0392b';ctx.lineWidth=1.4;ctx.setLineDash([3,2]);ctx.beginPath();ctx.moveTo(P.x0+14,P.y0+P.w-14);ctx.lineTo(P.x0+14+34*Math.cos(fa),P.y0+P.w-14-34*Math.sin(fa));ctx.stroke();ctx.setLineDash([]);
+  txt('힘 F',P.x0+14,P.y0+P.w-30,'#c0392b',10,'left','bottom');
+  txt('k-파속 (BZ에서 등속 표류)',P.x0+6,P.y0+13,'#fff',11.5,'left','top');
+  txt('주황=v_g=∇E',P.x0+P.w-5,P.y0+13,'#fff',9.5,'right','top');
+  // right Q: real-space trajectory + packet blob
+  frame(Q.x0,Q.y0,Q.w,Q.w);
+  const tr=state.traj;let xmn=state.rr[0],xmx=state.rr[0],ymn=state.rr[1],ymx=state.rr[1];
+  for(const p of tr){xmn=Math.min(xmn,p[0]);xmx=Math.max(xmx,p[0]);ymn=Math.min(ymn,p[1]);ymx=Math.max(ymx,p[1]);}
+  let cx=(xmn+xmx)/2,cy=(ymn+ymx)/2,half=Math.max(0.6*A,(xmx-xmn)/2,(ymx-ymn)/2)*1.25;
+  const rx=r=>Q.x0+Q.w*(0.5+(r[0]-cx)/(2*half)),ry=r=>Q.y0+Q.w*(0.5-(r[1]-cy)/(2*half));
+  // faint lattice wells
+  ctx.fillStyle='rgba(120,118,108,0.30)';for(let gx=-6;gx<=6;gx++)for(let gy=-6;gy<=6;gy++){const wx=(gx+0.5)*A,wy=(gy+0.5)*A;const X=rx([wx,wy]),Y=ry([wx,wy]);if(X>Q.x0&&X<Q.x0+Q.w&&Y>Q.y0&&Y<Q.y0+Q.w){ctx.beginPath();ctx.arc(X,Y,1.6,0,7);ctx.fill();}}
+  // trajectory
+  ctx.strokeStyle='rgba(239,159,39,0.85)';ctx.lineWidth=1.6;ctx.beginPath();tr.forEach((p,i)=>{const X=rx(p),Y=ry(p);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});ctx.stroke();
+  // packet blob (gaussian)
+  const pr=Math.max(7,Q.w*0.9*A/(2*half));const X=rx(state.rr),Y=ry(state.rr);
+  const grd=ctx.createRadialGradient(X,Y,0,X,Y,pr);grd.addColorStop(0,'rgba(40,90,160,0.85)');grd.addColorStop(1,'rgba(40,90,160,0)');ctx.fillStyle=grd;ctx.beginPath();ctx.arc(X,Y,pr,0,7);ctx.fill();
+  txt('실공간 파속 ⟨r⟩(t)  (격자 우물=회색점)',Q.x0+6,Q.y0+13,tcol,11.5,'left','top');
+  txt('블로흐 진동: 갇힌 왕복',Q.x0+Q.w-5,Q.y0+Q.w-5,tcol,9.5,'right','bottom');}
+
+function drawWannier(P){const wn=wannier(),tcol=cv1('--color-text-secondary','#777'),Ng=wn.Ng,cell=P.w/Ng;
+  for(let i=0;i<Ng;i++)for(let j=0;j<Ng;j++){const r=wn.Wre[i][j],m=wn.Wim[i][j];const v=state.view==='abs'?(r*r+m*m):r;const nv=state.view==='abs'?v/(wn.mx*wn.mx):0.95*v/wn.mx;
+    ctx.fillStyle=state.view==='abs'?seqcol(nv):divcol(nv);ctx.fillRect(P.x0+i*cell,P.y0+P.w-(j+1)*cell,cell+0.6,cell+0.6);}
+  frame(P.x0,P.y0,P.w,P.w);
+  ctx.strokeStyle='rgba(0,0,0,0.28)';ctx.lineWidth=1;
+  for(let mm=0;mm<3;mm++)for(let nn=0;nn<3;nn++){ctx.beginPath();ctx.arc(P.x0+((mm+0.5)/3)*P.w,P.y0+P.w-((nn+0.5)/3)*P.w,3,0,7);ctx.stroke();}
+  const lab=state.view==='abs'?'|W(x,y)|²':'W(x,y)';
+  txt('바니어 함수  '+lab+'  (밴드 '+(state.n+1)+')',P.x0+6,P.y0+13,'#fff',11.5,'left','top');txt('바니어 함수  '+lab+'  (밴드 '+(state.n+1)+')',P.x0+5,P.y0+12,tcol,11.5,'left','top');
+  txt(state.gauge==='random'?'무작위 게이지 → 비국소':'투영 게이지 → 국소',P.x0+P.w-5,P.y0+P.w-5,'#fff',9.5,'right','bottom');
+  txt('x →',P.x0+P.w-5,P.y0+P.w+12,tcol,10,'right','top');
+  ctx.save();ctx.translate(P.x0-9,P.y0+P.w/2);ctx.rotate(-Math.PI/2);txt('y',0,0,tcol,10,'center');ctx.restore();}
+
+function setReadout(){const ro=document.getElementById('readout');const k=kOfS(state.s);
+  if(state.mode==='bloch'){const dg=diagAt(k[0],k[1]);let nt='';for(let t=0;t<4;t++)if(Math.abs(state.s-tickS[t])<0.012)nt=tickL[t];
+    ro.innerHTML='밴드 '+(state.n+1)+', k=('+k[0].toFixed(2)+','+k[1].toFixed(2)+')'+(nt?'='+nt:'')+', E='+dg.vals[state.n].toFixed(4)+'. '+(state.view==='abs'?'<b>|ψ|²</b>는 격자 주기를 따릅니다(블로흐). 1조는 우물에 몰리고 위 밴드는 마디가 생깁니다.':'<b>Re ψ</b>는 격자 변조에 e^{ik·r} 평면파가 올라탄 모습 — k가 클수록 줄무늬 파장이 짧아집니다.');}
+  else if(state.mode==='fermi'){const fg=femGrid(state.n);ro.innerHTML='밴드 '+(state.n+1)+' 등에너지선. 굵은 선이 선택 에너지의 면. <b>밴드 바닥(Γ) 근처는 거의 원</b>(자유전자), 에너지를 올리면 X점 <b>안장점(van Hove)</b>에서 면이 BZ 경계에 닿으며 <b>열린 면</b>으로 바뀝니다. 이게 페르미면의 격자 변형이고, 안장점은 상태밀도 발산(van Hove 특이점)을 줍니다.';}
+  else if(state.mode==='packet'){ro.innerHTML='가우시안 파속에 일정한 힘 F를 줍니다. 준고전: ħk̇=F라 k는 BZ를 <b>등속 표류</b>하다 경계에서 되돌아오고(▶ 재생), 군속도 v=∇E의 부호가 주기적으로 뒤집혀 실공간 ⟨r⟩이 <b>왕복(블로흐 진동)</b>합니다. 띠가 좁아(1조) 진폭은 작아요. 힘 방향 θ를 바꾸면 2D 궤적이 달라집니다. F를 키우면 진동이 빨라지고 진폭은 작아집니다 (진폭~띠폭/F).';}
+  else{const note=(state.n===1||state.n===2)?' <b>주의: 2·3조는 Γ에서 축퇴(고립 안 됨)</b>라 단일밴드 바니어가 깔끔하지 않습니다 — 복합(2-밴드) 바니어가 필요. 1조(s형)가 깨끗한 예시입니다.':'';
+    ro.innerHTML='바니어 = 모든 k의 블로흐 상태를 합한 국소 함수. <b>매끄러운(투영) 게이지</b>면 한 우물에 똑 떨어져 국소화되고, <b>무작위 게이지</b>면 위상이 어긋나 퍼집니다. 합한 k(Nk)를 늘릴수록, V₀가 클수록 더 조여집니다. 1조는 s형 한 덩어리, 위 밴드는 마디(p·d형) 구조가 보입니다.'+note;}}
+
+function draw(){if(!W)return;ctx.clearRect(0,0,W,H);
+  const mt=16,mb=28,ml=44,gap=40,ph=H-mt-mb;
+  if(state.mode==='bloch'){const rs=Math.min(ph,(W-ml-14-gap)*0.52),bw=W-ml-14-gap-rs;
+    drawBands({x0:ml,y0:mt,w:bw,h:ph});drawReal({x0:ml+bw+gap,y0:mt,w:rs});}
+  else if(state.mode==='fermi'){const sq=Math.min(ph,W-ml-20);drawFermi({x0:ml+(W-ml-20-sq)/2,y0:mt,w:sq});}
+  else if(state.mode==='packet'){const sq=Math.min(ph,(W-ml-14-gap)/2);
+    drawPacket({x0:ml,y0:mt,w:sq},{x0:ml+sq+gap,y0:mt,w:sq});}
+  else{const sq=Math.min(ph,W-ml-20);drawWannier({x0:ml+(W-ml-20-sq)/2,y0:mt,w:sq});}
+  setReadout();}
+
+// ---- wave packet animation ----
+function step(){const fa=state.Fang*Math.PI/180,dt=0.6;const v=velAt(state.kc[0],state.kc[1]);
+  state.rr[0]+=v[0]*dt;state.rr[1]+=v[1]*dt;
+  state.kc[0]+=state.F*Math.cos(fa)/B*dt;state.kc[1]+=state.F*Math.sin(fa)/B*dt;
+  if(state.kc[0]>0.5)state.kc[0]-=1;if(state.kc[0]<-0.5)state.kc[0]+=1;if(state.kc[1]>0.5)state.kc[1]-=1;if(state.kc[1]<-0.5)state.kc[1]+=1;
+  state.traj.push([state.rr[0],state.rr[1]]);if(state.traj.length>1400)state.traj.shift();}
+function loop(){if(!state.playing)return;for(let s=0;s<2;s++)step();draw();rafId=requestAnimationFrame(loop);}
+function resetPacket(){state.kc=[0,0.15];state.rr=[0,0];state.traj=[[0,0]];}
+
+// ---- UI ----
+function showCtrls(){const M_=state.mode;const sh=(id,on)=>document.getElementById(id).style.display=on?'flex':'none';
+  sh('gBand',M_!=='packet');sh('gView',M_==='bloch'||M_==='wannier');sh('gS',M_==='bloch');sh('gEF',M_==='fermi');
+  sh('gNk',M_==='wannier');sh('gGauge',M_==='wannier');sh('gF',M_==='packet');sh('gFa',M_==='packet');sh('gPlay',M_==='packet');
+  document.getElementById('viewlab').textContent=M_==='wannier'?'표시':'실공간';
+  const vb=document.querySelectorAll('.viewbtn');vb[0].textContent=M_==='wannier'?'|W|²':'|ψ|²';vb[1].textContent=M_==='wannier'?'W':'Re ψ';}
+function setMode(m){if(rafId){cancelAnimationFrame(rafId);rafId=null;}state.playing=false;document.getElementById('playbtn').textContent='▶ 재생';
+  state.mode=m;document.querySelectorAll('.mode').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===m));
+  if(m==='packet')resetPacket();showCtrls();draw();}
+document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+document.querySelectorAll('.bandbtn').forEach(b=>b.onclick=()=>{state.n=+b.dataset.n;document.querySelectorAll('.bandbtn').forEach(x=>x.setAttribute('aria-pressed',x===b));draw();});
+document.querySelectorAll('.viewbtn').forEach(b=>b.onclick=()=>{state.view=b.dataset.v;document.querySelectorAll('.viewbtn').forEach(x=>x.setAttribute('aria-pressed',x===b));draw();});
+document.querySelectorAll('.gaugebtn').forEach(b=>b.onclick=()=>{state.gauge=b.dataset.g;document.querySelectorAll('.gaugebtn').forEach(x=>x.setAttribute('aria-pressed',x===b));draw();});
+const v0El=document.getElementById('v0');v0El.oninput=()=>{state.V0=+v0El.value;document.getElementById('v0v').textContent=state.V0.toFixed(3);diagCache.key='';d2Cache.key='';draw();};
+const sEl=document.getElementById('s');sEl.oninput=()=>{state.s=+sEl.value;let nt='';for(let t=0;t<4;t++)if(Math.abs(state.s-tickS[t])<0.012)nt=tickL[t];document.getElementById('sv').textContent=nt||state.s.toFixed(2);draw();};
+const efEl=document.getElementById('ef');efEl.oninput=()=>{state.EF=+efEl.value;document.getElementById('efv').textContent=state.EF.toFixed(2);draw();};
+const nkEl=document.getElementById('nk');nkEl.oninput=()=>{state.Nk=+nkEl.value;document.getElementById('nkv').textContent=state.Nk;draw();};
+const fmagEl=document.getElementById('fmag');fmagEl.oninput=()=>{state.F=+fmagEl.value;document.getElementById('fmagv').textContent=state.F.toFixed(3);};
+const fangEl=document.getElementById('fang');fangEl.oninput=()=>{state.Fang=+fangEl.value;document.getElementById('fangv').textContent=state.Fang;};
+document.getElementById('playbtn').onclick=function(){state.playing=!state.playing;this.textContent=state.playing?'⏸ 정지':'▶ 재생';if(state.playing)loop();else if(rafId){cancelAnimationFrame(rafId);rafId=null;}};
+document.getElementById('resetbtn').onclick=()=>{resetPacket();draw();};
+
+showCtrls();new ResizeObserver(resize).observe(cv);resize();
+})();
+</script>
+</body>
+</html>

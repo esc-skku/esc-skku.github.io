@@ -17,7 +17,7 @@ nav.crumb{font-size:13px;margin-bottom:18px}
 footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:14px;font-family:'IBM Plex Mono',monospace}
 </style></head><body><main>
 <nav class="crumb"><a href="index.html">← 시뮬레이션 목록</a></nav>
-<div class="eyebrow">첨단진공과학기술 · 전자회절 04</div>
+<div class="eyebrow">전자회절 04</div>
 <h1>RHEED / LEED Explorer</h1>
 <p class="lede">표면 형상 7종(flat, small domains, two-level, multilevel, vicinal, 3D islands, polycrystal)과 재구성 5종(1×1, 2×2, √2×√2 R45, 3×3, 7×7)에 대해, 시료 방위각을 돌리며 RHEED와 LEED 패턴을 픽셀 단위 운동학적 계산으로 비교합니다. 맨 아래 Ewald 패널은 두 기법의 구를 같은 축척에 겹쳐, RHEED 구가 rod와 거의 평행하게 스치는 접선 조건을 보여줍니다. 스팟 위치는 정확하지만 세기는 dynamical 효과(Kikuchi, 다중산란, 굴절)를 포함하지 않습니다.</p>
 
@@ -86,6 +86,11 @@ footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px s
   </div>
 
   <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px 22px; margin-top:1.1rem;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="a0e" style="font-size:13px; color:var(--text-secondary); min-width:80px;">a (Å)</label>
+      <input type="range" id="a0e" min="2.5" max="6.5" step="0.05" value="3.9" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:52px; text-align:right;" id="a0eOut">3.90 Å</span>
+    </div>
     <div style="display:flex; align-items:center; gap:10px;">
       <label for="tg" style="font-size:13px; color:var(--text-secondary); min-width:80px;">θ<sub>g</sub></label>
       <input type="range" id="tg" min="0.5" max="6" step="0.1" value="2.5" style="flex:1;" />
@@ -449,6 +454,7 @@ footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px s
     var r=this.dataset.r; if(r==='c2'){ S.n=2; S.c2=true; } else { S.n=+r; S.c2=false; } refresh(); };
   function sl(id,key,fmt){ document.getElementById(id).addEventListener('input',function(){
     S[key]=+this.value; document.getElementById(id+'Out').textContent=fmt(S[key]); refresh(); }); }
+  document.getElementById('a0e').addEventListener('input',function(){ A0=+this.value; document.getElementById('a0eOut').textContent=A0.toFixed(2)+' Å'; refresh(); });
   sl('tg','tg',function(v){return v.toFixed(1)+'\u00b0';});
   sl('az','az',function(v){return v.toFixed(0)+'\u00b0';});
   sl('sz','sz',function(v){return v.toFixed(1)+' nm';});

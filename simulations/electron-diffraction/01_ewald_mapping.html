@@ -17,7 +17,7 @@ nav.crumb{font-size:13px;margin-bottom:18px}
 footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:14px;font-family:'IBM Plex Mono',monospace}
 </style></head><body><main>
 <nav class="crumb"><a href="index.html">← 시뮬레이션 목록</a></nav>
-<div class="eyebrow">첨단진공과학기술 · 전자회절 01</div>
+<div class="eyebrow">전자회절 01</div>
 <h1>Ewald 작도의 교점이 곧 스크린의 스팟이다</h1>
 <p class="lede">구가 rod를 자르는 점 P에 대해, 구 중심 C에서 P로 향하는 벡터가 k<sub>out</sub>이고 그 방향으로 나간 빔이 스크린의 스팟입니다. 같은 색 = 같은 회절빔. LEED는 구가 rod를 옆에서 가로지르고, RHEED는 구가 원점을 지나 rod를 타고 스치듯 올라갑니다. 두 슬라이더를 움직여 교점과 스팟이 함께 움직이는 것을 확인하세요.</p>
 
@@ -43,6 +43,11 @@ footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px s
   </div>
 
   <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px 22px; margin-top:1rem;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="a02" style="font-size:13px; color:var(--text-secondary); min-width:70px;">a (Å)</label>
+      <input type="range" id="a02" min="2.5" max="6.5" step="0.05" value="3.9" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:52px; text-align:right;" id="a02Out">3.90 Å</span>
+    </div>
     <div style="display:flex; align-items:center; gap:10px;">
       <label for="le2" style="font-size:13px; color:var(--text-secondary); min-width:70px;">LEED E</label>
       <input type="range" id="le2" min="30" max="400" step="5" value="100" style="flex:1;" />
@@ -220,6 +225,7 @@ footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px s
   function refresh(){ drawLeedC(); drawLeedS(); drawRheedC(); drawRheedS(); }
   function sl(id,key,fmt){ document.getElementById(id).addEventListener('input',function(){
     S[key]=+this.value; document.getElementById(id+'Out').textContent=fmt(S[key]); refresh(); }); }
+  document.getElementById('a02').addEventListener('input',function(){ A0=+this.value; document.getElementById('a02Out').textContent=A0.toFixed(2)+' Å'; refresh(); });
   sl('le2','le',function(v){return v.toFixed(0)+' eV';});
   sl('tg2','tg',function(v){return v.toFixed(1)+'\u00b0';});
   sl('ke2','ke',function(v){return v.toFixed(0)+' keV';});

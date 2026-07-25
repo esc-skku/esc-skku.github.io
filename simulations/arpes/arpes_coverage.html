@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARPES Momentum Coverage Calculator</title>
+<style>
+:root{
+  --color-text-primary:#1c1c1a; --color-text-secondary:#5c5c58;
+  --color-border-secondary:#cdcdc9; --color-border-tertiary:#e6e6e2;
+  --color-background-secondary:#f3f3f0; --color-background-info:#e7f0fb;
+  --color-text-info:#1668c4; --color-border-info:#9cc4ee; --border-radius-md:8px;
+  --page-bg:#fbfbf9; --card-bg:#ffffff;
+}
+@media (prefers-color-scheme: dark){:root{
+  --color-text-primary:#e9e9e6; --color-text-secondary:#a9a9a4;
+  --color-border-secondary:#4c4c49; --color-border-tertiary:#383835;
+  --color-background-secondary:#2b2b29; --color-background-info:#15324e;
+  --color-text-info:#74b4f3; --color-border-info:#356ea4;
+  --page-bg:#1b1b19; --card-bg:#222220;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--page-bg);color:var(--color-text-primary);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:980px;margin:0 auto;padding:28px 20px 60px}
+.row{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:flex-start}
+.col{flex:1 1 360px;min-width:300px}
+h1{font-size:22px;font-weight:650;margin:0 0 4px}
+.sub{font-size:13.5px;color:var(--color-text-secondary);margin:0 0 6px;line-height:1.6}
+.card{background:var(--card-bg);border:0.5px solid var(--color-border-tertiary);border-radius:14px;padding:18px 18px 14px;margin-top:18px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.q-ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 10px}
+.q-grp{display:flex;align-items:center;gap:6px}
+.q-lbl{font-size:13px;color:var(--color-text-secondary)}
+.q-btn{font-size:13px;padding:5px 11px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);cursor:pointer}
+.q-btn.on{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.q-num{width:56px;font-size:13px;padding:3px 6px;border-radius:6px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary)}
+.q-num:disabled{opacity:0.4}
+input[type=range]{accent-color:var(--color-text-info)}
+.q-svg{width:100%;height:auto;display:block}
+.q-cap{font-size:12.5px;color:var(--color-text-secondary);margin:4px 0 14px;text-align:center;line-height:1.6}
+.q-ro{font-size:13px;color:var(--color-text-primary);margin:8px 0 0;text-align:center;line-height:1.9}
+.q-ro b{color:var(--color-text-info)}
+.note{font-size:12px;color:var(--color-text-secondary);line-height:1.7;margin-top:18px}
+.note code{background:var(--color-background-secondary);padding:1px 5px;border-radius:4px;font-size:11.5px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ARPES Momentum Coverage Calculator</h1>
+  <p class="sub">Photon&ndash;in / electron&ndash;out geometry, and the accessible momentum region in the k<sub>x</sub>&ndash;k<sub>y</sub> and k<sub>z</sub>&ndash;k<sub>x</sub> planes.
+  Free&ndash;electron final state: k<sub>&parallel;</sub> = 0.5124&middot;&radic;(h&nu;&minus;&Phi;)&middot;sin&theta;, &nbsp; k<sub>z</sub> = 0.5124&middot;&radic;(h&nu;&minus;&Phi;+V&#8320;), &nbsp; with &Phi; = 4.2 eV.</p>
+
+  <div class="card">
+    <h2 class="sr-only">ARPES experimental geometry plus momentum coverage with theta-center slit window, beta-min/beta-max tilt range, DA disk vs A tilt patch, and cubic/tetragonal/hexagonal lattices.</h2>
+    <div class="q-ctrl">
+      <div class="q-grp"><span class="q-lbl">lattice</span>
+        <button class="q-btn" id="bCub">cubic</button><button class="q-btn" id="bTet">tetragonal</button><button class="q-btn" id="bHex">hexagonal</button></div>
+      <div class="q-grp"><span class="q-lbl">mode</span>
+        <button class="q-btn" id="bDA">DA</button><button class="q-btn" id="bA">A</button></div>
+      <div class="q-grp"><span class="q-lbl">cut</span>
+        <button class="q-btn" id="bAz1">&Gamma;&ndash;X</button><button class="q-btn" id="bAz2">&Gamma;&ndash;M</button></div>
+    </div>
+    <div class="q-ctrl">
+      <div class="q-grp"><span class="q-lbl">a (&#8491;)</span><input type="range" id="sA" min="2" max="8" step="0.005" value="3.905" style="width:70px"><input type="number" class="q-num" id="nA" min="2" max="8" step="0.005" value="3.905"></div>
+      <div class="q-grp"><span class="q-lbl">c (&#8491;)</span><input type="range" id="sC" min="2" max="14" step="0.005" value="3.905" style="width:70px"><input type="number" class="q-num" id="nC" min="2" max="14" step="0.005" value="3.905"></div>
+      <div class="q-grp"><span class="q-lbl">h&nu; (eV)</span><input type="range" id="sHv" min="10" max="200" step="1" value="80" style="width:80px"><input type="number" class="q-num" id="nHv" min="10" max="2000" step="1" value="80"></div>
+      <div class="q-grp"><span class="q-lbl">V&#8320; (eV)</span><input type="range" id="sV0" min="0" max="30" step="0.5" value="12" style="width:60px"><input type="number" class="q-num" id="nV0" min="0" max="60" step="0.5" value="12"></div>
+    </div>
+    <div class="q-ctrl">
+      <div class="q-grp"><span class="q-lbl">&theta;<sub>max</sub> slit (&deg;)</span><input type="range" id="sTm" min="1" max="45" step="1" value="15" style="width:76px"><input type="number" class="q-num" id="nTm" min="1" max="60" step="1" value="15"></div>
+      <div class="q-grp"><span class="q-lbl">&theta;<sub>center</sub> (&deg;)</span><input type="range" id="sTh" min="-45" max="45" step="1" value="0" style="width:80px"><input type="number" class="q-num" id="nTh" min="-60" max="60" step="1" value="0"></div>
+      <div class="q-grp"><span class="q-lbl">tilt &beta;<sub>min</sub></span><input type="range" id="sPm" min="-45" max="45" step="1" value="-15" style="width:72px"><input type="number" class="q-num" id="nPm" min="-60" max="60" step="1" value="-15"></div>
+      <div class="q-grp"><span class="q-lbl">tilt &beta;<sub>max</sub></span><input type="range" id="sPx" min="-45" max="45" step="1" value="15" style="width:72px"><input type="number" class="q-num" id="nPx" min="-60" max="60" step="1" value="15"></div>
+    </div>
+    <svg id="sch" class="q-svg" viewBox="0 0 680 240" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    <div class="q-cap">ARPES geometry — left: slit plane (window &theta;<sub>center</sub> &plusmn; &theta;<sub>max</sub>, photon h&nu;); right: tilt plane (<b>A</b>: &beta;<sub>min</sub>&hellip;&beta;<sub>max</sub>; <b>DA</b>: deflector &perp; &plusmn;&theta;<sub>max</sub>).</div>
+    <div class="row">
+      <div class="col">
+        <svg id="pA" class="q-svg" viewBox="0 0 680 330" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        <div class="q-cap">k<sub>x</sub>&ndash;k<sub>y</sub> plane (&#8491;<sup>&minus;1</sup>) — <b>DA</b>: disk; <b>A</b>: tilt-scan patch. Dashed grid = BZ, dots = &Gamma;, purple = high-sym &amp; cut dir.</div>
+      </div>
+      <div class="col">
+        <svg id="pB" class="q-svg" viewBox="0 0 680 350" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        <div class="q-cap">k<sub>z</sub>&ndash;k<sub>x</sub> plane (&#8491;<sup>&minus;1</sup>) along cut azimuth — bold arc = slit window &theta;<sub>center</sub>&plusmn;&theta;<sub>max</sub>; dot = &theta;<sub>center</sub>.</div>
+      </div>
+    </div>
+    <div class="q-ro" id="ro"></div>
+  </div>
+
+  <p class="note">
+  <b>Conventions.</b> k<sub>&parallel;</sub> = 0.5124&middot;&radic;(h&nu;&minus;&Phi;)&middot;sin&alpha;, &nbsp;
+  k<sub>z</sub> = 0.5124&middot;&radic;((h&nu;&minus;&Phi;)cos&sup2;&alpha; + V&#8320;) (free-electron final state), with work function &Phi; = 4.2&nbsp;eV; binding energy at E<sub>F</sub>.
+  In-plane reciprocal: square <code>2&pi;/a</code> (&Gamma;&ndash;X boundary &pi;/a, &Gamma;&ndash;M boundary &radic;2&middot;&pi;/a); hexagonal (&Gamma;&ndash;M boundary 2&pi;/&radic;3a, &Gamma;&ndash;K boundary 4&pi;/3a). Out-of-plane <code>2&pi;/c</code> (&Gamma;, Z at half).
+  <b>A mode</b> uses a tilt-scan: slit angle &alpha; &isin; &theta;<sub>center</sub> &plusmn; &theta;<sub>max</sub> along the cut, tilt &beta; &isin; [&beta;<sub>min</sub>, &beta;<sub>max</sub>] about the cut axis, giving k<sub>x</sub> = k<sub>f</sub>&middot;sin&alpha;, k<sub>y</sub> = k<sub>f</sub>&middot;cos&alpha;&middot;sin&beta;. <b>DA mode</b> shows the deflector disk.
+  </p>
+</div>
+
+<script>
+(function(){
+  const NS="http://www.w3.org/2000/svg", DEG=Math.PI/180, PI=Math.PI, S2=Math.sqrt(2), S3=Math.sqrt(3);
+  const K0=0.5124, WF=4.2;
+  const st={lat:"cubic",mode:"DA",az:0,a:3.905,c:3.905,hv:80,V0:12,tm:15,th:0,pm:-15,px:15};
+  const C={disk:"rgba(55,138,221,0.18)",bl:"#378ADD",co:"#D85A30",hs:"#9B59B6",ph:"#E0922A",fan:"rgba(55,138,221,0.15)",tilt:"rgba(216,90,48,0.18)"};
+  const cv=n=>(getComputedStyle(document.documentElement).getPropertyValue(n)||"#888").trim();
+  const axc=cv("--color-border-secondary"),grd=cv("--color-border-tertiary"),txt=cv("--color-text-secondary"),sec=cv("--color-background-secondary");
+  const mk=(p,t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e;};
+  const ps=A=>{let d="";for(let i=0;i<A.length;i++)d+=(i?"L":"M")+A[i][0].toFixed(1)+" "+A[i][1].toFixed(1)+" ";return d;};
+  const FS=1.45;
+  function lbl(g,x,y,main,sub,col,size,anc){size=(size||11)*FS;const t=mk(g,"text",{x,y,fill:col,"font-size":size,"text-anchor":anc||"start"});t.appendChild(document.createTextNode(main));if(sub){const s=document.createElementNS(NS,"tspan");s.setAttribute("dy",size*0.28);s.setAttribute("font-size",size*0.72);s.textContent=sub;t.appendChild(s);}return t;}
+  function niceStep(r){const raw=r/4,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p;}
+  function geom(a,hex){if(hex){return st.az===0?{cutAz:0,Gx:4*PI/(S3*a),Xb:2*PI/(S3*a),Xn:"M"}:{cutAz:30,Gx:8*PI/(3*a),Xb:4*PI/(3*a),Xn:"K"};}
+    return st.az===0?{cutAz:0,Gx:2*PI/a,Xb:PI/a,Xn:"X"}:{cutAz:45,Gx:2*S2*PI/a,Xb:S2*PI/a,Xn:"M"};}
+  const sch=document.getElementById("sch"), pA=document.getElementById("pA"), pB=document.getElementById("pB");
+  const arr=(g,x1,y1,x2,y2,col,w)=>mk(g,"line",{x1,y1,x2,y2,stroke:col,"stroke-width":w||2,"marker-end":"url(#ah2)"});
+  function wedge(g,cx,cy,L,a0,a1,fill){const p=[[cx,cy]],N=Math.max(2,Math.round(Math.abs(a1-a0)/3));
+    for(let i=0;i<=N;i++){const a=(a0+(a1-a0)*i/N)*DEG;p.push([cx+L*Math.sin(a),cy-L*Math.cos(a)]);}p.push([cx,cy]);
+    mk(g,"polygon",{points:p.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" "),fill:fill,stroke:"none"});}
+  let gS,gA,gB;
+  function build(){const defs=mk(sch,"defs",{});const m=mk(defs,"marker",{id:"ah2",viewBox:"0 0 10 10",refX:8,refY:5,markerWidth:7,markerHeight:7,orient:"auto-start-reverse"});mk(m,"path",{d:"M1 1 L9 5 L1 9 Z",fill:"context-stroke"});
+    gS=mk(sch,"g",{}); gA=mk(pA,"g",{}); gB=mk(pB,"g",{});}
+
+  function drawSch(){
+    gS.innerHTML="";
+    lbl(gS,16,20,"ARPES geometry","",txt,13);
+    const O=[170,178],L=118, tc=st.th, tm=st.tm;
+    mk(gS,"rect",{x:55,y:178,width:250,height:24,fill:sec});
+    mk(gS,"line",{x1:55,y1:178,x2:305,y2:178,stroke:axc,"stroke-width":1});
+    arr(gS,O[0],O[1],O[0],56,axc,1.1); lbl(gS,O[0]-5,52,"z","",txt,11,"end");
+    arr(gS,O[0],O[1],324,O[1],axc,1.1); lbl(gS,300,196,"k","\u2225",txt,10);
+    lbl(gS,40,72,"slit plane","",txt,10);
+    arr(gS,72,92,O[0],O[1],C.ph,2.2); lbl(gS,52,86,"h\u03bd","",C.ph,12);
+    wedge(gS,O[0],O[1],L,tc-tm,tc+tm,C.fan);
+    [tc-tm,tc+tm].forEach(e=>mk(gS,"line",{x1:O[0],y1:O[1],x2:O[0]+L*Math.sin(e*DEG),y2:O[1]-L*Math.cos(e*DEG),stroke:C.bl,"stroke-width":0.8,"stroke-dasharray":"3 2"}));
+    const ex=O[0]+L*Math.sin(tc*DEG),ey=O[1]-L*Math.cos(tc*DEG);
+    arr(gS,O[0],O[1],ex,ey,C.co,2); lbl(gS,ex+4,ey-2,"e\u207b","",C.co,11);
+    if(Math.abs(tc)>0.5)mk(gS,"path",{d:"M"+O[0]+" "+(O[1]-42)+" A 42 42 0 0 "+(tc>=0?1:0)+" "+(O[0]+42*Math.sin(tc*DEG)).toFixed(1)+" "+(O[1]-42*Math.cos(tc*DEG)).toFixed(1),fill:"none",stroke:txt,"stroke-width":0.9});
+    lbl(gS,O[0]+L*Math.sin((tc+tm)*DEG)+3,O[1]-L*Math.cos((tc+tm)*DEG),"\u00b1\u03b8","max",C.bl,10);
+    lbl(gS,O[0]+24*Math.sin(tc*DEG/2),O[1]-50,"\u03b8","c",txt,10);
+    const T=[520,178],Lt=98;
+    mk(gS,"line",{x1:430,y1:178,x2:610,y2:178,stroke:axc,"stroke-width":0.8});
+    arr(gS,T[0],T[1],T[0],66,axc,1.1); lbl(gS,T[0]-5,62,"z","",txt,11,"end");
+    arr(gS,T[0],T[1],606,T[1],axc,1.1); lbl(gS,610,182,"y","",txt,11);
+    lbl(gS,430,72,"tilt plane","",txt,10);
+    if(st.mode==="A"){
+      wedge(gS,T[0],T[1],Lt,st.pm,st.px,C.tilt);
+      [st.pm,st.px].forEach(e=>mk(gS,"line",{x1:T[0],y1:T[1],x2:T[0]+Lt*Math.sin(e*DEG),y2:T[1]-Lt*Math.cos(e*DEG),stroke:C.co,"stroke-width":0.9,"stroke-dasharray":"3 2"}));
+      lbl(gS,T[0],T[1]-Lt-4,"\u03b2: "+st.pm+"\u00b0\u2026"+st.px+"\u00b0","",txt,9,"middle");
+    } else {
+      wedge(gS,T[0],T[1],Lt,-tm,tm,C.tilt);
+      lbl(gS,T[0],T[1]-Lt-4,"deflector \u22a5 \u00b1\u03b8","max",txt,9,"middle");
+    }
+  }
+
+  function redraw(){
+    const Ek=Math.max(st.hv-WF,0), a=st.a, c=st.c, hex=st.lat==="hexagonal", kf=K0*Math.sqrt(Ek);
+    const kpar=t=>kf*Math.sin(t*DEG);
+    const R=K0*Math.sqrt(Ek+st.V0), kz=t=>K0*Math.sqrt(Math.max(Ek*Math.cos(t*DEG)**2+st.V0,0));
+    const Gsq=2*PI/a, Ghex=4*PI/(S3*a), Xsq=PI/a, Mhex=2*PI/(S3*a), Khex=4*PI/(3*a);
+    const G=geom(a,hex), cutAz=G.cutAz, ca=Math.cos(cutAz*DEG), sa=Math.sin(cutAz*DEG);
+    const a0=st.th-st.tm, a1=st.th+st.tm;
+    function patch(){const pts=[],N=22,b0=st.pm,b1=st.px;
+      const pu=(al,be)=>{const s=kf*Math.sin(al*DEG),t=kf*Math.cos(al*DEG)*Math.sin(be*DEG);pts.push([s*ca-t*sa,s*sa+t*ca]);};
+      for(let i=0;i<=N;i++)pu(a0+(a1-a0)*i/N,b0); for(let i=0;i<=N;i++)pu(a1,b0+(b1-b0)*i/N);
+      for(let i=0;i<=N;i++)pu(a1-(a1-a0)*i/N,b1); for(let i=0;i<=N;i++)pu(a0,b1-(b1-b0)*i/N); return pts;}
+
+    drawSch();
+
+    gA.innerHTML="";
+    const cutExt=kf*(Math.abs(Math.sin(st.th*DEG))+Math.sin(st.tm*DEG));
+    const perpExt=st.mode==="DA"?kf*Math.sin(st.tm*DEG):kf*Math.max(Math.abs(Math.sin(st.pm*DEG)),Math.abs(Math.sin(st.px*DEG)));
+    const covR=Math.max(cutExt,perpExt), halfBZ=hex?Khex:Xsq, RA=Math.max(covR*1.15, halfBZ*2.4, 1.2);
+    const O=[340,170], s1=145/RA, X1=k=>O[0]+k*s1, Y1=k=>O[1]-k*s1;
+    const stp=niceStep(RA);
+    mk(gA,"line",{x1:X1(-RA),y1:O[1],x2:X1(RA),y2:O[1],stroke:axc,"stroke-width":0.7});
+    mk(gA,"line",{x1:O[0],y1:Y1(-RA),x2:O[0],y2:Y1(RA),stroke:axc,"stroke-width":0.7});
+    for(let v=-Math.floor(RA/stp)*stp;v<=RA+1e-6;v+=stp){if(Math.abs(v)<1e-6)continue;
+      mk(gA,"line",{x1:X1(v),y1:O[1]-3,x2:X1(v),y2:O[1]+3,stroke:axc,"stroke-width":0.7});
+      mk(gA,"text",{x:X1(v),y:O[1]+15,fill:txt,"font-size":9*FS,"text-anchor":"middle"}).textContent=(+v.toFixed(2));
+      mk(gA,"line",{x1:O[0]-3,y1:Y1(v),x2:O[0]+3,y2:Y1(v),stroke:axc,"stroke-width":0.7});}
+    lbl(gA,X1(RA)+4,O[1]+4,"k","x",txt,11); lbl(gA,O[0]+5,Y1(RA)-3,"k","y",txt,11);
+    mk(gA,"text",{x:X1(RA)+4,y:O[1]+17,fill:txt,"font-size":9*FS}).textContent="\u00c5\u207b\u00b9";
+    if(!hex){
+      for(let n=-4;n<=4;n++){const b=(n+0.5)*Gsq; if(Math.abs(b)<=RA){
+        mk(gA,"line",{x1:X1(b),y1:Y1(-RA),x2:X1(b),y2:Y1(RA),stroke:grd,"stroke-width":0.7,"stroke-dasharray":"4 3"});
+        mk(gA,"line",{x1:X1(-RA),y1:Y1(b),x2:X1(RA),y2:Y1(b),stroke:grd,"stroke-width":0.7,"stroke-dasharray":"4 3"});}}
+      for(let n=-4;n<=4;n++)for(let m=-4;m<=4;m++){if(Math.abs(n*Gsq)<=RA&&Math.abs(m*Gsq)<=RA)mk(gA,"circle",{cx:X1(n*Gsq),cy:Y1(m*Gsq),r:2,fill:txt});}
+      lbl(gA,X1(0)+5,Y1(0)+13,"\u0393","",C.hs,11); lbl(gA,X1(Xsq)+3,Y1(0)+13,"X","",C.hs,11); lbl(gA,X1(Xsq)+3,Y1(Xsq)-3,"M","",C.hs,11);
+    } else {
+      const b1=[Ghex,0], b2=[Ghex/2,Ghex*S3/2];
+      const hp=(cx,cy)=>{let p=[];for(let k=0;k<6;k++){const ang=(30+60*k)*DEG;p.push([X1(cx+Khex*Math.cos(ang)),Y1(cy+Khex*Math.sin(ang))]);}return p;};
+      for(let n=-4;n<=4;n++)for(let m=-4;m<=4;m++){const gx=n*b1[0]+m*b2[0],gy=n*b1[1]+m*b2[1];
+        if(Math.hypot(gx,gy)<=RA*1.3){mk(gA,"polygon",{points:hp(gx,gy).map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" "),fill:"none",stroke:grd,"stroke-width":0.7,"stroke-dasharray":"4 3"});
+          mk(gA,"circle",{cx:X1(gx),cy:Y1(gy),r:2,fill:txt});}}
+      lbl(gA,X1(0)+5,Y1(0)+13,"\u0393","",C.hs,11); lbl(gA,X1(Mhex)+3,Y1(0)-2,"M","",C.hs,11);
+      lbl(gA,X1(Khex*Math.cos(30*DEG))+3,Y1(Khex*Math.sin(30*DEG))-2,"K","",C.hs,11);
+    }
+    mk(gA,"line",{x1:O[0],y1:O[1],x2:X1(RA*ca),y2:Y1(RA*sa),stroke:C.hs,"stroke-width":1,"stroke-dasharray":"2 3",opacity:0.85});
+    if(st.mode==="DA"){const cc=kf*Math.sin(st.th*DEG);mk(gA,"circle",{cx:X1(cc*ca),cy:Y1(cc*sa),r:kf*Math.sin(st.tm*DEG)*s1,fill:C.disk,stroke:C.bl,"stroke-width":1.5});}
+    else{const pp=patch().map(p=>[X1(p[0]),Y1(p[1])]);mk(gA,"polygon",{points:pp.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" "),fill:C.disk,stroke:C.bl,"stroke-width":1.5});}
+
+    gB.innerHTML="";
+    const Gc=2*PI/c, Gx=G.Gx, Xb=G.Xb, Xname=G.Xn;
+    const maxk=Math.max(Math.abs(kpar(a0)),Math.abs(kpar(a1)));
+    const RBx=Math.max(maxk*1.25, Xb*2.3, 1.2), RBz=Math.max(R*1.05, Gc*2.2, 1.5);
+    const Ob=[340,320], s2=Math.min(300/RBx,295/RBz), X2=k=>Ob[0]+k*s2, Z2=k=>Ob[1]-k*s2;
+    for(let m=0;m*Gc<=RBz;m++){mk(gB,"line",{x1:X2(-RBx),y1:Z2(m*Gc),x2:X2(RBx),y2:Z2(m*Gc),stroke:grd,"stroke-width":0.7});lbl(gB,X2(-RBx)-4,Z2(m*Gc)+3,"\u0393","",C.hs,10,"end");}
+    for(let m=0;(m+0.5)*Gc<=RBz;m++){mk(gB,"line",{x1:X2(-RBx),y1:Z2((m+0.5)*Gc),x2:X2(RBx),y2:Z2((m+0.5)*Gc),stroke:grd,"stroke-width":0.7,"stroke-dasharray":"4 3"});lbl(gB,X2(-RBx)-4,Z2((m+0.5)*Gc)+3,"Z","",C.hs,10,"end");}
+    for(let n=-4;n<=4;n++){if(Math.abs(n*Gx)<=RBx)mk(gB,"line",{x1:X2(n*Gx),y1:Z2(0),x2:X2(n*Gx),y2:Z2(RBz),stroke:grd,"stroke-width":0.5});
+      const b=(n+0.5)*Gx; if(Math.abs(b)<=RBx)mk(gB,"line",{x1:X2(b),y1:Z2(0),x2:X2(b),y2:Z2(RBz),stroke:grd,"stroke-width":0.7,"stroke-dasharray":"4 3"});}
+    lbl(gB,X2(Xb)+2,Z2(0)+13,Xname,"",C.hs,10);
+    mk(gB,"line",{x1:X2(-RBx),y1:Z2(0),x2:X2(RBx),y2:Z2(0),stroke:axc,"stroke-width":0.7});
+    mk(gB,"line",{x1:Ob[0],y1:Z2(0),x2:Ob[0],y2:Z2(RBz),stroke:axc,"stroke-width":0.7});
+    const sx=niceStep(RBx),sz=niceStep(RBz);
+    for(let v=-Math.floor(RBx/sx)*sx;v<=RBx+1e-6;v+=sx){if(Math.abs(v)<1e-6)continue;mk(gB,"text",{x:X2(v),y:Z2(0)+15,fill:txt,"font-size":9*FS,"text-anchor":"middle"}).textContent=(+v.toFixed(2));}
+    for(let v=sz;v<=RBz+1e-6;v+=sz){mk(gB,"text",{x:Ob[0]+5,y:Z2(v)+3,fill:txt,"font-size":9*FS}).textContent=(+v.toFixed(2));}
+    lbl(gB,X2(RBx)+3,Z2(0)+4,"k","x",txt,11); lbl(gB,Ob[0]+5,Z2(RBz)+2,"k","z",txt,11);
+    mk(gB,"text",{x:X2(RBx)+3,y:Z2(0)+17,fill:txt,"font-size":9*FS}).textContent="\u00c5\u207b\u00b9";
+    mk(gB,"circle",{cx:Ob[0],cy:Z2(0),r:R*s2,fill:"none",stroke:grd,"stroke-width":0.8,"stroke-dasharray":"3 3"});
+    const arc=[];for(let t=a0;t<=a1+0.01;t+=0.5)arc.push([X2(kpar(t)),Z2(kz(t))]);
+    mk(gB,"path",{d:ps(arc),fill:"none",stroke:C.co,"stroke-width":2.4});
+    mk(gB,"line",{x1:Ob[0],y1:Z2(0),x2:X2(kpar(st.th)),y2:Z2(kz(st.th)),stroke:C.bl,"stroke-width":1,"stroke-dasharray":"4 3"});
+    mk(gB,"circle",{cx:X2(kpar(st.th)),cy:Z2(kz(st.th)),r:5,fill:C.bl});
+    mk(gB,"text",{x:X2(kpar(st.th)),y:Z2(kz(st.th))-10,fill:C.bl,"font-size":11*FS,"text-anchor":"middle"}).textContent=st.th+"\u00b0";
+
+    const modeTxt=st.mode==="DA"?"DA (disk)":("A tilt \u03b2 "+st.pm+"\u00b0\u2026"+st.px+"\u00b0");
+    const cutNm=hex?(st.az===0?"\u0393\u2013M":"\u0393\u2013K"):(st.az===0?"\u0393\u2013X":"\u0393\u2013M");
+    document.getElementById("ro").innerHTML=
+      "mode <b>"+modeTxt+"</b> &nbsp;|&nbsp; cut <b>"+cutNm+"</b> &nbsp;|&nbsp; \u03b8<sub>center</sub>="+st.th+"\u00b0, slit \u00b1"+st.tm+"\u00b0 &nbsp;|&nbsp; arc R = <b>"+R.toFixed(2)+"</b> \u00c5\u207b\u00b9"+
+      "<br>k<sub>z</sub>(\u03b8<sub>c</sub>) = <b>"+kz(st.th).toFixed(2)+"</b> \u00c5\u207b\u00b9 = <b>"+(kz(st.th)*c/(2*PI)).toFixed(2)+"</b>\u00b72\u03c0/c &nbsp;|&nbsp; window k<sub>\u2225</sub>: <b>"+kpar(a0).toFixed(2)+"</b>\u2026<b>"+kpar(a1).toFixed(2)+"</b> \u00c5\u207b\u00b9";
+  }
+
+  function after(key){if(key==="a"&&st.lat==="cubic"){st.c=st.a;document.getElementById("sC").value=st.c;document.getElementById("nC").value=(+st.c.toFixed(3));}}
+  function pair(sId,nId,key,fix){const s=document.getElementById(sId),n=document.getElementById(nId);
+    const set=v=>{v=parseFloat(v);if(isNaN(v))return;st[key]=v;s.value=v;n.value=fix?(+v.toFixed(3)):v;after(key);redraw();};
+    s.oninput=()=>set(s.value); n.onchange=()=>set(n.value);}
+  pair("sA","nA","a",1);pair("sC","nC","c",1);pair("sHv","nHv","hv");pair("sV0","nV0","V0");pair("sTm","nTm","tm");pair("sTh","nTh","th");pair("sPm","nPm","pm");pair("sPx","nPx","px");
+  function relabelAz(){const hex=st.lat==="hexagonal";document.getElementById("bAz1").innerHTML=hex?"\u0393\u2013M":"\u0393\u2013X";document.getElementById("bAz2").innerHTML=hex?"\u0393\u2013K":"\u0393\u2013M";}
+  function setLat(l){st.lat=l;["bCub","bTet","bHex"].forEach(id=>document.getElementById(id).classList.remove("on"));
+    document.getElementById(l==="cubic"?"bCub":l==="tetragonal"?"bTet":"bHex").classList.add("on");
+    const cd=l==="cubic";document.getElementById("sC").disabled=cd;document.getElementById("nC").disabled=cd;if(cd){st.c=st.a;document.getElementById("sC").value=st.c;document.getElementById("nC").value=(+st.c.toFixed(3));}
+    relabelAz();redraw();}
+  function setMode(m){st.mode=m;document.getElementById("bDA").classList.toggle("on",m==="DA");document.getElementById("bA").classList.toggle("on",m==="A");
+    const da=m==="DA";["sPm","nPm","sPx","nPx"].forEach(id=>document.getElementById(id).disabled=da);redraw();}
+  function setAz(i){st.az=i;document.getElementById("bAz1").classList.toggle("on",i===0);document.getElementById("bAz2").classList.toggle("on",i===1);redraw();}
+  document.getElementById("bCub").onclick=()=>setLat("cubic");
+  document.getElementById("bTet").onclick=()=>setLat("tetragonal");
+  document.getElementById("bHex").onclick=()=>setLat("hexagonal");
+  document.getElementById("bDA").onclick=()=>setMode("DA");
+  document.getElementById("bA").onclick=()=>setMode("A");
+  document.getElementById("bAz1").onclick=()=>setAz(0);
+  document.getElementById("bAz2").onclick=()=>setAz(1);
+  build();setLat("cubic");setMode("DA");setAz(0);redraw();
+})();
+</script>
+</body>
+</html>

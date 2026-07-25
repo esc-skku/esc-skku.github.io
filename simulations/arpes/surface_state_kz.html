@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STO 2DEG wavefunction — Eq.(4)/(5) interactive</title>
+<style>
+:root{
+  --page-bg:#faf9f5;
+  --color-text-primary:#1a1a18; --color-text-secondary:#6b6a64;
+  --color-text-info:#185FA5; --color-text-success:#0F6E56;
+  --color-border-tertiary:rgba(0,0,0,0.12); --color-border-secondary:rgba(0,0,0,0.22);
+  --color-border-info:#378ADD; --color-border-success:#1D9E75;
+  --color-background-primary:#ffffff; --color-background-secondary:#f1efe8;
+  --color-background-info:#E6F1FB; --color-background-success:#E1F5EE;
+  --border-radius-md:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --page-bg:#1f1e1c;
+    --color-text-primary:#ECEAE0; --color-text-secondary:#A6A49B;
+    --color-text-info:#85B7EB; --color-text-success:#5DCAA5;
+    --color-border-tertiary:rgba(255,255,255,0.14); --color-border-secondary:rgba(255,255,255,0.26);
+    --color-border-info:#378ADD; --color-border-success:#1D9E75;
+    --color-background-primary:#2a2926; --color-background-secondary:#34322e;
+    --color-background-info:#13314f; --color-background-success:#0f3a30;
+  }
+}
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--page-bg);color:var(--color-text-primary);max-width:780px;margin:0 auto;padding:36px 20px 72px;line-height:1.7;}
+h1{font-size:23px;font-weight:600;margin:0 0 4px}
+.sub{color:var(--color-text-secondary);font-size:14px;margin:0 0 8px}
+h2{font-size:18px;font-weight:600;margin:0 0 6px}
+p{font-size:15px;color:var(--color-text-secondary);margin:0 0 14px}
+.section{margin:44px 0}
+hr{border:none;border-top:0.5px solid var(--color-border-tertiary);margin:36px 0}
+footer{margin-top:48px;font-size:12.5px;color:var(--color-text-secondary)}
+.cap{font-size:12.5px;color:var(--color-text-secondary);margin:4px 0 16px;text-align:center}
+.svg{width:100%;height:auto;display:block;touch-action:none}
+.ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:9px 14px;margin:0 0 12px}
+.grp{display:flex;align-items:center;gap:7px}
+.lbl{font-size:13px;color:var(--color-text-secondary)}
+.val{font-size:13px;color:var(--color-text-primary);min-width:46px}
+.btn{font-size:13px;padding:6px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);cursor:pointer;min-width:34px}
+.btn.on{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.sw{font-size:13px;padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary);cursor:pointer;font-weight:500}
+.sw.on{background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success)}
+.params{display:flex;flex-wrap:wrap;align-items:center;gap:9px 14px;margin:0 0 14px;padding:10px 12px;border-radius:var(--border-radius-md);background:var(--color-background-secondary)}
+.read{font-size:14px;color:var(--color-text-primary);font-weight:500}
+input[type=range]{accent-color:var(--color-border-info)}
+.eqbox{margin:18px 0 4px;padding:14px 18px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);overflow-x:auto}
+.eqlabel{font-size:12.5px;color:var(--color-text-secondary);margin:0 0 10px}
+.eqn{font-family:"Times New Roman",Georgia,serif;font-style:italic;font-size:17px;color:var(--color-text-primary);white-space:nowrap;line-height:2.5}
+.eqn sub,.eqn sup{font-style:italic;font-size:0.72em}
+.eqn .arrow,.eqn .op{font-style:normal}
+.eqn .op{margin:0 5px}
+.eqn .arrow{margin-right:6px}
+.sum{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 3px}
+.sum .sig{font-size:25px;line-height:0.8;font-style:normal}
+.sum .lim{font-size:10.5px;font-style:normal;line-height:1.15;color:var(--color-text-secondary)}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 4px}
+.frac .num{border-bottom:1px solid currentColor;padding:1px 8px}
+.frac .den{padding:1px 8px}
+.fn{font-style:normal}
+.eqn .note{font-style:normal;font-size:0.66em;color:var(--color-text-secondary);margin-left:16px;white-space:nowrap}
+</style>
+</head>
+<body>
+<h1>Real-space wavefunction of the SrTiO<sub>3</sub> surface 2DEG</h1>
+<p class="sub">multi-Brillouin-zone ARPES · Eq. (4) real-space layer ansatz &harr; Eq. (5) k<sub>z</sub> structure factor</p>
+<p>An interactive showing how the depth profile of a surface 2DEG wavefunction appears in the ARPES k<sub>z</sub> intensity. Runs standalone with no external libraries.</p>
+
+<div class="section">
+<h2>1. Number of confined layers &rarr; k<sub>z</sub> nodes</h2>
+<p>When a state is confined over N layers, the k<sub>z</sub> intensity has peaks at integer Brillouin-zone centers with exactly N&minus;1 nodes between them. For N=1 there is only a single layer to interfere, so the intensity is broad and featureless.</p>
+<div class="ctrl">
+  <div class="grp"><span class="lbl">confined layers N</span>
+    <button class="btn f1n" data-n="1">1</button><button class="btn f1n" data-n="2">2</button>
+    <button class="btn f1n" data-n="3">3</button><button class="btn f1n" data-n="4">4</button>
+    <button class="btn f1n" data-n="5">5</button><button class="btn f1n" data-n="6">6</button></div>
+  <div class="grp"><span class="lbl">width w</span>
+    <input type="range" id="f1w" min="0.02" max="0.30" step="0.01" value="0.18" style="width:110px">
+    <span class="lbl" id="f1wO" style="color:var(--color-text-primary);min-width:30px">0.18</span></div>
+  <div class="grp"><span class="read" id="f1read"></span></div>
+</div>
+<svg id="f1r" class="svg" viewBox="0 0 680 215" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+<div class="cap">Real space · wavefunction confined over N layers (equal-amplitude ground state)</div>
+<svg id="f1k" class="svg" viewBox="0 0 680 215" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+<div class="cap">k<sub>z</sub> intensity · peaks at integer k<sub>z</sub>, with N&minus;1 nodes between (red dots)</div>
+<div class="eqbox">
+  <div class="eqlabel">Equal-amplitude confinement over N layers (Dirichlet structure factor)</div>
+  <div class="eqn">I(k<sub>z</sub>) &prop; e<sup>&minus;4&pi;&sup2;w&sup2;k<sub>z</sub>&sup2;</sup> |<span class="sum"><span class="lim">N&minus;1</span><span class="sig">&Sigma;</span><span class="lim">l=0</span></span> e<sup>2&pi;ik<sub>z</sub>l</sup>|<sup>2</sup><br><span class="arrow">=</span>e<sup>&minus;4&pi;&sup2;w&sup2;k<sub>z</sub>&sup2;</sup> <span class="frac"><span class="num"><span class="fn">sin</span><sup>2</sup>(&pi;Nk<sub>z</sub>)</span><span class="den"><span class="fn">sin</span><sup>2</sup>(&pi;k<sub>z</sub>)</span></span></div>
+  <div class="eqlabel" style="margin:12px 0 0">Peaks at integer k<sub>z</sub> (height &prop; N&sup2;); exactly N&minus;1 nodes at k<sub>z</sub> = m/N (m = 1, &hellip;, N&minus;1).</div>
+</div>
+</div>
+
+<hr>
+
+<div class="section">
+<h2>2. Realistic model: surface &Delta;z<sub>l</sub> and &eta;-decay tail</h2>
+<p>The actual fitting model from SM Sec. 2. The top three layers (l=0,1,2) carry a surface-relaxation phase offset &Delta;z<sub>l</sub>, and the deep layers (l=5&ndash;15) are modeled as an &eta;-decay tail anchored at A<sub>4</sub>. Toggle the switch to compare with the ideal model, and use the sliders to vary &Delta;z and &eta;. The &eta;-tail is most visible in the d<sub>xz/yz</sub> preset. Each blue dot shows its current amplitude A<sub>l</sub>.</p>
+<div class="ctrl">
+  <div class="grp"><span class="lbl">orbital</span>
+    <button class="btn" id="bE">d<sub>xy</sub></button><button class="btn" id="bO">d<sub>xz/yz</sub></button></div>
+  <div class="grp"><span class="lbl">w</span>
+    <input type="range" id="wS" min="0.05" max="0.30" step="0.0005" value="0.0765" style="width:100px"><span class="val" id="wO">0.077</span></div>
+  <button class="sw" id="rt">Realistic model (&Delta;z, &eta;-tail): ON</button>
+  <div class="grp">
+    <button class="btn" id="pXY">Table S1 · d<sub>xy</sub></button>
+    <button class="btn" id="pXZ">Table S1 · d<sub>xz/yz</sub></button></div>
+</div>
+<div class="params" id="rp">
+  <span class="lbl">surface 3-layer phase offset</span>
+  <div class="grp"><span class="lbl">&Delta;z&#8320;</span><input type="range" id="d0" min="-0.25" max="0.25" step="0.001" value="0.010" style="width:84px"><span class="val" id="d0o">+0.010</span></div>
+  <div class="grp"><span class="lbl">&Delta;z&#8321;</span><input type="range" id="d1" min="-0.25" max="0.25" step="0.001" value="0.034" style="width:84px"><span class="val" id="d1o">+0.034</span></div>
+  <div class="grp"><span class="lbl">&Delta;z&#8322;</span><input type="range" id="d2" min="-0.25" max="0.25" step="0.001" value="-0.037" style="width:84px"><span class="val" id="d2o">&minus;0.037</span></div>
+  <div class="grp"><span class="lbl">&eta;<sub>&kappa;</sub></span><input type="range" id="et" min="0.05" max="0.60" step="0.005" value="0.295" style="width:96px"><span class="val" id="eto">0.295</span></div>
+</div>
+<svg id="rsv" class="svg" viewBox="0 0 680 230" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+<div class="cap">Eq. (4) · real-space &Psi;(z) — drag the blue dots (A&#8320;&ndash;A&#8324;) · top 3 layers shift by &Delta;z · layers 5&ndash;15 form the coral &eta;-tail</div>
+<svg id="ksv" class="svg" viewBox="0 0 680 230" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+<div class="cap">Eq. (5) · ARPES I(k<sub>z</sub>) — solid = intensity, dashed = form-factor envelope</div>
+<div class="eqbox">
+  <div class="eqlabel">Fitting expression with surface relaxation and &eta;-tail (SM Sec. 2)</div>
+  <div class="eqn"><span class="sum"><span class="lim">n</span><span class="sig">&Sigma;</span><span class="lim">l=0</span></span> A<sub>l,&kappa;</sub> e<sup>2&pi;ik<sub>z</sub>z<sub>l</sub></sup><span class="note">(n &lt; 5 in our model)</span><br><span class="arrow">&rarr;</span><span class="sum"><span class="lim">2</span><span class="sig">&Sigma;</span><span class="lim">l=0</span></span> A<sub>l,&kappa;</sub> e<sup>2&pi;ik<sub>z</sub>(l+&Delta;z<sub>l</sub>)</sup><span class="op">+</span><span class="sum"><span class="lim">4</span><span class="sig">&Sigma;</span><span class="lim">l=3</span></span> A<sub>l,&kappa;</sub> e<sup>2&pi;ik<sub>z</sub>l</sup><span class="op">+</span><span class="sum"><span class="lim">15</span><span class="sig">&Sigma;</span><span class="lim">l=5</span></span> A<sub>4,&kappa;</sub> e<sup>&minus;(l&minus;4)&eta;<sub>&kappa;</sub></sup> e<sup>2&pi;ik<sub>z</sub>l</sup><span class="note">(For our realistic model)</span></div>
+</div>
+</div>
+
+<footer>I(k<sub>z</sub>) = |form factor|<sup>2</sup> &times; |&Sigma;<sub>l</sub> A<sub>l</sub> e<sup>2&pi;ik<sub>z</sub>z<sub>l</sub></sup>|<sup>2</sup>. Self-contained — no external dependencies.</footer>
+
+<script>
+(function(){
+  const NS="http://www.w3.org/2000/svg", TAU=2*Math.PI, PI2=Math.PI*Math.PI;
+  const st={N:4,w:0.18};
+  const C={blue:"#378ADD",fill:"rgba(55,138,221,0.16)",coral:"#D85A30",red:"#E24B4A"};
+  const cv=n=>(getComputedStyle(document.documentElement).getPropertyValue(n)||"#888").trim();
+  const grid=cv("--color-border-tertiary"), zero=cv("--color-border-secondary"), txt=cv("--color-text-secondary");
+  const xR=z=>56+(z+0.6)/8*588, yP=p=>188-(p/1.35)*158;
+  const xK=k=>56+k/4*588, yI=v=>188-v*158;
+  const mk=(p,t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e;};
+  const ps=pts=>{let d="";for(let i=0;i<pts.length;i++)d+=(i?"L":"M")+pts[i][0].toFixed(1)+" "+pts[i][1].toFixed(1)+" ";return d;};
+  const f1r=document.getElementById("f1r"), f1k=document.getElementById("f1k");
+  let areaP,psiP,occG, ikzP,nodeG;
+  function build(){
+    for(let z=0;z<=7;z++){const x=xR(z);
+      mk(f1r,"line",{x1:x,y1:30,x2:x,y2:188,stroke:grid,"stroke-width":0.5});
+      mk(f1r,"text",{x:x,y:204,fill:txt,"font-size":12,"text-anchor":"middle"}).textContent=z;}
+    mk(f1r,"line",{x1:56,y1:188,x2:644,y2:188,stroke:zero,"stroke-width":0.5});
+    mk(f1r,"text",{x:644,y:204,fill:txt,"font-size":12,"text-anchor":"end"}).textContent="z (layer)";
+    areaP=mk(f1r,"path",{fill:C.fill,stroke:"none"});
+    psiP=mk(f1r,"path",{fill:"none",stroke:C.blue,"stroke-width":2}); occG=mk(f1r,"g",{});
+    for(let k=0;k<=4;k++){const x=xK(k);
+      mk(f1k,"line",{x1:x,y1:30,x2:x,y2:188,stroke:grid,"stroke-width":0.5});
+      mk(f1k,"text",{x:x,y:204,fill:txt,"font-size":12,"text-anchor":"middle"}).textContent=k;}
+    mk(f1k,"line",{x1:56,y1:188,x2:644,y2:188,stroke:zero,"stroke-width":0.5});
+    mk(f1k,"text",{x:644,y:204,fill:txt,"font-size":12,"text-anchor":"end"}).textContent="k_z (2pi/a)";
+    ikzP=mk(f1k,"path",{fill:"none",stroke:C.coral,"stroke-width":2}); nodeG=mk(f1k,"g",{});
+  }
+  function redraw(){
+    const N=st.N,w=st.w;
+    const pts=[];
+    for(let z=-0.6;z<=7.4;z+=0.03){let p=0;for(let l=0;l<N;l++)p+=Math.exp(-(z-l)*(z-l)/(2*w*w));pts.push([xR(z),yP(p)]);}
+    psiP.setAttribute("d",ps(pts));
+    areaP.setAttribute("d",ps(pts)+"L"+xR(7.4).toFixed(1)+" 188 L"+xR(-0.6).toFixed(1)+" 188 Z");
+    occG.innerHTML="";
+    for(let l=0;l<7;l++) mk(occG,"circle",{cx:xR(l),cy:188,r:l<N?4:3,fill:l<N?C.blue:"none",stroke:l<N?"none":txt,"stroke-width":0.8});
+    let Imax=1e-9;const Ig=[];
+    for(let k=0;k<=4.001;k+=0.008){
+      let re=0,im=0;for(let l=0;l<N;l++){re+=Math.cos(TAU*k*l);im+=Math.sin(TAU*k*l);}
+      const I=Math.exp(-4*PI2*w*w*k*k)*(re*re+im*im);Ig.push([k,I]);if(I>Imax)Imax=I;}
+    ikzP.setAttribute("d",ps(Ig.map(([k,I])=>[xK(k),yI(I/Imax)])));
+    nodeG.innerHTML="";
+    for(let j=0;j<4;j++)for(let m=1;m<N;m++){const k=j+m/N;if(k<4)mk(nodeG,"circle",{cx:xK(k),cy:188,r:3,fill:C.red});}
+    document.getElementById("f1read").textContent="N = "+N+" layers  ->  "+(N-1)+" nodes between peaks";
+    document.querySelectorAll(".f1n").forEach(b=>b.classList.toggle("on",+b.dataset.n===N));
+  }
+  document.querySelectorAll(".f1n").forEach(b=>b.onclick=()=>{st.N=+b.dataset.n;redraw();});
+  const ws=document.getElementById("f1w"),wo=document.getElementById("f1wO");
+  ws.oninput=()=>{st.w=parseFloat(ws.value);wo.textContent=st.w.toFixed(2);redraw();};
+  build();redraw();
+})();
+</script>
+
+<script>
+(function(){
+  const NS="http://www.w3.org/2000/svg", TAU=2*Math.PI, PI2=Math.PI*Math.PI;
+  const C={blue:"#378ADD",blueF:"rgba(55,138,221,0.30)",fill:"rgba(55,138,221,0.13)",coral:"#D85A30",coralF:"rgba(216,90,48,0.45)"};
+  const st={orbital:"even",w:0.0765,A:[1,0.1402,0.1528,0.0654,0.0],dz:[0.010,0.034,-0.037],eta:0.295,real:true};
+  const cv=n=>(getComputedStyle(document.documentElement).getPropertyValue(n)||"#888").trim();
+  const grid=cv("--color-border-tertiary"),zero=cv("--color-border-secondary"),txt=cv("--color-text-secondary");
+  const xR=z=>56+(z+0.5)/12*588, yA=a=>114-a*74.8, yToA=y=>(114-y)/74.8;
+  const xK=k=>56+k/4*588, yI=v=>200-v*172;
+  const mk=(p,t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e;};
+  const ps=A=>{let d="";for(let i=0;i<A.length;i++)d+=(i?"L":"M")+A[i][0].toFixed(1)+" "+A[i][1].toFixed(1)+" ";return d;};
+  const rsv=document.getElementById("rsv"),ksv=document.getElementById("ksv");
+  let areaP,layG,tailP,psiP,handG,handTxtG,bdry, envP,ikzP;
+  function build(){
+    for(let z=0;z<=11;z++){const x=xR(z);
+      mk(rsv,"line",{x1:x,y1:26,x2:x,y2:200,stroke:grid,"stroke-width":0.5});
+      mk(rsv,"text",{x:x,y:216,fill:txt,"font-size":11,"text-anchor":"middle"}).textContent=z;}
+    mk(rsv,"line",{x1:56,y1:114,x2:644,y2:114,stroke:zero,"stroke-width":0.5});
+    mk(rsv,"text",{x:644,y:216,fill:txt,"font-size":11,"text-anchor":"end"}).textContent="z (layer)";
+    bdry=mk(rsv,"line",{x1:xR(4.5),y1:26,x2:xR(4.5),y2:200,stroke:C.coral,"stroke-width":0.5,"stroke-dasharray":"3 3",opacity:0.6});
+    areaP=mk(rsv,"path",{fill:C.fill,stroke:"none"});
+    layG=mk(rsv,"g",{}); tailP=mk(rsv,"path",{fill:"none",stroke:C.coralF,"stroke-width":1.2});
+    psiP=mk(rsv,"path",{fill:"none",stroke:C.blue,"stroke-width":2}); handG=mk(rsv,"g",{});
+    for(let k=0;k<=4;k++){const x=xK(k);
+      mk(ksv,"line",{x1:x,y1:26,x2:x,y2:200,stroke:grid,"stroke-width":0.5});
+      mk(ksv,"text",{x:x,y:216,fill:txt,"font-size":11,"text-anchor":"middle"}).textContent=k;}
+    for(const h of [0.5,1.5,2.5,3.5])mk(ksv,"line",{x1:xK(h),y1:192,x2:xK(h),y2:200,stroke:grid,"stroke-width":0.5,"stroke-dasharray":"2 2"});
+    mk(ksv,"line",{x1:56,y1:200,x2:644,y2:200,stroke:zero,"stroke-width":0.5});
+    mk(ksv,"text",{x:644,y:216,fill:txt,"font-size":11,"text-anchor":"end"}).textContent="k_z (2pi/a)";
+    envP=mk(ksv,"path",{fill:"none",stroke:txt,"stroke-width":1,"stroke-dasharray":"4 4",opacity:0.7});
+    ikzP=mk(ksv,"path",{fill:"none",stroke:C.coral,"stroke-width":2});
+    for(let l=0;l<5;l++){const c=mk(handG,"circle",{r:7,fill:C.blue,stroke:"#fff","stroke-width":1.5,style:"cursor:ns-resize"});c.dataset.l=l;c.addEventListener("pointerdown",e=>{e.preventDefault();drag=l;});}
+    handTxtG=mk(rsv,"g",{});
+    for(let l=0;l<5;l++)mk(handTxtG,"text",{fill:C.blue,"font-size":11,"font-weight":500,"text-anchor":"middle"});
+  }
+  function basisD(d){if(st.orbital==="even")return Math.exp(-d*d/(2*st.w*st.w));return d*Math.exp(-d*d/(2*st.w*st.w))/(st.w*Math.exp(-0.5));}
+  function zpos(l){return (st.real&&l<3)?l+st.dz[l]:l;}
+  function tailAmp(l){return st.A[4]*Math.exp(-(l-4)*st.eta);}
+  function redraw(){
+    const pts=[],tpts=[];
+    for(let z=-0.5;z<=11.5;z+=0.03){
+      let p=0;for(let l=0;l<5;l++)p+=st.A[l]*basisD(z-zpos(l));
+      let t=0;if(st.real)for(let l=5;l<=15;l++)t+=tailAmp(l)*basisD(z-l);
+      pts.push([xR(z),yA(p+t)]); tpts.push([xR(z),yA(t)]);
+    }
+    psiP.setAttribute("d",ps(pts));
+    areaP.setAttribute("d",ps(pts)+"L"+xR(11.5).toFixed(1)+" 114 L"+xR(-0.5).toFixed(1)+" 114 Z");
+    tailP.setAttribute("d",(st.real&&Math.abs(st.A[4])>1e-4)?ps(tpts):"");
+    bdry.setAttribute("opacity",st.real?0.6:0);
+    layG.innerHTML="";
+    for(let l=0;l<5;l++){if(Math.abs(st.A[l])<1e-4)continue;const lp=[];for(let z=zpos(l)-1.3;z<=zpos(l)+1.3;z+=0.04)lp.push([xR(z),yA(st.A[l]*basisD(z-zpos(l)))]);mk(layG,"path",{d:ps(lp),fill:"none",stroke:C.blueF,"stroke-width":1});}
+    const hc=[...handG.children], ht=[...handTxtG.children];
+    for(let l=0;l<5;l++){
+      const cx=xR(zpos(l)), cy=yA(st.A[l]);
+      hc[l].setAttribute("cx",cx); hc[l].setAttribute("cy",cy);
+      ht[l].setAttribute("x",cx); ht[l].setAttribute("y", cy<44 ? cy+19 : cy-11);
+      ht[l].textContent=st.A[l].toFixed(2);
+    }
+    let Imax=1e-9,sa=0;const Ig=[];
+    for(let l=0;l<5;l++)sa+=Math.abs(st.A[l]);
+    if(st.real)for(let l=5;l<=15;l++)sa+=Math.abs(tailAmp(l));
+    for(let k=0;k<=4.001;k+=0.008){
+      let re=0,im=0;
+      for(let l=0;l<5;l++){const ph=TAU*k*zpos(l);re+=st.A[l]*Math.cos(ph);im+=st.A[l]*Math.sin(ph);}
+      if(st.real)for(let l=5;l<=15;l++){const a=tailAmp(l),ph=TAU*k*l;re+=a*Math.cos(ph);im+=a*Math.sin(ph);}
+      const ff=(st.orbital==="even"?1:k*k)*Math.exp(-4*PI2*st.w*st.w*k*k);
+      const I=ff*(re*re+im*im);Ig.push([k,I,ff*sa*sa]);if(I>Imax)Imax=I;
+    }
+    ikzP.setAttribute("d",ps(Ig.map(([k,I])=>[xK(k),yI(I/Imax)])));
+    envP.setAttribute("d",ps(Ig.map(([k,,e])=>[xK(k),yI(Math.min(e/Imax,1.02))])));
+  }
+  let drag=null;
+  window.addEventListener("pointermove",e=>{if(drag===null)return;const r=rsv.getBoundingClientRect();let a=yToA((e.clientY-r.top)/r.height*230);a=Math.max(-1,Math.min(1,a));st.A[drag]=Math.round(a*1000)/1000;redraw();});
+  window.addEventListener("pointerup",()=>{drag=null;});
+  const sgn=v=>(v>=0?"+":"\u2212")+Math.abs(v).toFixed(3);
+  const bE=document.getElementById("bE"),bO=document.getElementById("bO");
+  const wS=document.getElementById("wS"),wO=document.getElementById("wO");
+  const d0=document.getElementById("d0"),d1=document.getElementById("d1"),d2=document.getElementById("d2"),et=document.getElementById("et");
+  const d0o=document.getElementById("d0o"),d1o=document.getElementById("d1o"),d2o=document.getElementById("d2o"),eto=document.getElementById("eto");
+  const rt=document.getElementById("rt"),rp=document.getElementById("rp");
+  function syncUI(){
+    bE.classList.toggle("on",st.orbital==="even");bO.classList.toggle("on",st.orbital==="odd");
+    wS.value=st.w;wO.textContent=st.w.toFixed(3);
+    d0.value=st.dz[0];d1.value=st.dz[1];d2.value=st.dz[2];et.value=st.eta;
+    d0o.textContent=sgn(st.dz[0]);d1o.textContent=sgn(st.dz[1]);d2o.textContent=sgn(st.dz[2]);eto.textContent=st.eta.toFixed(3);
+    rt.classList.toggle("on",st.real);rt.textContent="Realistic model (\u0394z, \u03b7-tail): "+(st.real?"ON":"OFF");
+    rp.style.opacity=st.real?"1":"0.4";[d0,d1,d2,et].forEach(s=>s.disabled=!st.real);
+  }
+  bE.onclick=()=>{st.orbital="even";syncUI();redraw();};
+  bO.onclick=()=>{st.orbital="odd";syncUI();redraw();};
+  wS.oninput=()=>{st.w=parseFloat(wS.value);wO.textContent=st.w.toFixed(3);redraw();};
+  d0.oninput=()=>{st.dz[0]=parseFloat(d0.value);d0o.textContent=sgn(st.dz[0]);redraw();};
+  d1.oninput=()=>{st.dz[1]=parseFloat(d1.value);d1o.textContent=sgn(st.dz[1]);redraw();};
+  d2.oninput=()=>{st.dz[2]=parseFloat(d2.value);d2o.textContent=sgn(st.dz[2]);redraw();};
+  et.oninput=()=>{st.eta=parseFloat(et.value);eto.textContent=st.eta.toFixed(3);redraw();};
+  rt.onclick=()=>{st.real=!st.real;syncUI();redraw();};
+  document.getElementById("pXY").onclick=()=>{st.orbital="even";st.w=0.0765;st.A=[1,0.1402,0.1528,0.0654,0.0];st.dz=[0.010,0.034,-0.037];st.eta=0.295;st.real=true;syncUI();redraw();};
+  document.getElementById("pXZ").onclick=()=>{st.orbital="odd";st.w=0.0826;st.A=[0.2027,1,0.4527,0.2083,0.0901];st.dz=[-0.1916,-0.009,0.0117];st.eta=0.229;st.real=true;syncUI();redraw();};
+  build();syncUI();redraw();
+})();
+</script>
+</body>
+</html>

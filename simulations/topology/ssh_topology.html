@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSH 모형 · 1차원 위상 부도체</title>
+<style>
+  :root{
+    --ink:#1a1a18; --ink2:#56554d; --paper:#faf9f5; --card:#ffffff;
+    --line:#d8d6cc; --line2:#c4c2b6;
+    --color-text-primary:#1a1a18; --color-text-secondary:#56554d;
+    --color-border-tertiary:rgba(120,118,108,0.30);
+    --color-background-secondary:#edebe3; --color-background-info:#eaf1fb;
+    --color-text-info:#1f5fa8; --color-border-info:#9cc0e8;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    --border-radius-md:7px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);background-image:radial-gradient(rgba(0,0,0,0.018) 1px,transparent 1px);background-size:22px 22px;color:var(--ink);font-family:var(--font-sans);line-height:1.6;padding:32px 18px 60px;}
+  .wrap{max-width:980px;margin:0 auto;}
+  header{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:8px;}
+  h1{font-family:Georgia,serif;font-weight:600;font-size:29px;letter-spacing:-0.01em;margin:0 0 4px;}
+  .sub{font-family:Georgia,serif;font-style:italic;color:var(--ink2);font-size:16px;}
+  .intro{font-size:13.5px;color:var(--ink2);margin:14px 0 22px;max-width:780px;}
+  .intro code{font-family:Consolas,monospace;background:#f0eee6;padding:1px 5px;border-radius:4px;font-size:12.5px;color:var(--ink);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 20px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.04),0 8px 24px -16px rgba(0,0,0,0.25);}
+  .modebtn{padding:6px 13px;font-size:14px;border-radius:var(--border-radius-md);border:1px solid var(--line2);background:transparent;color:var(--ink);cursor:pointer;font-family:inherit;}
+  .modebtn:hover{background:#f3f1e9;}
+  .modebtn[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:500;}
+  .ctrlgrp{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;margin-bottom:16px;}
+  .ctrl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);}
+  .ctrl input[type=range]{width:130px;accent-color:#EF9F27;}
+  .ctrl .val{min-width:42px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+  canvas{width:100%;height:380px;display:block;}
+  #readout{font-size:13px;color:var(--ink2);margin-top:14px;line-height:1.65;border-top:1px solid var(--line);padding-top:12px;min-height:48px;}
+  #readout b{color:var(--ink);}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+  footer{margin-top:20px;font-size:12px;color:#908e84;}
+  .toprow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>SSH 모형 &middot; 1차원 위상 부도체</h1>
+  <div class="sub">다이머화 사슬에서의 Zak 위상과 끝 상태</div>
+</header>
+<p class="intro">
+  두 부분격자 A, B가 번갈아 놓인 사슬입니다. 셀 <b>안</b> 도약 <code>v</code> 와 셀 <b>사이</b> 도약 <code>w</code> 가 다르면(다이머화) 띠가 갈라지고,
+  Bloch 해밀토니안 <code>H(k)=d(k)·σ</code>, <code>d(k)=(v+w cos k, w sin k)</code> 가 됩니다.
+  <code>w&gt;v</code> 면 <code>d(k)</code> 고리가 원점을 감싸 감음수 1·Zak 위상 π 의 <b>위상 상</b>이 되고, 유한 사슬 양 끝에 영-에너지 끝상태가 나타납니다(bulk-boundary correspondence).
+  모든 수치(갭 닫힘, 감음수/Zak 양자화, 끝상태 개수·국소화, 카이랄 대칭)는 numpy로 독립 검산했습니다.
+</p>
+
+<div class="card">
+  <div class="toprow">
+    <div style="display:flex;gap:7px;flex-wrap:wrap;">
+      <button class="modebtn" data-mode="bulk" aria-pressed="true">벌크: 띠 · 감음수</button>
+      <button class="modebtn" data-mode="edge" aria-pressed="false">끝 상태</button>
+    </div>
+    <div class="ctrl"><label>다이머화 δ</label><input type="range" id="delta" min="-1" max="1" step="0.02" value="0.5"><span class="val" id="deltav">+0.50</span></div>
+  </div>
+
+  <div id="ctrl-bulk" class="ctrlgrp">
+    <span style="font-size:13px;color:var(--ink2);">v = 1−δ, &nbsp; w = 1+δ &nbsp;→&nbsp; <span id="vwlabel" style="color:var(--ink);font-weight:600;"></span></span>
+  </div>
+
+  <div id="ctrl-edge" class="ctrlgrp" style="display:none;">
+    <div class="ctrl"><label>사슬 길이 (셀 수) N</label><input type="range" id="ncell" min="6" max="24" step="1" value="12"><span class="val" id="ncellv">12</span></div>
+    <div class="ctrl"><label>상태 번호</label><input type="range" id="sidx" min="1" max="24" step="1" value="12"><span class="val" id="sidxv">12</span></div>
+    <button class="modebtn" id="zerobtn">영-모드로</button>
+  </div>
+
+  <canvas id="cv"></canvas>
+  <div id="readout"></div>
+</div>
+
+<footer>SSH (Su–Schrieffer–Heeger) tight-binding 모형. 일반 대칭행렬 Jacobi 대각화. 오프라인 단독 실행 가능.</footer>
+</div>
+
+<script>
+(function(){
+const COL={lo:'#378ADD',up:'#1D9E75',d:'#EF9F27',zero:'#EF9F27',A:'#378ADD',B:'#D4537E',mark:'#EF9F27',cen:'#EF9F27'};
+function cv1(n,f){const v=getComputedStyle(document.documentElement).getPropertyValue(n).trim();return v||f;}
+function kcol(k){const t=(k+Math.PI)/(2*Math.PI);let r,g,b;if(t<0.5){const u=t/0.5;r=55+(154-55)*u;g=138+(152-138)*u;b=221+(146-221)*u;}else{const u=(t-0.5)/0.5;r=154+(239-154)*u;g=152+(159-152)*u;b=146+(39-146)*u;}return 'rgb('+(r|0)+','+(g|0)+','+(b|0)+')';}
+
+function getVW(){return {v:1-state.delta, w:1+state.delta};}
+function dvec(k,v,w){return [v+w*Math.cos(k), w*Math.sin(k)];}
+function winding(){const {v,w}=getVW(),Nn=2000;let sum=0,prev=Math.atan2(w*Math.sin(-Math.PI),v+w*Math.cos(-Math.PI));
+  for(let i=1;i<=Nn;i++){const k=-Math.PI+2*Math.PI*i/Nn;const a=Math.atan2(w*Math.sin(k),v+w*Math.cos(k));let d=a-prev;d=((d+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;sum+=d;prev=a;}
+  return Math.round(Math.abs(sum/(2*Math.PI)));}
+
+// general symmetric eigensolver (Jacobi)
+function eigSym(A,n){const a=A.map(r=>Float64Array.from(r)),V=[];
+  for(let i=0;i<n;i++){const r=new Float64Array(n);r[i]=1;V.push(r);}
+  for(let sweep=0;sweep<100;sweep++){let off=0;for(let p=0;p<n;p++)for(let q=p+1;q<n;q++)off+=a[p][q]*a[p][q];if(off<1e-20)break;
+    for(let p=0;p<n;p++)for(let q=p+1;q<n;q++){if(Math.abs(a[p][q])<1e-18)continue;
+      const phi=0.5*Math.atan2(2*a[p][q],a[q][q]-a[p][p]),c=Math.cos(phi),s=Math.sin(phi);
+      for(let i=0;i<n;i++){const aip=a[i][p],aiq=a[i][q];a[i][p]=c*aip-s*aiq;a[i][q]=s*aip+c*aiq;}
+      for(let i=0;i<n;i++){const api=a[p][i],aqi=a[q][i];a[p][i]=c*api-s*aqi;a[q][i]=s*api+c*aqi;}
+      for(let i=0;i<n;i++){const vip=V[i][p],viq=V[i][q];V[i][p]=c*vip-s*viq;V[i][q]=s*vip+c*viq;}}}
+  const idx=[...Array(n).keys()].sort((i,j)=>a[i][i]-a[j][j]);
+  return {vals:idx.map(i=>a[i][i]),vecs:idx.map(col=>{const u=new Float64Array(n);for(let i=0;i<n;i++)u[i]=V[i][col];return u;})};}
+
+let chainCache={key:'',data:null};
+function finiteChain(){const {v,w}=getVW(),N=state.N,key=v.toFixed(3)+'|'+w.toFixed(3)+'|'+N;
+  if(chainCache.key===key)return chainCache.data;
+  const L=2*N,H=[];for(let i=0;i<L;i++)H.push(new Float64Array(L));
+  for(let n=0;n<N;n++){const a=2*n,b=2*n+1;H[a][b]=H[b][a]=v;if(n<N-1){H[b][b+1]=H[b+1][b]=w;}}
+  const r=eigSym(H,L);chainCache={key,data:r};return r;}
+
+const state={mode:'bulk',delta:0.5,N:12,sidx:12};
+
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');let W,H;
+function resize(){const cw=cv.clientWidth,ch=cv.clientHeight,dpr=window.devicePixelRatio||1;cv.width=cw*dpr;cv.height=ch*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);W=cw;H=ch;draw();}
+function plot(x0,y0,w,h,xmin,xmax,ymin,ymax){return{x0,y0,w,h,px:x=>x0+(x-xmin)/(xmax-xmin)*w,py:y=>y0+h-(y-ymin)/(ymax-ymin)*h,xmin,xmax,ymin,ymax};}
+function axes(P,c){ctx.strokeStyle=c;ctx.lineWidth=1;ctx.strokeRect(P.x0,P.y0,P.w,P.h);}
+function txt(s,x,y,col,size,align,baseline){ctx.fillStyle=col;ctx.font=(size||11)+'px var(--font-sans),sans-serif';ctx.textAlign=align||'left';ctx.textBaseline=baseline||'alphabetic';ctx.fillText(s,x,y);}
+
+function drawBands(P){const {v,w}=getVW(),tcol=cv1('--color-text-secondary','#777'),bcol=cv1('--color-border-tertiary','rgba(120,120,120,0.3)');
+  axes(P,bcol);
+  ctx.strokeStyle=bcol;ctx.setLineDash([3,3]);ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(P.px(0),P.y0);ctx.lineTo(P.px(0),P.y0+P.h);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(P.x0,P.py(0));ctx.lineTo(P.x0+P.w,P.py(0));ctx.stroke();ctx.setLineDash([]);
+  const N=400;for(const sgn of [1,-1]){ctx.strokeStyle=sgn>0?COL.up:COL.lo;ctx.lineWidth=1.8;ctx.beginPath();
+    for(let i=0;i<=N;i++){const k=-Math.PI+2*Math.PI*i/N,d=dvec(k,v,w),E=sgn*Math.hypot(d[0],d[1]);const X=P.px(k),Y=P.py(E);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);}ctx.stroke();}
+  const gap=2*Math.abs(v-w);
+  ctx.strokeStyle=COL.mark;ctx.setLineDash([2,2]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(P.px(Math.PI),P.py(Math.abs(v-w)));ctx.lineTo(P.px(Math.PI),P.py(-Math.abs(v-w)));ctx.stroke();ctx.setLineDash([]);
+  txt('갭 '+gap.toFixed(2),P.px(Math.PI)-4,P.py(0),COL.mark,10.5,'right','middle');
+  txt('E₊',P.x0+8,P.py(Math.max(v+w-0.2,0.4)),COL.up,11,'left','middle');
+  txt('E₋',P.x0+8,P.py(-Math.max(v+w-0.2,0.4)),COL.lo,11,'left','middle');
+  txt('−π',P.px(-Math.PI),P.y0+P.h+13,tcol,11,'center');txt('0',P.px(0),P.y0+P.h+13,tcol,11,'center');txt('π',P.px(Math.PI),P.y0+P.h+13,tcol,11,'center');
+  txt('k',P.x0+P.w/2,P.y0+P.h+25,tcol,11,'center');
+  ctx.save();ctx.translate(P.x0-30,P.y0+P.h/2);ctx.rotate(-Math.PI/2);txt('Energy',0,0,tcol,11,'center');ctx.restore();
+  txt('띠 구조 E±(k)',P.x0+6,P.y0+12,tcol,11.5,'left','top');}
+
+function drawWinding(P){const {v,w}=getVW(),tcol=cv1('--color-text-secondary','#777'),bcol=cv1('--color-border-tertiary','rgba(120,120,120,0.3)');
+  axes(P,bcol);
+  const R=(v+w)+0.4,S=Math.min(P.w,P.h)/(2*R),cx=P.x0+P.w/2,cy=P.y0+P.h/2;
+  const mx=dx=>cx+dx*S, my=dy=>cy-dy*S;
+  ctx.strokeStyle=bcol;ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(mx(-R),cy);ctx.lineTo(mx(R),cy);ctx.moveTo(cx,my(-R));ctx.lineTo(cx,my(R));ctx.stroke();
+  const N=240;ctx.lineWidth=2.2;
+  for(let i=0;i<N;i++){const k0=-Math.PI+2*Math.PI*i/N,k1=-Math.PI+2*Math.PI*(i+1)/N,d0=dvec(k0,v,w),d1=dvec(k1,v,w);
+    ctx.strokeStyle=kcol((k0+k1)/2);ctx.beginPath();ctx.moveTo(mx(d0[0]),my(d0[1]));ctx.lineTo(mx(d1[0]),my(d1[1]));ctx.stroke();}
+  // origin marker
+  const W_=winding();ctx.strokeStyle=W_? '#c0392b':'#999';ctx.lineWidth=1.6;const r=5;
+  ctx.beginPath();ctx.moveTo(cx-r,cy-r);ctx.lineTo(cx+r,cy+r);ctx.moveTo(cx-r,cy+r);ctx.lineTo(cx+r,cy-r);ctx.stroke();
+  txt('원점',cx+8,cy+2,W_?'#c0392b':'#999',10,'left','middle');
+  txt('d(k) = (v+w·cos k, w·sin k)',P.x0+6,P.y0+12,tcol,11,'left','top');
+  txt(W_? '원점을 감쌈 → 감음수 1':'원점 밖 → 감음수 0',P.x0+P.w-6,P.y0+12,W_?'#c0392b':tcol,11,'right','top');
+  txt('dx',mx(R)-4,cy-6,tcol,10,'right');txt('dy',cx+6,my(R)+4,tcol,10,'left','top');}
+
+function drawChain(x0,y0,w,h,showCenters){const {v,w:ww}=getVW(),N=state.N,L=2*N;
+  const tcol=cv1('--color-text-secondary','#777');const xs=i=>x0+w*(i+0.5)/L,ymid=y0+h*0.5;
+  const strongW=ww>=v,maxh=Math.max(v,ww);
+  for(let i=0;i<L-1;i++){const intra=(i%2===0),str=intra?v:ww;
+    ctx.strokeStyle=(str>=maxh-1e-9)?'#1a1a18':'#cfcdc4';ctx.lineWidth=0.8+3.2*(str/maxh);
+    ctx.beginPath();ctx.moveTo(xs(i),ymid);ctx.lineTo(xs(i+1),ymid);ctx.stroke();}
+  for(let i=0;i<L;i++){ctx.fillStyle=(i%2===0)?COL.A:COL.B;ctx.beginPath();ctx.arc(xs(i),ymid,3.6,0,7);ctx.fill();}
+  if(showCenters){ctx.fillStyle=COL.cen;for(let i=0;i<L-1;i++){const intra=(i%2===0),str=intra?v:ww;if(str>=maxh-1e-9){const xc=(xs(i)+xs(i+1))/2;ctx.beginPath();ctx.arc(xc,ymid-9,2.8,0,7);ctx.fill();}}
+    txt('● 전하중심(강결합 위)',x0+w-4,y0+10,COL.cen,10,'right','top');}
+  txt('A',x0+6,ymid-7,COL.A,10,'left','middle');txt('B',x0+6,ymid+9,COL.B,10,'left','middle');
+  txt(strongW?'강결합 w = 셀 사이 (경계에 전하중심 → 끝 자리 dangling)':'강결합 v = 셀 내부 (전하중심이 셀 안)',x0+w/2,y0+h-2,tcol,10.5,'center','bottom');}
+
+function drawSpectrum(P){const {v,w}=getVW(),sp=finiteChain(),E=sp.vals,L=E.length;
+  const tcol=cv1('--color-text-secondary','#777'),bcol=cv1('--color-border-tertiary','rgba(120,120,120,0.3)');
+  const Emax=(v+w)+0.3;const PP=plot(P.x0,P.y0,P.w,P.h,-0.5,L-0.5,-Emax,Emax);axes(PP,bcol);
+  ctx.strokeStyle=bcol;ctx.setLineDash([3,3]);ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(PP.x0,PP.py(0));ctx.lineTo(PP.x0+PP.w,PP.py(0));ctx.stroke();ctx.setLineDash([]);
+  const thr=0.5*Math.abs(v-w);const sel=state.sidx-1;
+  for(let i=0;i<L;i++){const zero=Math.abs(E[i])<thr;ctx.fillStyle=zero?COL.zero:'#8a887e';ctx.beginPath();ctx.arc(PP.px(i),PP.py(E[i]),zero?3.6:2.4,0,7);ctx.fill();
+    if(i===sel){ctx.strokeStyle='#1a1a18';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(PP.px(i),PP.py(E[i]),5.5,0,7);ctx.stroke();}}
+  txt('유한 사슬 스펙트럼',PP.x0+6,PP.y0+12,tcol,11,'left','top');
+  txt('E=0',PP.x0+4,PP.py(0)-3,tcol,10,'left','bottom');
+  txt('상태 번호',PP.x0+PP.w/2,PP.y0+PP.h+13,tcol,11,'center');
+  ctx.save();ctx.translate(PP.x0-30,PP.y0+PP.h/2);ctx.rotate(-Math.PI/2);txt('Energy',0,0,tcol,11,'center');ctx.restore();}
+
+function drawWavefn(P){const {v,w}=getVW(),sp=finiteChain(),L=sp.vals.length,sel=Math.max(0,Math.min(L-1,state.sidx-1));
+  const vec=sp.vecs[sel],tcol=cv1('--color-text-secondary','#777'),bcol=cv1('--color-border-tertiary','rgba(120,120,120,0.3)');
+  let mx=0;for(let i=0;i<L;i++)mx=Math.max(mx,vec[i]*vec[i]);mx=mx||1;
+  const topH=P.h*0.66, chH=P.h*0.34;const PP={x0:P.x0,y0:P.y0,w:P.w,h:topH};axes(PP,bcol);
+  const base=PP.y0+PP.h-6, xs=i=>PP.x0+PP.w*(i+0.5)/L;
+  for(let i=0;i<L;i++){const hgt=(vec[i]*vec[i]/mx)*(PP.h-16);ctx.strokeStyle=(i%2===0)?COL.A:COL.B;ctx.lineWidth=Math.max(2,PP.w/L*0.5);
+    ctx.beginPath();ctx.moveTo(xs(i),base);ctx.lineTo(xs(i),base-hgt);ctx.stroke();
+    ctx.fillStyle=(i%2===0)?COL.A:COL.B;ctx.beginPath();ctx.arc(xs(i),base-hgt,2,0,7);ctx.fill();}
+  txt('선택 상태 |ψᵢ|²  (A 파랑 · B 분홍)',PP.x0+6,PP.y0+12,tcol,11,'left','top');
+  txt('E = '+sp.vals[sel].toFixed(3),PP.x0+PP.w-6,PP.y0+12,tcol,11,'right','top');
+  drawChain(P.x0,P.y0+topH+6,P.w,chH-6,false);
+  txt('자리 i →',PP.x0+PP.w/2,PP.y0+topH-2,tcol,10,'center','bottom');}
+
+function draw(){if(!W)return;ctx.clearRect(0,0,W,H);
+  const ml=44,mr=12,mt=16,mb=28;
+  document.getElementById('vwlabel').textContent='v='+(1-state.delta).toFixed(2)+', w='+(1+state.delta).toFixed(2);
+  const {v,w}=getVW(),Wn=winding(),gap=2*Math.abs(v-w);
+  if(state.mode==='bulk'){
+    const stripH=66, ph=H-mt-mb-stripH, gap2=34, innerW=W-ml-mr-gap2, bw=innerW*0.54, ww2=innerW*0.46;
+    const Emax=(v+w)+0.3;
+    drawBands(plot(ml,mt,bw,ph,-Math.PI,Math.PI,-Emax,Emax));
+    drawWinding(plot(ml+bw+gap2,mt,ww2,ph,0,1,0,1));
+    drawChain(ml,mt+ph+18,W-ml-mr,stripH-20,true);
+    document.getElementById('readout').innerHTML='δ='+state.delta.toFixed(2)+' → v='+v.toFixed(2)+', w='+w.toFixed(2)+'. 갭 = 2|v−w| = <b>'+gap.toFixed(2)+'</b> (δ=0에서 닫힘). &nbsp;d(k) 고리가 원점을 '+(Wn?'<b>감쌉니다</b>':'<b>감싸지 않습니다</b>')+' → 감음수 <b>W='+Wn+'</b>, Zak 위상 γ = Wπ = <b>'+(Wn?'π':'0')+'</b>. &nbsp;'+(Wn?'<b>위상 상(topological)</b>: 강결합이 셀 경계에 놓여 전하중심(Wannier 중심)이 경계에 — 끝에 dangling 자리가 남아 끝상태가 생깁니다 (obstructed atomic limit).':'<b>자명(trivial)</b>: 강결합이 셀 내부, 전하중심이 셀 안 — 끝상태 없음.');
+  } else {
+    const sp=finiteChain(),L=sp.vals.length,gap3=34,innerW=W-ml-mr-gap3,sw=innerW*0.36,vw=innerW*0.64,ph=H-mt-mb;
+    drawSpectrum(plot(ml,mt,sw,ph,0,1,0,1));
+    drawWavefn(plot(ml+sw+gap3,mt,vw,ph,0,1,0,1));
+    const thr=0.5*Math.abs(v-w);let nz=0,emin=9;for(const e of sp.vals){if(Math.abs(e)<thr)nz++;}
+    const sel=Math.max(0,Math.min(L-1,state.sidx-1));
+    document.getElementById('readout').innerHTML='δ='+state.delta.toFixed(2)+', 사슬 '+state.N+'셀('+L+'자리). '+(nz>0?'갭 안에 <b>영-에너지 끝상태 '+nz+'개</b> (E≈±'+Math.max(...sp.vals.filter(e=>Math.abs(e)<thr).map(e=>Math.abs(e))).toExponential(1)+'). 카이랄 대칭으로 E=0 근방, 한 부분격자에만 살며 양 끝에 국소화 — bulk-boundary correspondence (감음수 W='+Wn+' = 끝상태 쌍 수).':'갭 안에 끝상태 <b>없음</b> (자명, W=0).')+' &nbsp;선택 상태 #'+state.sidx+': E='+sp.vals[sel].toFixed(3)+'.';
+  }}
+
+function setMode(m){state.mode=m;document.querySelectorAll('.modebtn[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.mode===m));
+  document.getElementById('ctrl-bulk').style.display=m==='bulk'?'flex':'none';
+  document.getElementById('ctrl-edge').style.display=m==='edge'?'flex':'none';
+  if(m==='edge')jumpZero();draw();}
+document.querySelectorAll('.modebtn[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+const dEl=document.getElementById('delta');dEl.oninput=()=>{state.delta=+dEl.value;document.getElementById('deltav').textContent=(state.delta>=0?'+':'')+state.delta.toFixed(2);clampS();draw();};
+const nEl=document.getElementById('ncell');nEl.oninput=()=>{state.N=+nEl.value;document.getElementById('ncellv').textContent=state.N;document.getElementById('sidx').max=2*state.N;clampS();draw();};
+const sEl=document.getElementById('sidx');sEl.oninput=()=>{state.sidx=+sEl.value;document.getElementById('sidxv').textContent=state.sidx;draw();};
+function clampS(){const L=2*state.N;if(state.sidx>L){state.sidx=L;}document.getElementById('sidx').max=L;document.getElementById('sidx').value=state.sidx;document.getElementById('sidxv').textContent=state.sidx;}
+function jumpZero(){const sp=finiteChain();let bi=0,bv=9;sp.vals.forEach((e,i)=>{if(Math.abs(e)<bv){bv=Math.abs(e);bi=i;}});state.sidx=bi+1;document.getElementById('sidx').value=state.sidx;document.getElementById('sidxv').textContent=state.sidx;}
+document.getElementById('zerobtn').onclick=()=>{jumpZero();draw();};
+
+new ResizeObserver(resize).observe(cv);resize();
+})();
+</script>
+</body>
+</html>

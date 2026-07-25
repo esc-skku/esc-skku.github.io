@@ -17,7 +17,7 @@ nav.crumb{font-size:13px;margin-bottom:18px}
 footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:14px;font-family:'IBM Plex Mono',monospace}
 </style></head><body><main>
 <nav class="crumb"><a href="index.html">← 시뮬레이션 목록</a></nav>
-<div class="eyebrow">첨단진공과학기술 · 전자회절 02</div>
+<div class="eyebrow">전자회절 02</div>
 <h1>Laue zone이 원호인 이유 — 빔 방향에서 바라보기</h1>
 <p class="lede">같은 Laue zone의 rod들은 빔 방향 성분 G<sub>x</sub>가 같으므로 k<sub>out</sub>의 전방 성분이 같고, 남은 두 성분이 k<sub>y</sub>² + k<sub>z</sub>² = 일정인 원뿔을 이룹니다. 빔 방향에서 보면(front view) 거대한 Ewald 구가 zone당 원 하나로 줄어들고, 세로선(rod)이 그 원을 뚫는 자리가 스팟입니다. front view와 스크린이 거의 같은 그림임을 확인하세요. 원의 아래쪽 절반 교점은 k<sub>out</sub>이 시료 쪽을 향해 차단됩니다 — Laue zone이 반원 호인 이유. top view에서 rod를 클릭하면 세 패널에서 같은 rod가 링으로 표시됩니다.</p>
 
@@ -45,6 +45,11 @@ footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px s
   <div id="cap" style="font-size:12px; color:var(--text-secondary); margin-top:8px; min-height:30px;"></div>
 
   <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px 22px; margin-top:0.75rem;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="a03" style="font-size:13px; color:var(--text-secondary); min-width:64px;">a (Å)</label>
+      <input type="range" id="a03" min="2.5" max="6.5" step="0.05" value="3.9" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:52px; text-align:right;" id="a03Out">3.90 Å</span>
+    </div>
     <div style="display:flex; align-items:center; gap:10px;">
       <label for="tg3" style="font-size:13px; color:var(--text-secondary); min-width:64px;">θ<sub>g</sub></label>
       <input type="range" id="tg3" min="0.5" max="6" step="0.1" value="2.5" style="flex:1;" />
@@ -221,6 +226,7 @@ footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px s
   });
   function sl(id,key,fmt){ document.getElementById(id).addEventListener('input',function(){
     S[key]=+this.value; document.getElementById(id+'Out').textContent=fmt(S[key]); refresh(); }); }
+  document.getElementById('a03').addEventListener('input',function(){ A0=+this.value; document.getElementById('a03Out').textContent=A0.toFixed(2)+' Å'; refresh(); });
   sl('tg3','tg',function(v){return v.toFixed(1)+'\u00b0';});
   sl('ke3','ke',function(v){return v.toFixed(0)+' keV';});
   window.addEventListener('resize',refresh);
