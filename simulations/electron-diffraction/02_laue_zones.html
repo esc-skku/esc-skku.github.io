@@ -1,0 +1,230 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laue zone이 원호인 이유 — 빔 방향에서 본 Ewald 구</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#101211;--surface-1:#1a1d1b;--text-primary:#e8ece9;--text-secondary:#a8b0aa;--text-muted:#6f7772;--border:#2c302d;--border-accent:#55e6a5;--radius:8px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text-primary);font-family:'IBM Plex Sans KR',sans-serif;line-height:1.6}
+main{max-width:960px;margin:0 auto;padding:28px 20px 64px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;color:var(--border-accent)}
+h1{font-size:25px;font-weight:600;margin:6px 0 10px}
+p.lede{color:var(--text-secondary);font-size:14.5px;max-width:72ch;margin:0 0 22px}
+button{background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);cursor:pointer;font-family:inherit}
+button:hover{border-color:var(--text-muted)}
+input[type=range]{accent-color:var(--border-accent)}
+a{color:var(--border-accent);text-decoration:none}
+nav.crumb{font-size:13px;margin-bottom:18px}
+footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:14px;font-family:'IBM Plex Mono',monospace}
+</style></head><body><main>
+<nav class="crumb"><a href="index.html">← 시뮬레이션 목록</a></nav>
+<div class="eyebrow">첨단진공과학기술 · 전자회절 02</div>
+<h1>Laue zone이 원호인 이유 — 빔 방향에서 바라보기</h1>
+<p class="lede">같은 Laue zone의 rod들은 빔 방향 성분 G<sub>x</sub>가 같으므로 k<sub>out</sub>의 전방 성분이 같고, 남은 두 성분이 k<sub>y</sub>² + k<sub>z</sub>² = 일정인 원뿔을 이룹니다. 빔 방향에서 보면(front view) 거대한 Ewald 구가 zone당 원 하나로 줄어들고, 세로선(rod)이 그 원을 뚫는 자리가 스팟입니다. front view와 스크린이 거의 같은 그림임을 확인하세요. 원의 아래쪽 절반 교점은 k<sub>out</sub>이 시료 쪽을 향해 차단됩니다 — Laue zone이 반원 호인 이유. top view에서 rod를 클릭하면 세 패널에서 같은 rod가 링으로 표시됩니다.</p>
+
+<div style="padding:0.5rem 0 0;">
+  <div style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;">top view — click a rod to follow it through every panel</div>
+  <div style="position:relative; width:100%; height:165px; background:var(--surface-1); border-radius:var(--radius);">
+    <canvas id="tv" role="img" aria-label="Top view of the reciprocal rod grid with the grazing beam entering from the left; rods are colored by which Laue zone they contribute to">Top view of rods.</canvas>
+  </div>
+
+  <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; margin-top:10px;">
+    <div>
+      <div style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;">front view — looking along the beam</div>
+      <div style="position:relative; width:100%; height:265px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="fv" role="img" aria-label="Front view along the beam: the Ewald sphere cut by the planes of constant forward momentum appears as concentric circles crossing the vertical rods">Front view.</canvas>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;">screen — what the camera records</div>
+      <div style="position:relative; width:100%; height:265px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="sv" role="img" aria-label="RHEED screen pattern with Laue arcs and spots colored to match the front view">Screen.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div id="cap" style="font-size:12px; color:var(--text-secondary); margin-top:8px; min-height:30px;"></div>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px 22px; margin-top:0.75rem;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="tg3" style="font-size:13px; color:var(--text-secondary); min-width:64px;">θ<sub>g</sub></label>
+      <input type="range" id="tg3" min="0.5" max="6" step="0.1" value="2.5" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:44px; text-align:right;" id="tg3Out">2.5°</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="ke3" style="font-size:13px; color:var(--text-secondary); min-width:64px;">energy</label>
+      <input type="range" id="ke3" min="5" max="30" step="0.5" value="15" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:44px; text-align:right;" id="ke3Out">15 keV</span>
+    </div>
+  </div>
+</div>
+
+<footer>ESC Lab, SKKU · kinematic simulation — spot positions only; intensities require dynamical theory</footer>
+
+<script>
+(function(){
+  var dark=true;
+  var mut='#898781', line=dark?'#4a4a46':'#c9c7bf', kinC='#d95926';
+  var ZC=[dark?'#5DCAA5':'#0F6E56', dark?'#AFA9EC':'#534AB7', dark?'#ED93B1':'#993556'];
+  var ZCs=['#5DCAA5','#AFA9EC','#ED93B1'];
+  var selC=dark?'#FAC775':'#BA7517';
+  var A0=3.9, S={tg:2.5, ke:15}, Sel={h:0,l:1};
+  var TANV=Math.tan(15*Math.PI/180), TANH=Math.tan(10*Math.PI/180);
+  var hit=[];
+
+  function K(){ return A0/Math.sqrt(150.4/(S.ke*1000)); }
+  function geom(){
+    var k=K(), th=S.tg*Math.PI/180;
+    return {k:k, th:th, Cx:-k*Math.cos(th), Cz:k*Math.sin(th)};
+  }
+  function inter(h,l){
+    var g=geom(), d2=g.k*g.k-(h-g.Cx)*(h-g.Cx)-l*l;
+    if(d2<=0) return null;
+    var s=Math.sqrt(d2);
+    return {up:g.Cz+s, lo:g.Cz-s, kx:h-g.Cx, Cz:g.Cz};
+  }
+  function onscreen(h,l){
+    var it=inter(h,l); if(!it) return null;
+    var vz=(it.up-it.Cz)/it.kx, vy=l/it.kx;
+    if(vz>TANV||Math.abs(vy)>TANH) return null;
+    return {vy:vy, vz:vz, it:it};
+  }
+
+  function cv(id){
+    var c=document.getElementById(id), d=window.devicePixelRatio||1, r=c.parentNode.getBoundingClientRect();
+    c.width=r.width*d; c.height=r.height*d; c.style.width=r.width+'px'; c.style.height=r.height+'px';
+    var x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); x.clearRect(0,0,r.width,r.height);
+    return {x:x,w:r.width,h:r.height};
+  }
+
+  function drawTop(){
+    var g=cv('tv'), x=g.x, w=g.w, h=g.h;
+    var X0=-2.6, X1=1.2, Y=7.5;
+    var sx=(w-70)/(X1-X0), sy=(h-16)/(2*Y);
+    var ox=60-X0*sx, oy=h/2;
+    function PX(u){return ox+u*sx;} function PY(v){return oy-v*sy;}
+    hit=[];
+    arrowTV(x,8,oy,PX(-0.12),oy,kinC);
+    x.fillStyle=kinC; x.font='11px sans-serif'; x.textAlign='left'; x.fillText('beam',8,oy-8);
+    for(var hh=-2;hh<=1;hh++) for(var ll=-7;ll<=7;ll++){
+      var px=PX(hh), py=PY(ll);
+      if(px<14||px>w-8||py<8||py>h-8) continue;
+      var sp=onscreen(hh,ll), zone=-hh;
+      var col=(sp&&zone>=0&&zone<=2)?ZC[zone]:line;
+      x.fillStyle=col; x.beginPath(); x.arc(px,py,sp?4:2.4,0,6.284); x.fill();
+      hit.push({x:px,y:py,h:hh,l:ll});
+      if(Sel.h===hh&&Sel.l===ll){ x.strokeStyle=selC; x.lineWidth=2;
+        x.beginPath(); x.arc(px,py,7.5,0,6.284); x.stroke(); }
+    }
+    x.fillStyle=mut; x.textAlign='left';
+    x.fillText('Gx = 0 row \u2192 L0',PX(0)+6,14);
+    x.fillText('Gx = \u22121 \u2192 L1',PX(-1)+6,14);
+    x.textAlign='right'; x.fillText('each dot = one rod seen end-on',w-8,h-8);
+  }
+  function arrowTV(x,x1,y1,x2,y2,col){
+    x.strokeStyle=col; x.lineWidth=2; x.beginPath(); x.moveTo(x1,y1); x.lineTo(x2,y2); x.stroke();
+    x.fillStyle=col; x.beginPath(); x.moveTo(x2,y2); x.lineTo(x2-9,y2-4.5); x.lineTo(x2-9,y2+4.5); x.closePath(); x.fill();
+  }
+
+  function radius(n){
+    var G=geom(), q=G.k*G.k-(-n-G.Cx)*(-n-G.Cx);
+    return q>0?Math.sqrt(q):null;
+  }
+
+  function drawFront(){
+    var g=cv('fv'), x=g.x, w=g.w, h=g.h, G=geom();
+    var YR=7.2, ZT=Math.max(TANV*G.k*1.05, 2.6*G.Cz);
+    var s=Math.min((w-16)/(2*YR),(h-34)/ZT);
+    var ox=w/2, oz=h-18;
+    function PX(u){return ox+u*s;} function PZ(v){return oz-v*s;}
+    x.save(); x.beginPath(); x.rect(0,0,w,h); x.clip();
+    x.fillStyle=dark?'rgba(255,255,255,0.035)':'rgba(0,0,0,0.045)';
+    x.fillRect(0,PZ(G.Cz),w,oz-PZ(G.Cz));
+    x.strokeStyle=line; x.lineWidth=1;
+    for(var ll=-7;ll<=7;ll++){ x.beginPath(); x.moveTo(PX(ll),PZ(0)); x.lineTo(PX(ll),PZ(ZT)); x.stroke(); }
+    x.strokeStyle=mut; x.lineWidth=1.4; x.beginPath(); x.moveTo(0,PZ(0)); x.lineTo(w,PZ(0)); x.stroke();
+    x.strokeStyle=mut; x.setLineDash([4,3]); x.lineWidth=1;
+    x.beginPath(); x.moveTo(0,PZ(G.Cz)); x.lineTo(w,PZ(G.Cz)); x.stroke(); x.setLineDash([]);
+    for(var n=0;n<=2;n++){
+      var R=radius(n); if(R===null) continue;
+      x.strokeStyle=ZC[n]; x.lineWidth=1.8;
+      x.beginPath(); x.arc(PX(0),PZ(G.Cz),R*s,Math.PI,2*Math.PI); x.stroke();
+      x.globalAlpha=0.22; x.beginPath(); x.arc(PX(0),PZ(G.Cz),R*s,0,Math.PI); x.stroke(); x.globalAlpha=1;
+      for(var l2=-7;l2<=7;l2++){
+        if(Math.abs(l2)>=R) continue;
+        var dz=Math.sqrt(R*R-l2*l2), zu=G.Cz+dz, zl=G.Cz-dz;
+        if(zu<=ZT){ x.fillStyle=ZC[n]; x.beginPath(); x.arc(PX(l2),PZ(zu),4.2,0,6.284); x.fill();
+          if(Sel.h===-n&&Sel.l===l2){ x.strokeStyle=selC; x.lineWidth=2;
+            x.beginPath(); x.arc(PX(l2),PZ(zu),7.5,0,6.284); x.stroke(); } }
+        if(zl>=0){ x.strokeStyle=ZC[n]; x.globalAlpha=0.4; x.lineWidth=1.4;
+          x.beginPath(); x.arc(PX(l2),PZ(zl),3.4,0,6.284); x.stroke(); x.globalAlpha=1; }
+      }
+    }
+    x.restore();
+    x.font='11px sans-serif';
+    x.fillStyle=mut; x.textAlign='left';
+    x.fillText('k out horizontal \u2014 shadow edge level',6,PZ(G.Cz)-5);
+    x.fillText('below: k out points down, blocked',6,PZ(G.Cz)+14);
+    x.fillStyle=ZC[0]; x.fillText('L0 circle, radius K\u00b7sin\u03b8g = '+(G.Cz).toFixed(1)+' g',6,16);
+    x.fillStyle=ZC[1]; var R1=radius(1); if(R1) x.fillText('L1 circle, radius '+R1.toFixed(1)+' g',6,31);
+    x.fillStyle=mut; x.textAlign='right'; x.fillText('rods head-on',w-6,16);
+  }
+
+  function drawScr(){
+    var g=cv('sv'), x=g.x, w=g.w, h=g.h, G=geom();
+    x.fillStyle=dark?'#141413':'#0f0f0e'; x.fillRect(4,4,w-8,h-8);
+    var yE=h*0.80, sc=(yE-12)/TANV, cx=w/2, kx0=G.k*Math.cos(G.th);
+    x.fillStyle=dark?'#0a0a09':'#080807'; x.fillRect(4,yE,w-8,h-4-yE);
+    x.strokeStyle='rgba(255,255,255,0.3)'; x.lineWidth=1;
+    x.beginPath(); x.moveTo(4,yE); x.lineTo(w-4,yE); x.stroke();
+    x.fillStyle='rgba(255,255,255,0.55)'; x.font='10px sans-serif'; x.textAlign='left';
+    x.fillText('shadow edge',10,yE+13);
+    var yD=yE+Math.tan(G.th)*sc;
+    if(yD<h-8){ x.fillStyle=mut; x.beginPath(); x.arc(cx,yD,3.6,0,6.284); x.fill();
+      x.fillStyle='rgba(255,255,255,0.5)'; x.fillText('direct beam',cx+8,yD+4); }
+    x.save(); x.beginPath(); x.rect(4,4,w-8,yE-4); x.clip();
+    for(var n=0;n<=2;n++){
+      var R=radius(n); if(R===null) continue;
+      x.strokeStyle=ZCs[n]; x.globalAlpha=0.32; x.lineWidth=1.4;
+      x.beginPath(); x.arc(cx,yE,R/kx0*sc,Math.PI,2*Math.PI); x.stroke(); x.globalAlpha=1;
+    }
+    x.restore();
+    for(var hh=0;hh>=-2;hh--) for(var ll=-7;ll<=7;ll++){
+      var sp=onscreen(hh,ll); if(!sp) continue;
+      var px=cx+sp.vy*sc, py=yE-sp.vz*sc;
+      if(px<10||px>w-10) continue;
+      x.fillStyle=ZCs[-hh]; x.beginPath(); x.arc(px,py,4.2,0,6.284); x.fill();
+      if(Sel.h===hh&&Sel.l===ll){ x.strokeStyle=selC; x.lineWidth=2;
+        x.beginPath(); x.arc(px,py,7.5,0,6.284); x.stroke(); }
+    }
+    x.fillStyle='rgba(255,255,255,0.5)'; x.textAlign='right';
+    x.fillText('compare with front view \u2192 same circles \u00f7 k',w-10,16);
+  }
+
+  function caption(){
+    var el=document.getElementById('cap');
+    var zone=-Sel.h, sp=onscreen(Sel.h,Sel.l), it=inter(Sel.h,Sel.l);
+    var t='Selected rod (Gx='+Sel.h+', Gy='+Sel.l+'), Laue zone L'+zone+'. ';
+    if(!it) t+='The sphere never reaches this rod at this energy and angle \u2014 no spot.';
+    else if(!sp) t+='The sphere cuts it, but the exit angle is outside the screen.';
+    else t+='Sphere cuts it at height '+(it.up).toFixed(1)+' g. Exit '+(Math.atan(sp.vz)*180/Math.PI).toFixed(1)+'\u00b0 up, '+(Math.atan(sp.vy)*180/Math.PI).toFixed(1)+'\u00b0 sideways \u2014 the ringed spot on the screen.';
+    el.textContent=t;
+  }
+
+  function refresh(){ drawTop(); drawFront(); drawScr(); caption(); }
+
+  document.getElementById('tv').addEventListener('click',function(ev){
+    var r=this.getBoundingClientRect(), mx=ev.clientX-r.left, my=ev.clientY-r.top;
+    var best=null, bd=1e9;
+    for(var i=0;i<hit.length;i++){ var d=Math.hypot(hit[i].x-mx,hit[i].y-my);
+      if(d<bd){bd=d; best=hit[i];} }
+    if(best&&bd<22){ Sel={h:best.h,l:best.l}; refresh(); }
+  });
+  function sl(id,key,fmt){ document.getElementById(id).addEventListener('input',function(){
+    S[key]=+this.value; document.getElementById(id+'Out').textContent=fmt(S[key]); refresh(); }); }
+  sl('tg3','tg',function(v){return v.toFixed(1)+'\u00b0';});
+  sl('ke3','ke',function(v){return v.toFixed(0)+' keV';});
+  window.addEventListener('resize',refresh);
+  refresh();
+})();
+</script>
+</main></body></html>

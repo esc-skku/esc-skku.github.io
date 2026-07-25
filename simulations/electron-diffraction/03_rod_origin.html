@@ -1,0 +1,156 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rod의 기원 — 층수와 q_z 프로파일의 푸리에 상반성</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#101211;--surface-1:#1a1d1b;--text-primary:#e8ece9;--text-secondary:#a8b0aa;--text-muted:#6f7772;--border:#2c302d;--border-accent:#55e6a5;--radius:8px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text-primary);font-family:'IBM Plex Sans KR',sans-serif;line-height:1.6}
+main{max-width:960px;margin:0 auto;padding:28px 20px 64px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;color:var(--border-accent)}
+h1{font-size:25px;font-weight:600;margin:6px 0 10px}
+p.lede{color:var(--text-secondary);font-size:14.5px;max-width:72ch;margin:0 0 22px}
+button{background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);cursor:pointer;font-family:inherit}
+button:hover{border-color:var(--text-muted)}
+input[type=range]{accent-color:var(--border-accent)}
+a{color:var(--border-accent);text-decoration:none}
+nav.crumb{font-size:13px;margin-bottom:18px}
+footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:14px;font-family:'IBM Plex Mono',monospace}
+</style></head><body><main>
+<nav class="crumb"><a href="index.html">← 시뮬레이션 목록</a></nav>
+<div class="eyebrow">첨단진공과학기술 · 전자회절 03</div>
+<h1>Rod는 어디서 오는가 — z로 얇으면 q<sub>z</sub>로 퍼진다</h1>
+<p class="lede">표면 기법이 z 방향으로 N층만 결맞게 산란시키면 rod를 따라 세기가 Laue 함수 sin²(Nπq)/sin²(πq)로 변조됩니다. N = 1이면 완전히 균일한 rod, N → ∞면 정수 q<sub>z</sub>의 Bragg점. 그 사이가 "마디 있는 rod"이고, rocking curve와 LEED I-V는 바로 이 프로파일을 각도·에너지로 스캔하는 측정입니다. 3D islands의 투과 스팟은 N이 커져 rod가 점으로 붕괴한 극한입니다.</p>
+
+<div style="padding:0.5rem 0 0;">
+  <div style="display:flex; gap:8px; margin-bottom:10px; align-items:center; flex-wrap:wrap;">
+    <button id="mN" style="font-size:12px; padding:5px 12px;">sharp N layers</button>
+    <button id="mA" style="font-size:12px; padding:5px 12px;">exponential attenuation</button>
+    <span id="note" style="font-size:12px; color:var(--text-muted);"></span>
+  </div>
+
+  <div style="display:grid; grid-template-columns:minmax(0,0.8fr) minmax(0,0.55fr) minmax(0,1fr); gap:10px;">
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">real space — layers that scatter</div>
+      <div style="position:relative; width:100%; height:250px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="rl" role="img" aria-label="Stack of atomic layers with brightness showing how much each layer contributes to scattering">Layer stack.</canvas>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">the rod itself</div>
+      <div style="position:relative; width:100%; height:250px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="rd" role="img" aria-label="The reciprocal rod drawn vertically with brightness proportional to intensity along q z">Rod.</canvas>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">intensity along q<sub>z</sub></div>
+      <div style="position:relative; width:100%; height:250px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="pf" role="img" aria-label="Intensity profile along q z, evolving from flat to sharp Bragg peaks">Profile.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; align-items:center; gap:10px; margin-top:0.9rem; max-width:420px;">
+    <label for="nl" style="font-size:13px; color:var(--text-secondary); min-width:110px;" id="nlLab">layers N</label>
+    <input type="range" id="nl" min="1" max="30" step="1" value="1" style="flex:1;" />
+    <span style="font-size:13px; font-weight:500; min-width:36px; text-align:right;" id="nlOut">1</span>
+  </div>
+</div>
+
+<footer>ESC Lab, SKKU · kinematic simulation</footer>
+
+<script>
+(function(){
+  var dark=true;
+  var mut='#898781', atom=dark?'#9FE1CB':'#0F6E56', rodC=dark?'#85B7EB':'#185FA5';
+  var S={mode:'N', N:1};
+
+  function weights(){
+    var w=[];
+    if(S.mode==='N'){ for(var n=0;n<S.N;n++) w.push(1); }
+    else { var lam=S.N; for(var n2=0;n2<60;n2++){ var v=Math.exp(-n2/lam); if(v<0.005) break; w.push(v); } }
+    return w;
+  }
+  function I(qz,w){
+    var re=0,im=0;
+    for(var n=0;n<w.length;n++){ var p=2*Math.PI*qz*n; re+=w[n]*Math.cos(p); im+=w[n]*Math.sin(p); }
+    return re*re+im*im;
+  }
+  function cv(id){
+    var c=document.getElementById(id), d=window.devicePixelRatio||1, r=c.parentNode.getBoundingClientRect();
+    c.width=r.width*d; c.height=r.height*d; c.style.width=r.width+'px'; c.style.height=r.height+'px';
+    var x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); x.clearRect(0,0,r.width,r.height);
+    return {x:x,w:r.width,h:r.height};
+  }
+
+  function drawReal(){
+    var g=cv('rl'), x=g.x, w=g.w, h=g.h, wt=weights();
+    var top=22, sp=Math.min(16,(h-40)/Math.max(8,wt.length+2));
+    x.font='11px sans-serif'; x.fillStyle=mut; x.textAlign='left';
+    x.fillText('vacuum',8,14);
+    for(var n=0;n<Math.max(wt.length+3,10)&&top+n*sp<h-8;n++){
+      var a=(n<wt.length)?0.15+0.85*wt[n]:0.12;
+      x.globalAlpha=a; x.fillStyle=(n<wt.length)?atom:mut;
+      for(var ax=14;ax<w-10;ax+=11){ x.beginPath(); x.arc(ax,top+n*sp,2.6,0,6.284); x.fill(); }
+    }
+    x.globalAlpha=1;
+    x.strokeStyle=mut; x.lineWidth=1;
+    x.beginPath(); x.moveTo(6,top-sp*0.55); x.lineTo(w-6,top-sp*0.55); x.stroke();
+    if(S.mode==='A'){ x.fillStyle=mut; x.textAlign='right'; x.fillText('e^(\u2212n/\u03bb)',w-8,top+wt.length*sp*0.5); }
+  }
+
+  function drawRod(){
+    var g=cv('rd'), x=g.x, w=g.w, h=g.h, wt=weights();
+    var mx=0, Q=3.0, pts=[];
+    for(var i=0;i<=400;i++){ var q=Q*i/400, v=I(q,wt); pts.push(v); if(v>mx) mx=v; }
+    var cx=w/2, pb=20, pt=8;
+    for(var i2=0;i2<=400;i2++){
+      var t=pts[i2]/mx, y=h-pb-(h-pb-pt)*i2/400;
+      var wd=2+t*Math.min(26,w*0.3);
+      x.fillStyle=rodC; x.globalAlpha=0.25+0.75*t;
+      x.fillRect(cx-wd/2,y-((h-pb-pt)/400)-0.5,wd,(h-pb-pt)/400+1);
+    }
+    x.globalAlpha=1;
+    x.fillStyle=mut; x.font='10px sans-serif'; x.textAlign='center';
+    x.fillText('q z',cx,h-6);
+    x.textAlign='left';
+    for(var b=0;b<=3;b++){ var yb=h-pb-(h-pb-pt)*b/3;
+      x.fillText(b+'',4,yb+3); }
+  }
+
+  function drawProf(){
+    var g=cv('pf'), x=g.x, w=g.w, h=g.h, wt=weights();
+    var pl=34, pr=10, pt=10, pb=26, Q=3.0;
+    var mx=0, pts=[];
+    for(var i=0;i<=500;i++){ var v=I(Q*i/500,wt); pts.push(v); if(v>mx) mx=v; }
+    x.strokeStyle=dark?'#2c2c2a':'#e1e0d9'; x.lineWidth=1;
+    for(var b=0;b<=3;b++){ var xb=pl+(w-pl-pr)*b/3;
+      x.beginPath(); x.moveTo(xb,pt); x.lineTo(xb,h-pb); x.stroke(); }
+    x.strokeStyle=rodC; x.lineWidth=2; x.lineJoin='round'; x.beginPath();
+    for(var i2=0;i2<=500;i2++){
+      var px=pl+(w-pl-pr)*i2/500, py=h-pb-(h-pb-pt)*(pts[i2]/mx);
+      i2?x.lineTo(px,py):x.moveTo(px,py);
+    }
+    x.stroke();
+    x.fillStyle=mut; x.font='11px sans-serif'; x.textAlign='center';
+    for(var b2=0;b2<=3;b2++){ x.fillText(String(b2),pl+(w-pl-pr)*b2/3,h-10); }
+    x.fillText('q z (2\u03c0/d) \u2014 Bragg points at integers',(pl+w-pr)/2+20,pt+12);
+  }
+
+  function refresh(){
+    document.getElementById('nlLab').textContent=(S.mode==='N')?'layers N':'depth \u03bb (layers)';
+    document.getElementById('note').textContent=(S.mode==='N')
+      ? 'Laue function: sin\u00b2(N\u03c0q)/sin\u00b2(\u03c0q)'
+      : 'semi-infinite with damping \u2014 Lorentzian-like peaks';
+    document.getElementById('mN').style.borderColor=(S.mode==='N')?'var(--border-accent)':'';
+    document.getElementById('mA').style.borderColor=(S.mode==='A')?'var(--border-accent)':'';
+    drawReal(); drawRod(); drawProf();
+  }
+  document.getElementById('mN').onclick=function(){ S.mode='N'; refresh(); };
+  document.getElementById('mA').onclick=function(){ S.mode='A'; refresh(); };
+  document.getElementById('nl').addEventListener('input',function(){
+    S.N=+this.value; document.getElementById('nlOut').textContent=S.N; refresh(); });
+  window.addEventListener('resize',refresh);
+  refresh();
+})();
+</script>
+</main></body></html>

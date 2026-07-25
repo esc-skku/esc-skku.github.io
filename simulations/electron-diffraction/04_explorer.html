@@ -1,0 +1,461 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RHEED / LEED Explorer — 표면 형상, 방위각, 재구성, 다결정</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#101211;--surface-1:#1a1d1b;--text-primary:#e8ece9;--text-secondary:#a8b0aa;--text-muted:#6f7772;--border:#2c302d;--border-accent:#55e6a5;--radius:8px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text-primary);font-family:'IBM Plex Sans KR',sans-serif;line-height:1.6}
+main{max-width:960px;margin:0 auto;padding:28px 20px 64px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;color:var(--border-accent)}
+h1{font-size:25px;font-weight:600;margin:6px 0 10px}
+p.lede{color:var(--text-secondary);font-size:14.5px;max-width:72ch;margin:0 0 22px}
+button{background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);cursor:pointer;font-family:inherit}
+button:hover{border-color:var(--text-muted)}
+input[type=range]{accent-color:var(--border-accent)}
+a{color:var(--border-accent);text-decoration:none}
+nav.crumb{font-size:13px;margin-bottom:18px}
+footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:14px;font-family:'IBM Plex Mono',monospace}
+</style></head><body><main>
+<nav class="crumb"><a href="index.html">← 시뮬레이션 목록</a></nav>
+<div class="eyebrow">첨단진공과학기술 · 전자회절 04</div>
+<h1>RHEED / LEED Explorer</h1>
+<p class="lede">표면 형상 7종(flat, small domains, two-level, multilevel, vicinal, 3D islands, polycrystal)과 재구성 5종(1×1, 2×2, √2×√2 R45, 3×3, 7×7)에 대해, 시료 방위각을 돌리며 RHEED와 LEED 패턴을 픽셀 단위 운동학적 계산으로 비교합니다. 맨 아래 Ewald 패널은 두 기법의 구를 같은 축척에 겹쳐, RHEED 구가 rod와 거의 평행하게 스치는 접선 조건을 보여줍니다. 스팟 위치는 정확하지만 세기는 dynamical 효과(Kikuchi, 다중산란, 굴절)를 포함하지 않습니다.</p>
+
+<div style="padding:0.5rem 0 0;">
+  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+    <button class="mb" data-m="flat" style="font-size:12px; padding:5px 9px;">flat single crystal</button>
+    <button class="mb" data-m="dom" style="font-size:12px; padding:5px 9px;">small domains</button>
+    <button class="mb" data-m="two" style="font-size:12px; padding:5px 9px;">two-level steps</button>
+    <button class="mb" data-m="multi" style="font-size:12px; padding:5px 9px;">multilevel steps</button>
+    <button class="mb" data-m="vic" style="font-size:12px; padding:5px 9px;">vicinal</button>
+    <button class="mb" data-m="isl" style="font-size:12px; padding:5px 9px;">3D islands</button>
+    <button class="mb" data-m="poly" style="font-size:12px; padding:5px 9px;">polycrystal</button>
+  </div>
+  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:1rem; align-items:center;">
+    <span style="font-size:12px; color:var(--text-secondary); margin-right:2px;">reconstruction</span>
+    <button class="rb" data-r="1" style="font-size:12px; padding:5px 9px;">1×1</button>
+    <button class="rb" data-r="2" style="font-size:12px; padding:5px 9px;">2×2</button>
+    <button class="rb" data-r="c2" style="font-size:12px; padding:5px 9px;">√2×√2 R45</button>
+    <button class="rb" data-r="3" style="font-size:12px; padding:5px 9px;">3×3</button>
+    <button class="rb" data-r="7" style="font-size:12px; padding:5px 9px;">7×7</button>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;">
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">real space, top view</div>
+      <div style="position:relative; width:100%; height:170px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="cTop" role="img" aria-label="Top view of the surface lattice with the incident beam azimuth">Surface lattice, top view.</canvas>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">real space, side view</div>
+      <div style="position:relative; width:100%; height:170px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="cReal" role="img" aria-label="Side view of the surface morphology">Surface morphology.</canvas>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">reciprocal rods</div>
+      <div style="position:relative; width:100%; height:170px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="cRec" role="img" aria-label="Shape of the reciprocal lattice rods">Reciprocal rods.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div id="caption" style="font-size:12px; color:var(--text-secondary); margin-top:8px; min-height:30px;"></div>
+
+  <div style="display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:10px; margin-top:10px;">
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">RHEED screen</div>
+      <div style="position:relative; width:100%; height:200px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="cScr" role="img" aria-label="Computed RHEED pattern">RHEED pattern.</canvas>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">LEED screen</div>
+      <div style="position:relative; width:100%; height:200px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="cLeed" role="img" aria-label="Computed LEED pattern">LEED pattern.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;">
+    <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">Ewald construction, plane of incidence, both spheres to the same scale</div>
+    <div style="position:relative; width:100%; height:250px; background:var(--surface-1); border-radius:var(--radius);">
+      <canvas id="cEw" role="img" aria-label="Ewald sphere construction comparing the small LEED sphere with the very large RHEED sphere against the reciprocal lattice rods">Ewald construction.</canvas>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px 22px; margin-top:1.1rem;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="tg" style="font-size:13px; color:var(--text-secondary); min-width:80px;">θ<sub>g</sub></label>
+      <input type="range" id="tg" min="0.5" max="6" step="0.1" value="2.5" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:46px; text-align:right;" id="tgOut">2.5°</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="az" style="font-size:13px; color:var(--text-secondary); min-width:80px;">azimuth</label>
+      <input type="range" id="az" min="0" max="90" step="1" value="0" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:46px; text-align:right;" id="azOut">0°</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="sz" style="font-size:13px; color:var(--text-secondary); min-width:80px;" id="szLab">domain size</label>
+      <input type="range" id="sz" min="0.8" max="20" step="0.2" value="4" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:46px; text-align:right;" id="szOut">4.0 nm</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="ke" style="font-size:13px; color:var(--text-secondary); min-width:80px;">RHEED E</label>
+      <input type="range" id="ke" min="5" max="30" step="0.5" value="15" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:46px; text-align:right;" id="keOut">15 keV</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="le" style="font-size:13px; color:var(--text-secondary); min-width:80px;">LEED E</label>
+      <input type="range" id="le" min="30" max="400" step="5" value="100" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:46px; text-align:right;" id="leOut">100 eV</span>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(115px,1fr)); gap:10px; margin-top:1rem;">
+    <div style="background:var(--surface-1); border-radius:var(--radius); padding:0.6rem 0.8rem;">
+      <div style="font-size:11px; color:var(--text-secondary);">λ RHEED</div>
+      <div style="font-size:18px; font-weight:500;" id="oLam">0.100 Å</div>
+    </div>
+    <div style="background:var(--surface-1); border-radius:var(--radius); padding:0.6rem 0.8rem;">
+      <div style="font-size:11px; color:var(--text-secondary);">k/g RHEED</div>
+      <div style="font-size:18px; font-weight:500;" id="oK">39</div>
+    </div>
+    <div style="background:var(--surface-1); border-radius:var(--radius); padding:0.6rem 0.8rem;">
+      <div style="font-size:11px; color:var(--text-secondary);">k/g LEED</div>
+      <div style="font-size:18px; font-weight:500;" id="oKL">3.2</div>
+    </div>
+    <div style="background:var(--surface-1); border-radius:var(--radius); padding:0.6rem 0.8rem;">
+      <div style="font-size:11px; color:var(--text-secondary);">L₁ appears at</div>
+      <div style="font-size:18px; font-weight:500;" id="oL1">13°</div>
+    </div>
+  </div>
+</div>
+
+<footer>ESC Lab, SKKU · kinematic simulation — no Kikuchi lines, no multiple scattering, no refraction</footer>
+
+<script>
+(function(){
+  var dark=true;
+  var mut='#898781', line=dark?'#5a5a55':'#b4b2a9';
+  var atom=dark?'#9FE1CB':'#0F6E56', rod=dark?'#85B7EB':'#185FA5';
+  var leedC=dark?'#EF9F27':'#BA7517', rheC=dark?'#85B7EB':'#185FA5', kinC='#d95926';
+  var A0=3.9, COH=500;
+  var S={m:'flat', n:1, c2:false, tg:2.5, az:0, sz:4, ke:15, le:100};
+
+  var CAP={
+    flat:'Sharp rods, no modulation. Spots sit on the Laue zones with equal intensity.',
+    dom:'Out-of-phase domains broaden the rods isotropically. RHEED turns that into vertical streaks by tangency; LEED just blurs the spots.',
+    two:'Terraces one step high act as a grating. Rods split by 1/terrace width, and the split collapses at on-Bragg. Rotate the azimuth to see the splitting swing round.',
+    multi:'Many terrace widths superposed. Rods gain sharp nodes at on-Bragg and swell in between, giving streaks modulated along their length.',
+    vic:'Rods stand normal to the terraces so they tilt by the miscut, while fine rods normal to the macroscopic surface split them into inclined satellites.',
+    isl:'The beam transmits through protruding islands. The reciprocal lattice becomes a 3D point array and the pattern leaves the Laue zones.',
+    poly:'Randomly oriented crystallites smear each reciprocal point into a sphere. Both techniques give Debye-Scherrer rings, and crystallite size sets the ring width.'
+  };
+  var SZL={flat:'coherence',dom:'domain size',two:'terrace width',multi:'mean terrace',vic:'terrace width',isl:'island size',poly:'crystallite size'};
+
+  var SHELLS=(function(){var mp={},o=[];
+    for(var a=-3;a<=3;a++)for(var b=-3;b<=3;b++)for(var c=-3;c<=3;c++){
+      var r=Math.sqrt(a*a+b*b+c*c); if(r<0.5||r>3.3) continue;
+      var kk=r.toFixed(3); mp[kk]=(mp[kk]||0)+1; }
+    for(var k in mp) o.push([+k, Math.min(1,mp[k]/10)]);
+    o.sort(function(p,q){return p[0]-q[0];}); return o; })();
+
+  function lamR(){ return Math.sqrt(150.4/(S.ke*1000)); }
+  function lamL(){ return Math.sqrt(150.4/S.le); }
+
+  function ctxOf(id){
+    var c=document.getElementById(id), d=window.devicePixelRatio||1, r=c.parentNode.getBoundingClientRect();
+    c.width=r.width*d; c.height=r.height*d; c.style.width=r.width+'px'; c.style.height=r.height+'px';
+    var x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); x.clearRect(0,0,r.width,r.height);
+    return {x:x,w:r.width,h:r.height,c:c,d:d};
+  }
+
+  function paint(id,RW,fn){
+    var c=document.getElementById(id), d=window.devicePixelRatio||1, r=c.parentNode.getBoundingClientRect();
+    c.width=r.width*d; c.height=r.height*d; c.style.width=r.width+'px'; c.style.height=r.height+'px';
+    var RH=Math.max(2,Math.round(RW*r.height/r.width));
+    var off=document.createElement('canvas'); off.width=RW; off.height=RH;
+    var oc=off.getContext('2d'), img=oc.createImageData(RW,RH), D=img.data, bg=dark?10:14;
+    for(var y=0;y<RH;y++) for(var xx=0;xx<RW;xx++){
+      var t=fn((xx+0.5)/RW,(y+0.5)/RH,RW,RH), o=(y*RW+xx)*4;
+      t=Math.min(1,Math.pow(Math.max(0,t)*1.15,0.62));
+      D[o]=bg+t*(235-bg); D[o+1]=bg+t*(255-bg); D[o+2]=bg+t*(240-bg); D[o+3]=255; }
+    oc.putImageData(img,0,0);
+    var x=c.getContext('2d'); x.setTransform(1,0,0,1,0,0);
+    x.imageSmoothingEnabled=true; x.drawImage(off,0,0,c.width,c.height);
+    x.setTransform(d,0,0,d,0,0);
+    return {x:x,w:r.width,h:r.height};
+  }
+
+  function allowed(mi,pi){
+    if(!S.c2) return true;
+    return (((mi+pi)%2)+2)%2===0;
+  }
+
+  function lattice(Qx,Qy,Qz,sx,sy,cosA,sinA){
+    var n=S.n, m=S.m, L=S.sz*10, aw=A0/L, I=0;
+    var tiltx=(m==='vic')?Qz*aw:0;
+    var sats=null;
+    if(m==='two'){ var cc=Math.cos(Math.PI*Qz), w0=cc*cc; sats=[[0,w0],[aw,(1-w0)/2],[-aw,(1-w0)/2]]; }
+    var Hc=Qx*cosA-Qy*sinA, Lc=Qx*sinA+Qy*cosA;
+    var m0=Math.round((Hc-tiltx)*n), p0=Math.round(Lc*n);
+    for(var mi=m0-1;mi<=m0+1;mi++) for(var pi=p0-1;pi<=p0+1;pi++){
+      if(!allowed(mi,pi)) continue;
+      var wt=((((mi%n)+n)%n===0)&&(((pi%n)+n)%n===0))?1:0.34;
+      var Gh=mi/n+tiltx, Gl=pi/n;
+      if(sats){ for(var si=0;si<3;si++){
+          var gh=Gh+sats[si][0];
+          var gx=gh*cosA+Gl*sinA, gy=-gh*sinA+Gl*cosA;
+          var dx=Qx-gx, dy=Qy-gy;
+          I+=wt*sats[si][1]*Math.exp(-dx*dx/(2*sx*sx)-dy*dy/(2*sy*sy)); } }
+      else { var gx2=Gh*cosA+Gl*sinA, gy2=-Gh*sinA+Gl*cosA;
+        var dx2=Qx-gx2, dy2=Qy-gy2;
+        I+=wt*Math.exp(-dx2*dx2/(2*sx*sx)-dy2*dy2/(2*sy*sy)); }
+    }
+    return I;
+  }
+
+  function sigmaBase(Qz){
+    var L=S.sz*10, aw=A0/L, base=A0/COH, m=S.m;
+    if(m==='dom'||m==='isl') return base+aw;
+    if(m==='multi'){ var s1=Math.sin(Math.PI*Qz); return base+aw*s1*s1; }
+    if(m==='vic') return base+aw*0.35;
+    return base;
+  }
+
+  var RH_PH=0.13;
+  function drawRheed(){
+    var K=A0/lamR(), tg=S.tg*Math.PI/180, A=S.az*Math.PI/180;
+    var cosA=Math.cos(A), sinA=Math.sin(A), m=S.m, aw=A0/(S.sz*10), base=A0/COH;
+    var g=paint('cScr',270,function(u,v,RW,RH){
+      var asp=RH/RW, BT=2*RH_PH*asp-0.012;
+      var beta=BT-v*(BT+0.012); if(beta<=0) return 0;
+      var phi=-RH_PH+u*2*RH_PH;
+      var Qz=K*(beta+tg);
+      if(m==='poly'){ var R=K*Math.sqrt(phi*phi+(beta+tg)*(beta+tg)), sr=base*3+aw, I=0;
+        for(var i=0;i<SHELLS.length;i++){ var d=R-SHELLS[i][0];
+          if(Math.abs(d)>4*sr) continue; I+=SHELLS[i][1]*Math.exp(-d*d/(2*sr*sr)); }
+        return I; }
+      var Qx=K*(tg*tg-phi*phi-beta*beta)/2, Qy=K*phi;
+      var sg=sigmaBase(Qz);
+      var dbeta=(BT+0.012)/RH, dphi=2*RH_PH/RW;
+      var sx=Math.sqrt(sg*sg+Math.pow(K*Math.abs(beta)*dbeta,2));
+      var sy=Math.sqrt(sg*sg+Math.pow(K*dphi,2));
+      var I2=lattice(Qx,Qy,Qz,sx,sy,cosA,sinA);
+      if(m==='isl'){ var dn=Math.abs(Qz-Math.round(Qz)); I2*=Math.exp(-dn*dn/0.045); }
+      return I2;
+    });
+    var x=g.x, w=g.w, h=g.h, asp2=h/w, BT2=2*RH_PH*asp2-0.012, dbe=(BT2+0.012)/h;
+    var yE=BT2/dbe;
+    x.strokeStyle='rgba(255,255,255,0.26)'; x.lineWidth=1;
+    x.beginPath(); x.moveTo(0,yE); x.lineTo(w,yE); x.stroke();
+    x.fillStyle='rgba(255,255,255,0.55)'; x.font='10px sans-serif'; x.textAlign='left';
+    x.fillText('shadow edge',5,yE+12);
+    x.textAlign='right'; x.fillText('\u03b8g = '+S.tg.toFixed(1)+'\u00b0, \u03c6 = '+S.az+'\u00b0',w-6,14);
+  }
+
+  function drawLeed(){
+    var KL=A0/lamL(), A=S.az*Math.PI/180, cosA=Math.cos(A), sinA=Math.sin(A);
+    var m=S.m, aw=A0/(S.sz*10), base=A0/COH;
+    var g=paint('cLeed',190,function(u,v,RW,RH){
+      var X=u*2-1, Y=-(v*2-1); var rr=Math.sqrt(X*X+Y*Y);
+      if(rr>1) return 0;
+      if(rr<0.055) return 0;
+      var Qx=KL*X, Qy=KL*Y;
+      if(m==='poly'){ var R=KL*rr, sr=base*3+aw, I=0;
+        for(var i=0;i<SHELLS.length;i++){ var d=R-SHELLS[i][0];
+          if(Math.abs(d)>4*sr) continue; I+=SHELLS[i][1]*Math.exp(-d*d/(2*sr*sr)); }
+        return I*0.9; }
+      var sg=base+((m==='dom'||m==='isl')?aw:(m==='two'||m==='vic'||m==='multi')?aw*0.5:0);
+      var sp=Math.sqrt(sg*sg+Math.pow(KL*2/RW,2));
+      return lattice(Qx,Qy,0,sp,sp,cosA,sinA)*Math.max(0.15,1-rr*0.75);
+    });
+    var x=g.x, w=g.w, h=g.h, R=Math.min(w,h)/2;
+    x.strokeStyle='rgba(255,255,255,0.18)'; x.lineWidth=1;
+    x.beginPath(); x.arc(w/2,h/2,R-1,0,6.284); x.stroke();
+    x.fillStyle=dark?'#111110':'#0e0e0d';
+    x.beginPath(); x.arc(w/2,h/2,R*0.055,0,6.284); x.fill();
+    x.fillStyle='rgba(255,255,255,0.5)'; x.font='10px sans-serif'; x.textAlign='right';
+    x.fillText(S.le+' eV',w-6,14);
+  }
+
+  function drawTop(){
+    var g=ctxOf('cTop'), x=g.x, w=g.w, h=g.h, A=S.az*Math.PI/180;
+    var cx=w/2, cy=h/2, sp=15;
+    x.save(); x.beginPath(); x.rect(0,0,w,h); x.clip();
+    x.fillStyle=atom;
+    for(var i=-6;i<=6;i++) for(var j=-6;j<=6;j++){
+      var px=cx+i*sp, py=cy+j*sp;
+      if(px<2||px>w-2||py<2||py>h-2) continue;
+      x.globalAlpha=0.85; x.beginPath(); x.arc(px,py,2.6,0,6.284); x.fill(); }
+    x.globalAlpha=1;
+    if(S.n>1){
+      x.strokeStyle=rod; x.lineWidth=1.2; x.globalAlpha=0.8;
+      if(S.c2){ x.beginPath(); x.moveTo(cx,cy-sp); x.lineTo(cx+sp,cy); x.lineTo(cx,cy+sp); x.lineTo(cx-sp,cy); x.closePath(); x.stroke();
+        x.fillStyle=rod; x.beginPath(); x.arc(cx,cy,3.6,0,6.284); x.fill(); }
+      else { x.strokeRect(cx-sp*S.n/2,cy-sp*S.n/2,sp*S.n,sp*S.n); }
+      x.globalAlpha=1;
+    }
+    if(S.m==='two'||S.m==='vic'||S.m==='multi'){
+      x.strokeStyle=line; x.lineWidth=1.4; x.setLineDash([5,4]); x.globalAlpha=0.85;
+      var W=Math.max(18,Math.min(60,S.sz*5));
+      for(var k=-4;k<=4;k++){ var xx=cx+k*W; x.beginPath(); x.moveTo(xx,0); x.lineTo(xx,h); x.stroke(); }
+      x.setLineDash([]); x.globalAlpha=1; }
+    x.restore();
+    var bx=cx-Math.cos(A)*72, by=cy+Math.sin(A)*72;
+    x.strokeStyle=kinC; x.lineWidth=2.2;
+    x.beginPath(); x.moveTo(bx,by); x.lineTo(cx-Math.cos(A)*16,cy+Math.sin(A)*16); x.stroke();
+    x.fillStyle=kinC; x.save(); x.translate(cx-Math.cos(A)*16,cy+Math.sin(A)*16); x.rotate(-A);
+    x.beginPath(); x.moveTo(0,0); x.lineTo(-9,-4.5); x.lineTo(-9,4.5); x.closePath(); x.fill(); x.restore();
+    x.fillStyle=kinC; x.font='11px sans-serif'; x.textAlign='left'; x.fillText('beam',6,14);
+    x.fillStyle=mut; x.textAlign='right'; x.fillText('[100] \u2192',w-6,h-8);
+    x.strokeStyle=mut; x.lineWidth=1; x.globalAlpha=0.6;
+    x.beginPath(); x.moveTo(cx,cy); x.lineTo(cx+40,cy); x.stroke(); x.globalAlpha=1;
+  }
+
+  function drawReal(){
+    var g=ctxOf('cReal'), x=g.x, w=g.w, h=g.h, base=h*0.62, m=S.m;
+    var W=Math.max(14,Math.min(46,S.sz*4));
+    x.strokeStyle=line; x.lineWidth=1.6; x.beginPath();
+    if(m==='flat'||m==='dom'){ x.moveTo(8,base); x.lineTo(w-8,base); }
+    else if(m==='two'){ var up=false; x.moveTo(8,base+5);
+      for(var p=8;p<w-8;p+=W){ x.lineTo(p,up?base-5:base+5); x.lineTo(p,up?base+5:base-5); up=!up; x.lineTo(Math.min(p+W,w-8),up?base-5:base+5); } }
+    else if(m==='multi'){ var lv=0,y=base,sd=7; x.moveTo(8,base);
+      for(var p2=8;p2<w-8;p2+=W*0.7){ sd=(sd*9301+49297)%233280; lv+=(sd/233280>0.5)?1:-1;
+        if(lv>2)lv=1; if(lv<-2)lv=-1; y=base-lv*5; x.lineTo(p2,y); x.lineTo(Math.min(p2+W*0.7,w-8),y); } }
+    else if(m==='vic'){ var lv2=0; x.moveTo(8,base+16);
+      for(var p3=8;p3<w-8;p3+=W){ var yy=base+16-lv2*5; x.lineTo(p3,yy); x.lineTo(Math.min(p3+W,w-8),yy); lv2++; } }
+    else if(m==='isl'){ x.moveTo(8,base);
+      for(var p4=8;p4<w-8;p4+=W){ x.lineTo(p4,base); x.bezierCurveTo(p4+W*0.25,base-22,p4+W*0.75,base-22,Math.min(p4+W,w-8),base); } }
+    else { x.moveTo(8,base); x.lineTo(w-8,base); }
+    x.stroke();
+    if(m==='dom'){ x.strokeStyle=mut; x.setLineDash([3,3]); x.lineWidth=1;
+      for(var q=1;q<5;q++){ var qx=8+(w-16)*q/5; x.beginPath(); x.moveTo(qx,base-14); x.lineTo(qx,base+14); x.stroke(); }
+      x.setLineDash([]); }
+    if(m==='poly'){ x.fillStyle=atom; var sd2=11;
+      for(var pz=0;pz<180;pz++){ sd2=(sd2*9301+49297)%233280; var rx=8+(sd2/233280)*(w-16);
+        sd2=(sd2*9301+49297)%233280; var ry=base-2-(sd2/233280)*20;
+        x.globalAlpha=0.7; x.beginPath(); x.arc(rx,ry,1.5,0,6.284); x.fill(); }
+      x.globalAlpha=1; }
+    x.fillStyle=atom;
+    for(var ax=12;ax<w-10;ax+=7){ x.beginPath(); x.arc(ax,base+12,2,0,6.284); x.fill();
+      x.beginPath(); x.arc(ax,base+20,2,0,6.284); x.fill(); }
+  }
+
+  function drawRec(){
+    var g=ctxOf('cRec'), x=g.x, w=g.w, h=g.h, base=h-14, m=S.m;
+    var aw=A0/(S.sz*10), sp=(w-26)/5;
+    x.strokeStyle=mut; x.lineWidth=1; x.beginPath(); x.moveTo(6,base); x.lineTo(w-6,base); x.stroke();
+    for(var i=-2;i<=2;i++){
+      var cx=w/2+i*sp;
+      if(m==='flat'){ x.strokeStyle=rod; x.lineWidth=1.6; x.beginPath(); x.moveTo(cx,base); x.lineTo(cx,10); x.stroke(); }
+      else if(m==='dom'){ x.strokeStyle=rod; x.lineWidth=Math.max(2,aw*85); x.beginPath(); x.moveTo(cx,base); x.lineTo(cx,10); x.stroke(); }
+      else if(m==='two'){ var d=Math.max(3,aw*65); x.strokeStyle=rod; x.lineWidth=1.6;
+        x.beginPath(); x.moveTo(cx-d,base); x.lineTo(cx-d,10); x.stroke();
+        x.beginPath(); x.moveTo(cx+d,base); x.lineTo(cx+d,10); x.stroke();
+        x.fillStyle=rod; for(var nn=1;nn<=4;nn++){ x.beginPath(); x.arc(cx,base-(base-10)*nn/4.5,2.5,0,6.284); x.fill(); } }
+      else if(m==='multi'){ x.fillStyle=rod; x.globalAlpha=0.75;
+        for(var n2=0;n2<4;n2++){ var y0=base-(base-10)*n2/4, y1=base-(base-10)*(n2+1)/4, ww=Math.max(3,aw*50);
+          x.beginPath(); x.moveTo(cx,y0); x.quadraticCurveTo(cx+ww,(y0+y1)/2,cx,y1);
+          x.quadraticCurveTo(cx-ww,(y0+y1)/2,cx,y0); x.fill(); }
+        x.globalAlpha=1; }
+      else if(m==='vic'){ var tl=(base-10)*Math.min(0.5,aw*1.6); x.strokeStyle=rod; x.lineWidth=1.4;
+        for(var o=-3;o<=3;o+=3){ x.beginPath(); x.moveTo(cx+o,base); x.lineTo(cx+o+tl,10); x.stroke(); } }
+      else if(m==='isl'){ x.fillStyle=rod;
+        for(var n3=0;n3<5;n3++){ x.beginPath(); x.arc(cx,base-(base-14)*n3/4.5,2.6,0,6.284); x.fill(); } }
+    }
+    if(m==='poly'){ x.strokeStyle=rod; x.lineWidth=1.4; x.globalAlpha=0.75;
+      for(var s2=1;s2<=4;s2++){ x.beginPath(); x.arc(w/2,base,s2*(w/2-14)/4.2,Math.PI,2*Math.PI); x.stroke(); }
+      x.globalAlpha=1; }
+    x.fillStyle=mut; x.font='10px sans-serif'; x.textAlign='left'; x.fillText('q\u2225',8,base-5);
+    x.textAlign='right'; x.fillText('q z',w-8,18);
+  }
+
+  function drawEwald(){
+    var g=ctxOf('cEw'), x=g.x, w=g.w, h=g.h;
+    var KR=A0/lamR(), KL=A0/lamL(), tg=S.tg*Math.PI/180;
+    var XR=13, ZT=7.6, s=Math.min((w-24)/(2*XR),(h-26)/(ZT+0.6));
+    var ox=w/2, oz=h-16-0.6*s;
+    function PX(u){return ox+u*s;} function PZ(v){return oz-v*s;}
+    x.save(); x.beginPath(); x.rect(0,0,w,h); x.clip();
+
+    x.strokeStyle=line; x.lineWidth=1; x.globalAlpha=0.55;
+    for(var n=-XR;n<=XR;n++){ x.beginPath(); x.moveTo(PX(n),PZ(-0.4)); x.lineTo(PX(n),PZ(ZT+0.4)); x.stroke(); }
+    x.globalAlpha=1; x.fillStyle=line;
+    for(var n2=-XR;n2<=XR;n2++) for(var m2=0;m2<=ZT;m2++){
+      x.beginPath(); x.arc(PX(n2),PZ(m2),1.8,0,6.284); x.fill(); }
+
+    x.strokeStyle=mut; x.lineWidth=1.4;
+    x.beginPath(); x.moveTo(0,PZ(0)); x.lineTo(w,PZ(0)); x.stroke();
+
+    var CLx=0, CLz=KL;
+    x.fillStyle=dark?'rgba(239,159,39,0.10)':'rgba(186,117,23,0.10)';
+    x.beginPath(); x.arc(PX(CLx),PZ(CLz),KL*s,0,6.284); x.fill();
+    x.strokeStyle=leedC; x.lineWidth=2; x.setLineDash([6,4]);
+    x.beginPath(); x.arc(PX(CLx),PZ(CLz),KL*s,0,6.284); x.stroke(); x.setLineDash([]);
+
+    var CRx=-KR*Math.cos(tg), CRz=KR*Math.sin(tg);
+    x.strokeStyle=rheC; x.lineWidth=2; x.setLineDash([6,4]);
+    x.beginPath(); x.arc(PX(CRx),PZ(CRz),KR*s,0,6.284); x.stroke(); x.setLineDash([]);
+
+    x.strokeStyle=kinC; x.lineWidth=2;
+    x.beginPath(); x.moveTo(PX(CLx),PZ(CLz)); x.lineTo(PX(0),PZ(0)); x.stroke();
+    x.fillStyle=kinC; x.beginPath(); x.moveTo(PX(0),PZ(0));
+    x.lineTo(PX(-0.35),PZ(0.7)); x.lineTo(PX(0.35),PZ(0.7)); x.closePath(); x.fill();
+
+    var hh=1, dz=Math.sqrt(Math.max(0,KL*KL-hh*hh)), zi=CLz+dz;
+    x.strokeStyle=leedC; x.lineWidth=1.8;
+    x.beginPath(); x.moveTo(PX(CLx),PZ(CLz)); x.lineTo(PX(hh),PZ(zi)); x.stroke();
+    x.fillStyle=dark?'#5DCAA5':'#0F6E56';
+    x.beginPath(); x.arc(PX(hh),PZ(zi),4.5,0,6.284); x.fill();
+    x.strokeStyle=dark?'#5DCAA5':'#0F6E56'; x.lineWidth=2;
+    x.beginPath(); x.moveTo(PX(0),PZ(0)); x.lineTo(PX(hh),PZ(zi)); x.stroke();
+
+    x.restore();
+    x.font='11px sans-serif';
+    x.fillStyle=leedC; x.textAlign='left';
+    x.fillText('LEED sphere, k/g = '+KL.toFixed(1),10,16);
+    x.fillStyle=rheC; x.fillText('RHEED sphere, k/g = '+KR.toFixed(0)+', centre '+KR.toFixed(0)+' rods off to the left',10,32);
+    x.fillStyle=kinC; x.fillText('k in',PX(0.25),PZ(KL*0.5));
+    x.fillStyle=leedC; x.fillText('k out',PX(hh*0.45)-6,PZ(CLz+dz*0.55));
+    x.fillStyle=dark?'#5DCAA5':'#0F6E56'; x.fillText('q = G',PX(hh*0.5)+8,PZ(zi*0.45)+12);
+    x.fillStyle=mut; x.textAlign='right'; x.fillText('surface',w-10,PZ(0)-6);
+    x.textAlign='left'; x.fillText('rods',10,PZ(ZT)+2);
+  }
+
+  var pend=false;
+  function refresh(){ if(pend) return; pend=true; requestAnimationFrame(function(){ pend=false; doDraw(); }); }
+  function doDraw(){
+    document.getElementById('caption').textContent=CAP[S.m];
+    document.getElementById('szLab').textContent=SZL[S.m];
+    var KR=A0/lamR(), KL=A0/lamL(), tg=S.tg*Math.PI/180;
+    document.getElementById('oLam').textContent=lamR().toFixed(3)+' \u00c5';
+    document.getElementById('oK').textContent=KR.toFixed(0);
+    document.getElementById('oKL').textContent=KL.toFixed(1);
+    document.getElementById('oL1').textContent=(Math.sqrt(tg*tg+2/(KR*S.n))*180/Math.PI).toFixed(1)+'\u00b0';
+    var mb=document.querySelectorAll('.mb');
+    for(var i=0;i<mb.length;i++) mb[i].style.borderColor=(mb[i].dataset.m===S.m)?'var(--border-accent)':'';
+    var rb=document.querySelectorAll('.rb'), cur=S.c2?'c2':String(S.n);
+    for(var j=0;j<rb.length;j++) rb[j].style.borderColor=(rb[j].dataset.r===cur)?'var(--border-accent)':'';
+    drawTop(); drawReal(); drawRec(); drawRheed(); drawLeed(); drawEwald();
+  }
+
+  var mbs=document.querySelectorAll('.mb');
+  for(var a=0;a<mbs.length;a++) mbs[a].onclick=function(){ S.m=this.dataset.m; refresh(); };
+  var rbs=document.querySelectorAll('.rb');
+  for(var b=0;b<rbs.length;b++) rbs[b].onclick=function(){
+    var r=this.dataset.r; if(r==='c2'){ S.n=2; S.c2=true; } else { S.n=+r; S.c2=false; } refresh(); };
+  function sl(id,key,fmt){ document.getElementById(id).addEventListener('input',function(){
+    S[key]=+this.value; document.getElementById(id+'Out').textContent=fmt(S[key]); refresh(); }); }
+  sl('tg','tg',function(v){return v.toFixed(1)+'\u00b0';});
+  sl('az','az',function(v){return v.toFixed(0)+'\u00b0';});
+  sl('sz','sz',function(v){return v.toFixed(1)+' nm';});
+  sl('ke','ke',function(v){return v.toFixed(0)+' keV';});
+  sl('le','le',function(v){return v.toFixed(0)+' eV';});
+  window.addEventListener('resize',refresh);
+  refresh();
+})();
+</script>
+</main></body></html>

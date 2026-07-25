@@ -1,0 +1,230 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ewald 작도 ↔ 스크린 스팟 대응 — RHEED / LEED</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#101211;--surface-1:#1a1d1b;--text-primary:#e8ece9;--text-secondary:#a8b0aa;--text-muted:#6f7772;--border:#2c302d;--border-accent:#55e6a5;--radius:8px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text-primary);font-family:'IBM Plex Sans KR',sans-serif;line-height:1.6}
+main{max-width:960px;margin:0 auto;padding:28px 20px 64px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;color:var(--border-accent)}
+h1{font-size:25px;font-weight:600;margin:6px 0 10px}
+p.lede{color:var(--text-secondary);font-size:14.5px;max-width:72ch;margin:0 0 22px}
+button{background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);cursor:pointer;font-family:inherit}
+button:hover{border-color:var(--text-muted)}
+input[type=range]{accent-color:var(--border-accent)}
+a{color:var(--border-accent);text-decoration:none}
+nav.crumb{font-size:13px;margin-bottom:18px}
+footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:14px;font-family:'IBM Plex Mono',monospace}
+</style></head><body><main>
+<nav class="crumb"><a href="index.html">← 시뮬레이션 목록</a></nav>
+<div class="eyebrow">첨단진공과학기술 · 전자회절 01</div>
+<h1>Ewald 작도의 교점이 곧 스크린의 스팟이다</h1>
+<p class="lede">구가 rod를 자르는 점 P에 대해, 구 중심 C에서 P로 향하는 벡터가 k<sub>out</sub>이고 그 방향으로 나간 빔이 스크린의 스팟입니다. 같은 색 = 같은 회절빔. LEED는 구가 rod를 옆에서 가로지르고, RHEED는 구가 원점을 지나 rod를 타고 스치듯 올라갑니다. 두 슬라이더를 움직여 교점과 스팟이 함께 움직이는 것을 확인하세요.</p>
+
+<div style="padding:0.5rem 0 0;">
+  <div style="font-size:13px; font-weight:500; margin-bottom:4px;">LEED — sphere cuts the rods from the side</div>
+  <div style="display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:10px;">
+    <div style="position:relative; width:100%; height:225px; background:var(--surface-1); border-radius:var(--radius);">
+      <canvas id="lc" role="img" aria-label="LEED Ewald construction with intersection points marked in color">LEED construction.</canvas>
+    </div>
+    <div style="position:relative; width:100%; height:225px; background:var(--surface-1); border-radius:var(--radius);">
+      <canvas id="ls" role="img" aria-label="LEED screen with spots colored to match the intersections">LEED screen.</canvas>
+    </div>
+  </div>
+
+  <div style="font-size:13px; font-weight:500; margin:14px 0 4px;">RHEED — sphere skims up along the rods</div>
+  <div style="display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:10px;">
+    <div style="position:relative; width:100%; height:280px; background:var(--surface-1); border-radius:var(--radius);">
+      <canvas id="rc" role="img" aria-label="RHEED Ewald construction near the origin with the specular and Laue zone intersections marked in color">RHEED construction.</canvas>
+    </div>
+    <div style="position:relative; width:100%; height:280px; background:var(--surface-1); border-radius:var(--radius);">
+      <canvas id="rs" role="img" aria-label="RHEED screen with the direct beam, specular spot and Laue zone spots colored to match">RHEED screen.</canvas>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px 22px; margin-top:1rem;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="le2" style="font-size:13px; color:var(--text-secondary); min-width:70px;">LEED E</label>
+      <input type="range" id="le2" min="30" max="400" step="5" value="100" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:52px; text-align:right;" id="le2Out">100 eV</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="tg2" style="font-size:13px; color:var(--text-secondary); min-width:70px;">θ<sub>g</sub></label>
+      <input type="range" id="tg2" min="0.5" max="6" step="0.1" value="2.5" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:52px; text-align:right;" id="tg2Out">2.5°</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="ke2" style="font-size:13px; color:var(--text-secondary); min-width:70px;">RHEED E</label>
+      <input type="range" id="ke2" min="5" max="30" step="0.5" value="15" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:52px; text-align:right;" id="ke2Out">15 keV</span>
+    </div>
+  </div>
+</div>
+
+<footer>ESC Lab, SKKU · kinematic simulation — spot positions only; intensities require dynamical theory</footer>
+
+<script>
+(function(){
+  var dark=true;
+  var mut='#898781', line=dark?'#4a4a46':'#c9c7bf';
+  var sphC=dark?'#85B7EB':'#185FA5', kinC='#d95926';
+  var CV=[dark?'#5DCAA5':'#0F6E56', dark?'#AFA9EC':'#534AB7', dark?'#ED93B1':'#993556', dark?'#FAC775':'#854F0B'];
+  var A0=3.9, S={le:100, tg:2.5, ke:15};
+
+  function lamL(){ return Math.sqrt(150.4/S.le); }
+  function lamR(){ return Math.sqrt(150.4/(S.ke*1000)); }
+
+  function cv(id){
+    var c=document.getElementById(id), d=window.devicePixelRatio||1, r=c.parentNode.getBoundingClientRect();
+    c.width=r.width*d; c.height=r.height*d; c.style.width=r.width+'px'; c.style.height=r.height+'px';
+    var x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); x.clearRect(0,0,r.width,r.height);
+    return {x:x,w:r.width,h:r.height};
+  }
+  function arrow(x,x1,y1,x2,y2,col,wd){
+    x.strokeStyle=col; x.lineWidth=wd; x.beginPath(); x.moveTo(x1,y1); x.lineTo(x2,y2); x.stroke();
+    var a=Math.atan2(y2-y1,x2-x1);
+    x.fillStyle=col; x.beginPath(); x.moveTo(x2,y2);
+    x.lineTo(x2-9*Math.cos(a-0.42),y2-9*Math.sin(a-0.42));
+    x.lineTo(x2-9*Math.cos(a+0.42),y2-9*Math.sin(a+0.42));
+    x.closePath(); x.fill();
+  }
+
+  function drawLeedC(){
+    var g=cv('lc'), x=g.x, w=g.w, h=g.h, K=A0/lamL();
+    var XR=Math.max(4.5,K+1.2), ZT=2*K+1.2;
+    var s=Math.min((w-20)/(2*XR),(h-30)/ZT);
+    var ox=w/2, oz=h-14;
+    function PX(u){return ox+u*s;} function PZ(v){return oz-v*s;}
+    x.strokeStyle=line; x.lineWidth=1;
+    var NH=Math.floor(K);
+    for(var n=-Math.ceil(XR);n<=Math.ceil(XR);n++){ x.beginPath(); x.moveTo(PX(n),PZ(0)); x.lineTo(PX(n),PZ(ZT)); x.stroke(); }
+    x.strokeStyle=mut; x.lineWidth=1.4; x.beginPath(); x.moveTo(4,PZ(0)); x.lineTo(w-4,PZ(0)); x.stroke();
+    x.strokeStyle=sphC; x.lineWidth=1.8; x.setLineDash([5,4]);
+    x.beginPath(); x.arc(PX(0),PZ(K),K*s,0,6.284); x.stroke(); x.setLineDash([]);
+    arrow(x,PX(0),PZ(2*K),PX(0),PZ(0.12),kinC,2);
+    x.fillStyle=kinC; x.font='11px sans-serif'; x.textAlign='left';
+    x.fillText('k in',PX(0.12),PZ(K*1.55));
+    for(var hh=-NH;hh<=NH;hh++){
+      var dz=Math.sqrt(K*K-hh*hh), zi=K+dz, ci=CV[Math.min(3,Math.abs(hh))];
+      x.fillStyle=ci; x.beginPath(); x.arc(PX(hh),PZ(zi),4.5,0,6.284); x.fill();
+      var vx=hh/K, vz=dz/K;
+      arrow(x,PX(hh),PZ(zi),PX(hh+vx*0.9),PZ(zi+vz*0.9),ci,1.6);
+    }
+    x.fillStyle=mut; x.textAlign='left'; x.fillText('origin',PX(0.12),PZ(0)-5);
+    x.fillStyle=CV[0]; x.fillText('(00) straight back up',PX(0.15),PZ(2*K)-8);
+  }
+
+  function drawLeedS(){
+    var g=cv('ls'), x=g.x, w=g.w, h=g.h, K=A0/lamL();
+    var cx=w/2, cy=h/2, R=Math.min(w,h)/2-12;
+    x.fillStyle=dark?'#141413':'#0f0f0e';
+    x.beginPath(); x.arc(cx,cy,R,0,6.284); x.fill();
+    var NH=Math.floor(K);
+    for(var hh=-NH;hh<=NH;hh++) for(var ll=-NH;ll<=NH;ll++){
+      if(hh*hh+ll*ll>K*K||((hh===0)&&(ll===0))) continue;
+      var ci=CV[Math.min(3,Math.max(Math.abs(hh),Math.abs(ll)))];
+      x.fillStyle=ci;
+      x.beginPath(); x.arc(cx+hh/K*R,cy-ll/K*R,4,0,6.284); x.fill();
+    }
+    x.fillStyle=dark?'#2a2a28':'#262624';
+    x.beginPath(); x.arc(cx,cy,R*0.09,0,6.284); x.fill();
+    x.strokeStyle=CV[0]; x.lineWidth=1.5;
+    x.beginPath(); x.arc(cx,cy,R*0.09,0,6.284); x.stroke();
+    x.fillStyle='rgba(255,255,255,0.6)'; x.font='10px sans-serif'; x.textAlign='center';
+    x.fillText('(00) behind gun',cx,cy+R*0.09+13);
+    x.fillStyle=mut; x.textAlign='left'; x.fillText('side-view row = horizontal row here',10,h-8);
+  }
+
+  function drawRheedC(){
+    var g=cv('rc'), x=g.x, w=g.w, h=g.h, K=A0/lamR(), th=S.tg*Math.PI/180;
+    var Cx=-K*Math.cos(th), Cz=K*Math.sin(th);
+    function zi(hh){ var d2=K*K-(hh-Cx)*(hh-Cx); return d2>0?Cz+Math.sqrt(d2):null; }
+    var z1=zi(-1), z2=zi(-2);
+    var ZT=(z2||z1||2*K*Math.sin(th))*1.18+0.8, XR0=-3.3, XR1=1.6;
+    var s=Math.min((w-56)/(XR1-XR0),(h-30)/ZT);
+    var ox=44-XR0*s, oz=h-16;
+    function PX(u){return ox+u*s;} function PZ(v){return oz-v*s;}
+    x.save(); x.beginPath(); x.rect(0,0,w,h); x.clip();
+    x.strokeStyle=line; x.lineWidth=1;
+    for(var n=-4;n<=2;n++){ x.beginPath(); x.moveTo(PX(n),PZ(0)); x.lineTo(PX(n),PZ(ZT)); x.stroke(); }
+    x.strokeStyle=mut; x.lineWidth=1.4; x.beginPath(); x.moveTo(0,PZ(0)); x.lineTo(w,PZ(0)); x.stroke();
+    x.strokeStyle=sphC; x.lineWidth=1.8; x.setLineDash([5,4]); x.beginPath();
+    var first=true;
+    for(var i=0;i<=240;i++){
+      var xx=XR0-0.2+(XR1-XR0+0.4)*i/240;
+      var d2=K*K-(xx-Cx)*(xx-Cx); if(d2<0) continue;
+      var zz=Cz+Math.sqrt(d2); if(zz>ZT+0.5) continue;
+      first?x.moveTo(PX(xx),PZ(zz)):x.lineTo(PX(xx),PZ(zz)); first=false;
+    }
+    x.stroke(); x.setLineDash([]);
+    arrow(x,PX(XR0-0.1),PZ((0-(XR0-0.1))*Math.tan(th)*-1),PX(-0.06),PZ(0.03),kinC,2);
+    x.fillStyle=kinC; x.font='11px sans-serif'; x.textAlign='left';
+    x.fillText('k in, grazing',PX(XR0+0.05),PZ(0)+(14));
+    var pts=[[0,2*K*Math.sin(th),'specular, exit = \u03b8g',0]];
+    if(z1!==null) pts.push([-1,z1,'L1 spot',1]);
+    if(z2!==null&&z2<ZT) pts.push([-2,z2,'L2 spot',2]);
+    for(var p=0;p<pts.length;p++){
+      var hh=pts[p][0], zz2=pts[p][1], ci=CV[pts[p][3]];
+      x.fillStyle=ci; x.beginPath(); x.arc(PX(hh),PZ(zz2),4.5,0,6.284); x.fill();
+      var vx=(hh-Cx)/K, vz=(zz2-Cz)/K;
+      arrow(x,PX(hh),PZ(zz2),PX(hh+vx*0.85),PZ(zz2+vz*0.85),ci,1.6);
+      x.fillStyle=ci; x.textAlign='left'; x.fillText(pts[p][2],PX(hh)+8,PZ(zz2)-6);
+    }
+    x.fillStyle=mut; x.beginPath(); x.arc(PX(0),PZ(0),3.4,0,6.284); x.fill();
+    x.textAlign='left'; x.fillText('origin: sphere passes through, k out \u2225 surface = shadow edge',PX(0)+8,PZ(0)-6);
+    x.fillStyle=mut; x.textAlign='right';
+    x.fillText('sphere centre '+K.toFixed(0)+' rods \u2192 left',w-8,16);
+    x.fillText('L0 side spots: rods out of the page',w-8,32);
+    x.restore();
+  }
+
+  function drawRheedS(){
+    var g=cv('rs'), x=g.x, w=g.w, h=g.h, K=A0/lamR(), th=S.tg*Math.PI/180;
+    var Cx=-K*Math.cos(th), Cz=K*Math.sin(th);
+    x.fillStyle=dark?'#141413':'#0f0f0e'; x.fillRect(6,6,w-12,h-12);
+    var TANV=Math.tan(15*Math.PI/180);
+    var yE=h*0.66, sc=(yE-14)/TANV, cx=w/2;
+    x.fillStyle=dark?'#0a0a09':'#080807'; x.fillRect(6,yE,w-12,h-6-yE);
+    x.strokeStyle='rgba(255,255,255,0.3)'; x.lineWidth=1;
+    x.beginPath(); x.moveTo(6,yE); x.lineTo(w-6,yE); x.stroke();
+    x.fillStyle='rgba(255,255,255,0.55)'; x.font='10px sans-serif'; x.textAlign='left';
+    x.fillText('shadow edge',12,yE+13);
+    var yD=yE+Math.tan(th)*sc;
+    if(yD<h-8){ x.fillStyle=mut; x.beginPath(); x.arc(cx,yD,4,0,6.284); x.fill();
+      x.textAlign='left'; x.fillStyle='rgba(255,255,255,0.55)';
+      x.fillText('direct beam, \u03b8g below',cx+9,yD+4); }
+    function spot(hh,zz,ci,lab){
+      var kx=hh-Cx, kz=zz-Cz, t=kz/kx;
+      var yy=yE-t*sc; if(yy<10) return;
+      x.fillStyle=ci; x.beginPath(); x.arc(cx,yy,4.5,0,6.284); x.fill();
+      x.fillStyle=ci; x.textAlign='left'; x.fillText(lab,cx+9,yy+4);
+    }
+    var zsp=2*K*Math.sin(th);
+    var d2=K*K-Cx*Cx-1;
+    if(d2>0){ var zzs=Cz+Math.sqrt(d2);
+      [[1,zzs],[-1,zzs]].forEach(function(pp){
+        var kx=0-Cx, kz=zzs-Cz, ky=pp[0];
+        var yy=yE-(kz/kx)*sc, xx=cx+(ky/kx)*sc;
+        if(yy>10&&xx>12&&xx<w-12){ x.globalAlpha=0.55; x.fillStyle=CV[0];
+          x.beginPath(); x.arc(xx,yy,3.6,0,6.284); x.fill(); x.globalAlpha=1; }
+      }); }
+    spot(0,zsp,CV[0],'specular');
+    var z1=(function(){var q=K*K-(-1-Cx)*(-1-Cx); return q>0?Cz+Math.sqrt(q):null;})();
+    if(z1!==null) spot(-1,z1,CV[1],'L1');
+    var z2=(function(){var q=K*K-(-2-Cx)*(-2-Cx); return q>0?Cz+Math.sqrt(q):null;})();
+    if(z2!==null) spot(-2,z2,CV[2],'L2');
+    x.fillStyle='rgba(255,255,255,0.5)'; x.textAlign='left';
+    x.fillText('faint pair: same L0 arc, rods out of page',12,h-12);
+  }
+
+  function refresh(){ drawLeedC(); drawLeedS(); drawRheedC(); drawRheedS(); }
+  function sl(id,key,fmt){ document.getElementById(id).addEventListener('input',function(){
+    S[key]=+this.value; document.getElementById(id+'Out').textContent=fmt(S[key]); refresh(); }); }
+  sl('le2','le',function(v){return v.toFixed(0)+' eV';});
+  sl('tg2','tg',function(v){return v.toFixed(1)+'\u00b0';});
+  sl('ke2','ke',function(v){return v.toFixed(0)+' keV';});
+  window.addEventListener('resize',refresh);
+  refresh();
+})();
+</script>
+</main></body></html>
