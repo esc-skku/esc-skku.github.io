@@ -1,0 +1,400 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>재구성 스팟의 밝기 — 팔면체 회전각과 θ² 법칙</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#101211;--surface-1:#1a1d1b;--text-primary:#e8ece9;--text-secondary:#a8b0aa;--text-muted:#6f7772;--border:#2c302d;--border-accent:#55e6a5;--radius:8px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text-primary);font-family:'IBM Plex Sans KR',sans-serif;line-height:1.6}
+main{max-width:960px;margin:0 auto;padding:28px 20px 64px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;color:var(--border-accent)}
+h1{font-size:25px;font-weight:600;margin:6px 0 10px}
+p.lede{color:var(--text-secondary);font-size:14.5px;max-width:72ch;margin:0 0 22px}
+button{background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);cursor:pointer;font-family:inherit}
+button:hover{border-color:var(--text-muted)}
+input[type=range]{accent-color:var(--border-accent)}
+a{color:var(--border-accent);text-decoration:none}
+nav.crumb{font-size:13px;margin-bottom:18px}
+footer{margin-top:40px;font-size:12.5px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:14px;font-family:'IBM Plex Mono',monospace}
+</style></head><body><main>
+<nav class="crumb"><a href="index.html">← 시뮬레이션 목록</a></nav>
+<div class="eyebrow">전자회절 05</div>
+<h1>재구성 스팟의 밝기 — 팔면체 회전각과 θ² 법칙</h1>
+<p class="lede">산소 팔면체가 θ만큼 회전하면 산소가 u ≈ (a/2)θ 만큼 밀려나고, 초구조(fractional) 스팟의 운동학적 세기는 f<sub>O</sub>²|G·u|² ∝ θ²로 켜집니다. ARPES의 접힌 밴드도 같은 θ²로 켜집니다: I′/I ≈ θ²(t<sub>δ</sub>/t<sub>π</sub>)² [Sohn &amp; Kim, JKPS 81, 1250 (2022), Eq.(2)]. 회전(√2×√2)과 tilt(2×2)는 켜지는 스팟의 기하가 달라 패턴만으로 구별되고, 두 각을 동시에 걸면 지문이 겹칩니다. 순수 면내 회전에서는 |h|=|k| 대각선 fractional rod가 정확히 소멸하는데(XRD의 h≠k 규칙과 동일한 상쇄), buckling δz를 올리면 면내 O의 z 변위가 이 상쇄를 깨고 금지 스팟 (½,½)을 q<sub>z</sub>·δz에 비례해 켭니다 — 실험에서 (½,½)이 보이는 이유.</p>
+
+<div style="padding:0.5rem 0 0;">
+  <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px;">
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">real space — BO₂ plane, displacement ×7 exaggerated</div>
+      <div style="position:relative; width:100%; height:235px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="rs" role="img" aria-label="Top view of the BO2 plane with rotation, tilt and buckling distortions">Real space.</canvas>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">fractional intensity vs angle — everything is θ²</div>
+      <div style="position:relative; width:100%; height:235px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="iq" role="img" aria-label="Fractional spot intensities versus rotation and tilt angles, all quadratic">Intensity curve.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:10px; margin-top:10px;">
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">RHEED screen — 15 keV, θ<sub>g</sub> 2.5°</div>
+      <div style="position:relative; width:100%; height:290px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="rr" role="img" aria-label="RHEED pattern with fractional streaks whose visibility depends on azimuth and distortion">RHEED.</canvas>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">LEED screen — dashed rings: forbidden |h|=|k| spots</div>
+      <div style="position:relative; width:100%; height:290px; background:var(--surface-1); border-radius:var(--radius);">
+        <canvas id="ls" role="img" aria-label="LEED pattern with fractional spots and dashed markers at glide-forbidden positions">LEED.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div id="cap" style="font-size:12px; color:var(--text-secondary); margin-top:8px; min-height:46px;"></div>
+
+  <div style="margin-top:8px;">
+    <div style="font-size:11px; color:var(--text-secondary); margin-bottom:3px;">ARPES (모식도) — folded band weight I′/I = θ²(t<sub>δ</sub>/t<sub>π</sub>)², &nbsp;t<sub>δ</sub>/t<sub>π</sub> = 0.1</div>
+    <div style="position:relative; width:100%; height:240px; background:var(--surface-1); border-radius:var(--radius);">
+      <canvas id="ap" role="img" aria-label="Band dispersion with folded replicas whose spectral weight grows as theta squared">ARPES.</canvas>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px 22px; margin-top:1.1rem;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="thR" style="font-size:13px; color:var(--text-secondary); min-width:86px;">rotation θ<sub>R</sub></label>
+      <input type="range" id="thR" min="0" max="10" step="0.1" value="4" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:46px; text-align:right;" id="thROut">4.0°</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="thT" style="font-size:13px; color:var(--text-secondary); min-width:86px;">tilt θ<sub>T</sub></label>
+      <input type="range" id="thT" min="0" max="10" step="0.1" value="0" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:46px; text-align:right;" id="thTOut">0.0°</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="bz" style="font-size:13px; color:var(--text-secondary); min-width:86px;">buckling δz</label>
+      <input type="range" id="bz" min="0" max="0.08" step="0.002" value="0" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:52px; text-align:right;" id="bzOut">off</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="az" style="font-size:13px; color:var(--text-secondary); min-width:86px;">azimuth</label>
+      <input type="range" id="az" min="0" max="45" step="0.5" value="0" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:46px; text-align:right;" id="azOut">0°</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label for="le" style="font-size:13px; color:var(--text-secondary); min-width:86px;">LEED E</label>
+      <input type="range" id="le" min="30" max="400" step="5" value="100" style="flex:1;" />
+      <span style="font-size:13px; font-weight:500; min-width:46px; text-align:right;" id="leOut">100 eV</span>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(115px,1fr)); gap:10px; margin-top:1rem;">
+    <div style="background:var(--surface-1); border-radius:var(--radius); padding:0.6rem 0.8rem;">
+      <div style="font-size:11px; color:var(--text-secondary);">O displacement u<sub>R</sub></div>
+      <div style="font-size:18px; font-weight:500;" id="oU">0.136 Å</div>
+    </div>
+    <div style="background:var(--surface-1); border-radius:var(--radius); padding:0.6rem 0.8rem;">
+      <div style="font-size:11px; color:var(--text-secondary);">I(½,3/2) / I(10) — rotation</div>
+      <div style="font-size:18px; font-weight:500;" id="oFrac">0.99 %</div>
+    </div>
+    <div style="background:var(--surface-1); border-radius:var(--radius); padding:0.6rem 0.8rem;">
+      <div style="font-size:11px; color:var(--text-secondary);">I(½,½) / I(10) — "forbidden"</div>
+      <div style="font-size:18px; font-weight:500;" id="oForb">0.00 %</div>
+    </div>
+    <div style="background:var(--surface-1); border-radius:var(--radius); padding:0.6rem 0.8rem;">
+      <div style="font-size:11px; color:var(--text-secondary);">ARPES I′/I (rotation)</div>
+      <div style="font-size:18px; font-weight:500;" id="oR">0.160</div>
+    </div>
+  </div>
+</div>
+
+<footer>ESC Lab, SKKU · kinematic, single BO₂-layer model — intensities qualitative; multiple scattering (dynamical LEED) also lights forbidden spots · B. Sohn &amp; C. Kim, J. Korean Phys. Soc. 81, 1250 (2022)</footer>
+
+<script>
+(function(){
+  var dark=true;
+  var mut='#898781', line=dark?'#4a4a46':'#c9c7bf';
+  var rodC=dark?'#85B7EB':'#185FA5', atomB=dark?'#EF9F27':'#BA7517', atomO=dark?'#9FE1CB':'#0F6E56';
+  var mainC=dark?'#5DCAA5':'#0F6E56', foldC=dark?'#ED93B1':'#993556', tiltC=dark?'#AFA9EC':'#534AB7';
+  var A0=3.9, FB=1.0, FO=0.42, TR=0.1, TG=2.5, KE=15, EX=7;
+  var TANV=Math.tan(15*Math.PI/180), TANH=Math.tan(10*Math.PI/180);
+  var S={thR:4, thT:0, bz:0, az:0, le:100};
+
+  function lamL(){ return Math.sqrt(150.4/S.le); }
+  function lamR(){ return Math.sqrt(150.4/(KE*1000)); }
+  function KL(){ return A0/lamL(); }
+
+  function atoms(thR,thT,bz){
+    var uR=(thR*Math.PI/180)/2, uT=(thT*Math.PI/180)/2*0.85, dz=bz/A0;
+    var out=[], m, n;
+    for(m=0;m<2;m++) for(n=0;n<2;n++){
+      var sgn=((m+n)%2===0)?1:-1, sx=(m===0)?1:-1, sy=(n===0)?1:-1;
+      out.push({x:m, y:n, z:0, f:FB});
+      out.push({x:m+uT*sx, y:n+uT*sy, z:0, f:2*FO});
+      out.push({x:m+0.5, y:n+uR*sgn, z:dz*sgn, f:FO});
+      out.push({x:m-uR*sgn, y:n+0.5, z:dz*sgn, f:FO});
+    }
+    return out;
+  }
+  function Sfac(h,k,qz,thR,thT,bz){
+    if(thR===undefined) thR=S.thR; if(thT===undefined) thT=S.thT; if(bz===undefined) bz=S.bz;
+    var A=atoms(thR,thT,bz), re=0, im=0, i, p;
+    for(i=0;i<A.length;i++){ p=2*Math.PI*(h*A[i].x+k*A[i].y+qz*A[i].z); re+=A[i].f*Math.cos(p); im+=A[i].f*Math.sin(p); }
+    return (re*re+im*im)/16;
+  }
+  function qzLeed(G){
+    var K=KL(), d=K*K-G*G;
+    return K+(d>0?Math.sqrt(d):0);
+  }
+  function REF(){ return Sfac(1,0,0); }
+  function bright(I,Ir){ if(I<=0) return 0; return Math.min(1, Math.pow(I/Ir, 0.2)); }
+  function isInt(v){ return Math.abs(v-Math.round(v))<1e-9; }
+  function isDiag(h,k){ return !isInt(h)&&!isInt(k)&&Math.abs(Math.abs(h)-Math.abs(k))<1e-9; }
+
+  function cv(id){
+    var c=document.getElementById(id), d=window.devicePixelRatio||1, r=c.parentNode.getBoundingClientRect();
+    c.width=r.width*d; c.height=r.height*d; c.style.width=r.width+'px'; c.style.height=r.height+'px';
+    var x=c.getContext('2d'); x.setTransform(d,0,0,d,0,0); x.clearRect(0,0,r.width,r.height);
+    return {x:x,w:r.width,h:r.height};
+  }
+
+  function drawReal(){
+    var g=cv('rs'), x=g.x, w=g.w, h=g.h;
+    var sp=Math.min(w,h)/5.6, cx=w/2, cy=h/2;
+    var uR=(S.thR*Math.PI/180)/2*EX, uT=(S.thT*Math.PI/180)/2*0.85*EX;
+    x.save(); x.beginPath(); x.rect(0,0,w,h); x.clip();
+    for(var m=-3;m<=3;m++) for(var n=-3;n<=3;n++){
+      var bx=cx+m*sp, by=cy-n*sp;
+      if(bx<-sp||bx>w+sp||by<-sp||by>h+sp) continue;
+      var sgn=(((m+n)%2)+2)%2===0?1:-1, sx=((m%2)+2)%2===0?1:-1, sy=((n%2)+2)%2===0?1:-1;
+      var du=uR*sgn;
+      var ox=[[0.5,du],[-du,0.5],[-0.5,-du],[du,-0.5]];
+      if(S.thR>0.05){
+        x.strokeStyle=sgn>0?'rgba(93,202,165,0.45)':'rgba(175,169,236,0.45)'; x.lineWidth=1.2;
+        x.beginPath();
+        for(var q=0;q<4;q++){ var px=bx+ox[q][0]*sp, py=by-ox[q][1]*sp; q?x.lineTo(px,py):x.moveTo(px,py); }
+        x.closePath(); x.stroke();
+      }
+      x.fillStyle=atomB; x.beginPath(); x.arc(bx,by,3.4,0,6.284); x.fill();
+      var oa=(S.bz>0.001)?(sgn>0?0.95:0.45):0.85;
+      x.globalAlpha=oa; x.fillStyle=atomO;
+      x.beginPath(); x.arc(bx+ox[0][0]*sp,by-ox[0][1]*sp,2.6,0,6.284); x.fill();
+      x.beginPath(); x.arc(bx+ox[1][0]*sp,by-ox[1][1]*sp,2.6,0,6.284); x.fill();
+      x.globalAlpha=1;
+      if(S.thT>0.05){
+        var ax2=bx+uT*sx*sp, ay2=by-uT*sy*sp;
+        x.strokeStyle='rgba(175,169,236,0.8)'; x.lineWidth=1.4;
+        x.beginPath(); x.moveTo(bx,by); x.lineTo(ax2,ay2); x.stroke();
+        x.fillStyle=tiltC; x.beginPath(); x.arc(ax2,ay2,3,0,6.284); x.fill();
+      }
+    }
+    x.strokeStyle=mut; x.setLineDash([5,4]); x.lineWidth=1.2;
+    if(S.thT>0.05){ x.strokeRect(cx-sp,cy-sp,2*sp,2*sp); }
+    else if(S.thR>0.05){ x.beginPath(); x.moveTo(cx,cy-sp); x.lineTo(cx+sp,cy); x.lineTo(cx,cy+sp); x.lineTo(cx-sp,cy); x.closePath(); x.stroke(); }
+    x.setLineDash([]); x.restore();
+    x.fillStyle=mut; x.font='11px sans-serif'; x.textAlign='left';
+    x.fillText(S.thT>0.05?'2×2 cell':(S.thR>0.05?'√2×√2 cell':'1×1'),8,16);
+    x.textAlign='right';
+    x.fillStyle=atomB; x.fillText('B site',w-8,16);
+    x.fillStyle=atomO; x.fillText('in-plane O',w-8,31);
+    if(S.thT>0.05){ x.fillStyle=tiltC; x.fillText('apical O (projected tilt)',w-8,46); }
+    if(S.bz>0.001){ x.fillStyle=mut; x.fillText('buckling: 밝음 = +δz, 어두움 = −δz',w-8,S.thT>0.05?61:46); }
+  }
+
+  function drawCurve(){
+    var g=cv('iq'), x=g.x, w=g.w, h=g.h;
+    var pl=46, pr=14, pt=16, pb=32;
+    function rotRatio(th){ return Sfac(0.5,1.5,qzLeed(Math.sqrt(2.5)),th,S.thT,S.bz)/REF(); }
+    function tiltRatio(th){ return Sfac(0.5,0,qzLeed(0.5),S.thR,th,S.bz)/REF(); }
+    var r10R=rotRatio(10), r10T=tiltRatio(10);
+    x.strokeStyle=dark?'#2c2c2a':'#e1e0d9'; x.lineWidth=1;
+    for(var b=0;b<=4;b++){ var yb=h-pb-(h-pb-pt)*b/4;
+      x.beginPath(); x.moveTo(pl,yb); x.lineTo(w-pr,yb); x.stroke(); }
+    x.strokeStyle=mut; x.lineWidth=1.2;
+    x.beginPath(); x.moveTo(pl,pt); x.lineTo(pl,h-pb); x.lineTo(w-pr,h-pb); x.stroke();
+    x.strokeStyle=foldC; x.setLineDash([5,4]); x.lineWidth=1.6; x.beginPath();
+    for(var i=0;i<=80;i++){ var th=10*i/80, px=pl+(w-pl-pr)*i/80, py=h-pb-(h-pb-pt)*(th/10)*(th/10);
+      i?x.lineTo(px,py):x.moveTo(px,py); }
+    x.stroke(); x.setLineDash([]);
+    function curve(fn,norm,col){
+      if(norm<=0) return;
+      x.strokeStyle=col; x.lineWidth=2; x.beginPath();
+      for(var i2=0;i2<=80;i2++){ var th2=10*i2/80, v=fn(th2)/norm;
+        var px2=pl+(w-pl-pr)*i2/80, py2=h-pb-(h-pb-pt)*Math.min(1.02,v);
+        i2?x.lineTo(px2,py2):x.moveTo(px2,py2); }
+      x.stroke();
+    }
+    curve(rotRatio,r10R,rodC);
+    curve(tiltRatio,r10T,tiltC);
+    function mark(th,fn,norm,col){
+      if(norm<=0) return;
+      var pxc=pl+(w-pl-pr)*th/10, pyc=h-pb-(h-pb-pt)*Math.min(1.02,fn(th)/norm);
+      x.fillStyle=col; x.beginPath(); x.arc(pxc,pyc,4.6,0,6.284); x.fill();
+      x.strokeStyle='#FAC775'; x.lineWidth=1.6;
+      x.beginPath(); x.arc(pxc,pyc,4.6,0,6.284); x.stroke();
+    }
+    mark(S.thR,rotRatio,r10R,rodC);
+    mark(S.thT,tiltRatio,r10T,tiltC);
+    x.fillStyle=mut; x.font='11px sans-serif'; x.textAlign='center';
+    for(var tt=0;tt<=10;tt+=2){ x.fillText(tt+'°',pl+(w-pl-pr)*tt/10,h-14); }
+    x.save(); x.translate(14,(pt+h-pb)/2); x.rotate(-Math.PI/2);
+    x.fillText('I / I(θ=10°)',0,0); x.restore();
+    x.textAlign='left';
+    x.fillStyle=rodC; x.fillText('회전 → I(½,3/2)',pl+8,pt+14);
+    x.fillStyle=tiltC; x.fillText('tilt → I(½,0)',pl+8,pt+29);
+    x.fillStyle=foldC; x.fillText('ARPES I′/I ∝ θ² — Eq.(2)',pl+8,pt+44);
+  }
+
+  function drawLeed(){
+    var g=cv('ls'), x=g.x, w=g.w, h=g.h, K=KL();
+    var cx=w/2, cy=h/2, R=Math.min(w,h)/2-10;
+    x.fillStyle=dark?'#141413':'#0f0f0e';
+    x.beginPath(); x.arc(cx,cy,R,0,6.284); x.fill();
+    var Ir=REF();
+    for(var hh=-3.5;hh<=3.5;hh+=0.5) for(var kk=-3.5;kk<=3.5;kk+=0.5){
+      var gr=Math.sqrt(hh*hh+kk*kk);
+      if(gr>K*0.97||(hh===0&&kk===0)) continue;
+      var I=Sfac(hh,kk,qzLeed(gr)), b=bright(I,Ir);
+      var frac=!(isInt(hh)&&isInt(kk));
+      var px=cx+hh/K*R, py=cy-kk/K*R;
+      if(b>=0.03){
+        x.globalAlpha=0.25+0.75*b;
+        x.fillStyle=frac?atomO:'#e8ece9';
+        x.beginPath(); x.arc(px,py,frac?(2+2.2*b):3.8,0,6.284); x.fill();
+        x.globalAlpha=1;
+      } else if(isDiag(hh,kk)&&S.thR>0.3){
+        x.strokeStyle='rgba(237,147,177,0.55)'; x.lineWidth=1; x.setLineDash([2,2]);
+        x.beginPath(); x.arc(px,py,4,0,6.284); x.stroke(); x.setLineDash([]);
+      }
+    }
+    x.fillStyle=dark?'#2a2a28':'#262624';
+    x.beginPath(); x.arc(cx,cy,R*0.08,0,6.284); x.fill();
+    x.fillStyle='rgba(255,255,255,0.5)'; x.font='10px sans-serif'; x.textAlign='left';
+    x.fillText(S.le+' eV',10,16);
+    x.fillStyle=atomO; x.fillText('fractional',10,h-10);
+    x.fillStyle='rgba(255,255,255,0.7)'; x.fillText('integer',80,h-10);
+    if(S.thR>0.3&&S.bz<=0.001){ x.fillStyle='rgba(237,147,177,0.8)'; x.textAlign='right'; x.fillText('○ forbidden |h|=|k|',w-10,h-10); }
+  }
+
+  function drawRheed(){
+    var g=cv('rr'), x=g.x, w=g.w, h=g.h, K=A0/lamR(), th=TG*Math.PI/180, A=S.az*Math.PI/180;
+    var cosA=Math.cos(A), sinA=Math.sin(A);
+    var Cx=-K*Math.cos(th), Cz=K*Math.sin(th);
+    x.fillStyle=dark?'#141413':'#0f0f0e'; x.fillRect(4,4,w-8,h-8);
+    var yE=h*0.80, sc=(yE-12)/TANV, cx=w/2;
+    x.fillStyle=dark?'#0a0a09':'#080807'; x.fillRect(4,yE,w-8,h-4-yE);
+    x.strokeStyle='rgba(255,255,255,0.3)'; x.lineWidth=1;
+    x.beginPath(); x.moveTo(4,yE); x.lineTo(w-4,yE); x.stroke();
+    x.fillStyle='rgba(255,255,255,0.55)'; x.font='10px sans-serif'; x.textAlign='left';
+    x.fillText('shadow edge',10,yE+13);
+    var yD=yE+Math.tan(th)*sc;
+    if(yD<h-8){ x.fillStyle=mut; x.beginPath(); x.arc(cx,yD,3.6,0,6.284); x.fill();
+      x.fillStyle='rgba(255,255,255,0.5)'; x.fillText('direct beam',cx+8,yD+4); }
+    var Ir=REF();
+    x.save(); x.beginPath(); x.rect(4,4,w-8,yE-4); x.clip();
+    for(var g0=-4;g0<=1.5;g0+=0.5) for(var g1=-5;g1<=5;g1+=0.5){
+      var Gx=g0*cosA-g1*sinA, Gy=g0*sinA+g1*cosA;
+      var d2=K*K-(Gx-Cx)*(Gx-Cx)-Gy*Gy;
+      if(d2<=0) continue;
+      var zu=Cz+Math.sqrt(d2), kx=Gx-Cx;
+      var vz=(zu-Cz)/kx, vy=Gy/kx;
+      if(vz<0.0005||vz>TANV||Math.abs(vy)>TANH) continue;
+      var I=Sfac(g0,g1,zu), b=bright(I,Ir);
+      if(b<0.03) continue;
+      var px=cx+vy*sc, py=yE-vz*sc;
+      var frac=!(isInt(g0)&&isInt(g1));
+      x.globalAlpha=0.25+0.75*b;
+      x.fillStyle=frac?atomO:'#e8ece9';
+      x.beginPath(); x.ellipse(px,py,frac?2.2:2.8,(frac?2.2:2.8)*2.4,0,0,6.284); x.fill();
+    }
+    x.globalAlpha=1; x.restore();
+    x.fillStyle='rgba(255,255,255,0.55)'; x.textAlign='right';
+    x.fillText('φ = '+S.az.toFixed(1)+'°',w-8,16);
+  }
+
+  function drawArpes(){
+    var g=cv('ap'), x=g.x, w=g.w, h=g.h;
+    var pl=52, pr=18, pt=14, pb=30;
+    var E0=-0.8, E1=0.25;
+    var rR=Math.min(1,Math.pow(S.thR*TR,2)), rT=Math.min(1,Math.pow(S.thT*TR,2));
+    function PX(k){ return pl+(w-pl-pr)*k; }
+    function PY(E){ return pt+(h-pt-pb)*(E1-E)/(E1-E0); }
+    x.fillStyle=dark?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.03)';
+    x.fillRect(pl,pt,w-pl-pr,PY(0)-pt);
+    x.strokeStyle=mut; x.setLineDash([4,3]); x.lineWidth=1;
+    x.beginPath(); x.moveTo(pl,PY(0)); x.lineTo(w-pr,PY(0)); x.stroke(); x.setLineDash([]);
+    x.strokeStyle=dark?'#2c2c2a':'#e1e0d9';
+    x.beginPath(); x.moveTo(pl,pt); x.lineTo(pl,h-pb); x.lineTo(w-pr,h-pb); x.stroke();
+    function band(fn,col,alpha,dotted){
+      if(alpha<=0.005) return;
+      var passes=dotted?1:4;
+      for(var p=0;p<passes;p++){
+        x.strokeStyle=col;
+        x.globalAlpha=dotted?alpha:alpha*(0.16+0.28*p);
+        x.lineWidth=dotted?1.2:(9-2.2*p);
+        if(dotted) x.setLineDash([3,4]);
+        x.beginPath();
+        var started=false;
+        for(var i=0;i<=200;i++){
+          var k=i/200, E=fn(k);
+          if(E>0.005&&!dotted){ started=false; continue; }
+          if(E>E1||E<E0){ started=false; continue; }
+          var px=PX(k), py=PY(E);
+          started?x.lineTo(px,py):x.moveTo(px,py); started=true;
+        }
+        x.stroke(); x.setLineDash([]);
+      }
+      x.globalAlpha=1;
+    }
+    function Em(k){ return -0.05-0.5*Math.cos(Math.PI*k); }
+    function EfR(k){ return -0.05+0.5*Math.cos(Math.PI*k); }
+    function EfT(k){ return -0.17+0.5*Math.cos(Math.PI*k); }
+    band(EfR,foldC,0.12,true);
+    if(S.thT>0.05) band(EfT,tiltC,0.12,true);
+    band(Em,mainC,0.95,false);
+    band(EfR,foldC,0.95*rR,false);
+    band(EfT,tiltC,0.95*rT,false);
+    x.fillStyle=mut; x.font='11px sans-serif'; x.textAlign='center';
+    x.fillText('Γ',PX(0),h-12); x.fillText('X',PX(1),h-12);
+    x.save(); x.translate(16,(pt+h-pb)/2); x.rotate(-Math.PI/2);
+    x.fillText('E − E_F (eV)',0,0); x.restore();
+    x.textAlign='left';
+    x.fillStyle=mainC; x.fillText('원래 밴드',pl+10,pt+16);
+    x.fillStyle=foldC; x.fillText('√2×√2 folded — I′/I = '+rR.toFixed(3),pl+10,pt+31);
+    if(S.thT>0.05){ x.fillStyle=tiltC; x.fillText('2×2 folded — I′/I = '+rT.toFixed(3)+' (모식적 offset)',pl+10,pt+46); }
+    x.fillStyle=mut; x.textAlign='right';
+    x.fillText('점선: 접힌 밴드의 위치 (θ=0이면 보이지 않음)',w-10,pt+16);
+  }
+
+  function caption(){
+    var t=[];
+    if(S.thR>0.05) t.push('회전(√2×√2): (h+½,k+½) rod 중 |h|=|k| 대각선은 x·y bond 산소 기여가 상쇄되어 소멸합니다 — XRD의 antiphase tilt h≠k 규칙과 같은 물리. 가장 안쪽 스팟은 (½,3/2)형이고, [100] 입사 RHEED의 L0 zone에는 fractional rod가 없습니다.');
+    if(S.thT>0.05) t.push('tilt(2×2 단순화): apical O의 면내 성분이 (h+½,k)·(h,k+½) rod를 켜서 [100] RHEED L0에 (0,k+½)이 바로 보입니다.');
+    if(S.bz>0.001) t.push('buckling δz='+S.bz.toFixed(3)+' Å: 면내 O의 z 변위는 상쇄 없이 더해져 금지 스팟 (½,½)을 켭니다. 세기 ∝ (q_z·δz)² — LEED 에너지를 올리면 q_z가 커져 상대적으로 더 밝아지는 것을 확인하세요.');
+    else if(S.thR>0.05) t.push('실험에서 (½,½)이 보인다면 buckling(표면 이완)이나 다중산란의 증거입니다 — δz를 올려 보세요.');
+    if(S.thR<=0.05&&S.thT<=0.05) t.push('두 각이 모두 0이면 1×1 — fractional 스팟이 없습니다. θ를 올려 재구성을 켜 보세요.');
+    document.getElementById('cap').textContent=t.join(' ');
+  }
+
+  function refresh(){
+    caption();
+    var uR=(S.thR*Math.PI/180)/2*A0;
+    document.getElementById('oU').textContent=uR.toFixed(3)+' Å';
+    document.getElementById('oFrac').textContent=(Sfac(0.5,1.5,qzLeed(Math.sqrt(2.5)))/REF()*100).toFixed(2)+' %';
+    document.getElementById('oForb').textContent=(Sfac(0.5,0.5,qzLeed(Math.sqrt(0.5)))/REF()*100).toFixed(3)+' %';
+    document.getElementById('oR').textContent=Math.min(1,Math.pow(S.thR*TR,2)).toFixed(3);
+    drawReal(); drawCurve(); drawLeed(); drawRheed(); drawArpes();
+  }
+  function sl(id,key,fmt){ document.getElementById(id).addEventListener('input',function(){
+    S[key]=+this.value; document.getElementById(id+'Out').textContent=fmt(S[key]); refresh(); }); }
+  sl('thR','thR',function(v){return v.toFixed(1)+'°';});
+  sl('thT','thT',function(v){return v.toFixed(1)+'°';});
+  sl('bz','bz',function(v){return v<=0.0001?'off':v.toFixed(3)+' Å';});
+  sl('az','az',function(v){return v.toFixed(1)+'°';});
+  sl('le','le',function(v){return v.toFixed(0)+' eV';});
+  window.addEventListener('resize',refresh);
+  refresh();
+})();
+</script>
+</main></body></html>

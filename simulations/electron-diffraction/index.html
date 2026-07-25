@@ -20,7 +20,7 @@ footer{margin-top:44px;font-size:12.5px;color:var(--text-muted);border-top:1px s
 </style></head><body><main>
 <div class="eyebrow">ESC LAB · SKKU</div>
 <nav style="font-size:13px;margin-bottom:18px"><a href="../" style="color:var(--accent)">← 시뮬레이션 홈</a></nav><h1>전자회절 인터랙티브<br>RHEED &amp; LEED</h1>
-<p class="lede">Ewald 작도부터 실제 패턴 판독까지, 표면 전자회절의 개념 사슬을 네 단계로 나눈 시뮬레이션입니다. 순서대로 보는 것을 권장합니다: 교점이 스팟이 되는 원리 → Laue zone이 원호인 이유 → rod가 존재하는 이유 → 형상·재구성·방위각에 따른 패턴 변화.</p>
+<p class="lede">Ewald 작도부터 실제 패턴 판독까지, 표면 전자회절의 개념 사슬을 다섯 단계로 나눈 시뮬레이션입니다. 순서대로 보는 것을 권장합니다: 교점이 스팟이 되는 원리 → Laue zone이 원호인 이유 → rod가 존재하는 이유 → 형상·재구성·방위각에 따른 패턴 변화.</p>
 
 <a class="card" href="01_ewald_mapping.html">
   <div class="num">01</div>
@@ -44,6 +44,12 @@ footer{margin-top:44px;font-size:12.5px;color:var(--text-muted);border-top:1px s
   <div class="num">04</div>
   <h2>RHEED / LEED Explorer</h2>
   <p>표면 형상 7종 × 재구성 5종(√2×√2 R45 포함) × 방위각 회전. RHEED와 LEED 패턴을 픽셀 단위 운동학적 계산으로 나란히 비교하고, 같은 축척의 Ewald 작도로 두 기법의 기하 차이를 봅니다.</p>
+</a>
+
+<a class="card" href="05_reconstruction_intensity.html">
+  <div class="num">05</div>
+  <h2>재구성 스팟의 밝기 — 팔면체 회전각과 θ² 법칙</h2>
+  <p>산소 팔면체 회전각 θ에 따라 fractional 스팟이 f<sub>O</sub>²|G·u|² ∝ θ²로 켜지고, ARPES folded band도 같은 θ²로 켜집니다. 회전(√2×√2)과 tilt(2×2)의 스팟 기하 지문, glide 소멸, RHEED 방위각 가시성까지. [Sohn &amp; Kim, JKPS 81, 1250 (2022)]</p>
 </a>
 
 <div class="note">모든 시뮬레이션은 운동학적(kinematic) 근사입니다. 스팟의 위치와 형태는 정확하지만, 세기·Kikuchi line·surface wave resonance·굴절 효과는 dynamical 이론이 필요하며 여기 포함되지 않습니다.</div>
