@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://esc-skku.github.io/sitemap.xml
+Sitemap: https://bsohn.net/sitemap.xml
