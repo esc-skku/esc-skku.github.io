@@ -10,6 +10,18 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-7KK0MHN2R9');
+  // Hash-routed SPA: GA4 never fires page_view on #tab navigation, so send it
+  // ourselves. The delay lets the app's hashchange handler update document.title
+  // first; the pseudo-path page_location makes per-page paths usable in reports.
+  window.addEventListener('hashchange', function () {
+    setTimeout(function () {
+      var page = (window.location.hash || '').replace('#', '') || 'home';
+      gtag('event', 'page_view', {
+        page_title: document.title,
+        page_location: window.location.origin + (page === 'home' ? '/' : '/' + page)
+      });
+    }, 150);
+  });
 </script>
 <title>ESC Lab — Quantum Materials, SKKU</title>
 <meta name="description" content="MBE growth and ARPES of correlated quantum materials at SKKU. PI: Byungmin Sohn.">
@@ -1172,7 +1184,7 @@ class Component extends DCLogic {
 
   setTitle(page) {
     const names = { home: '', people: 'People', research: 'Research', publications: 'Publications', opening: 'Opening', photo: 'Photo', presentations: 'Presentations', contact: 'Contact' };
-    document.title = (names[page] ? names[page] + ' — ' : '') + 'ESC Lab — Emergent Materials & Spectroscopy, SKKU';
+    document.title = (names[page] ? names[page] + ' — ' : '') + 'ESC Lab — Quantum Materials, SKKU';
   }
 
   componentDidMount() {
