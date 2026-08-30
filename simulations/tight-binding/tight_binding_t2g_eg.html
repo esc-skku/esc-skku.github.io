@@ -52,19 +52,81 @@
       overflow: hidden;
     }
 
-    .controls-panel {
+    .lower-layout {
       max-width: 1200px;
       margin: 16px auto 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
-      padding: 20px 28px;
+      padding: 20px 26px;
+    }
+
+    .panel-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #7a7a9a;
+      margin-bottom: 16px;
     }
 
     .controls-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px 40px;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    .slider-note {
+      margin-top: 5px;
+      font-size: 0.74rem;
+      line-height: 1.6;
+      color: #8a8aa8;
+    }
+
+    /* ---- equations ---- */
+    .eq {
+      font-family: 'Cambria', 'Georgia', serif;
+      font-size: 0.92rem;
+      line-height: 1.9;
+      color: #dcdcf0;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 2px;
+    }
+
+    .eq .v { font-style: italic; }
+
+    .eq-block { margin: 0 0 16px; }
+
+    .eq-block:last-child { margin-bottom: 0; }
+
+    .eq-head {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: #e94560;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+
+    .eq-note {
+      font-size: 0.74rem;
+      line-height: 1.65;
+      color: #8a8aa8;
+      margin-top: 6px;
+      white-space: normal;
+    }
+
+    .eq hr {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 14px 0;
     }
 
     .slider-group {
@@ -193,9 +255,9 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 768px) {
+    @media (max-width: 980px) {
       .main-layout { grid-template-columns: 1fr; }
-      .controls-grid { grid-template-columns: 1fr; }
+      .lower-layout { grid-template-columns: 1fr; }
       #band-plot, #dos-plot { height: 340px; }
     }
   </style>
@@ -221,31 +283,90 @@
     <div class="legend-item"><div class="legend-dot" style="background:#54a0ff"></div>d<sub>3z²-r²</sub></div>
   </div>
 
-  <div class="controls-panel">
-    <div class="controls-grid">
-      <div class="slider-group">
-        <span class="slider-label">V<sub>ddσ</sub></span>
-        <input type="range" id="sl-sigma" min="-2.0" max="0.5" step="0.01" value="-0.40">
-        <span class="slider-value" id="val-sigma">-0.40</span>
+  <div class="lower-layout">
+    <div class="panel">
+      <div class="panel-title">Parameters</div>
+      <div class="controls-grid">
+        <div>
+          <div class="slider-group">
+            <span class="slider-label">V<sub>ddσ</sub></span>
+            <input type="range" id="sl-sigma" min="-2.0" max="0.5" step="0.01" value="-0.40">
+            <span class="slider-value" id="val-sigma">-0.40</span>
+          </div>
+          <div class="slider-note">두 d 오비탈이 결합축을 따라 <b>정면으로</b> 겹칠 때의 hopping (|m| = 0). 셋 중 가장 크고, 결합성이라 보통 음수입니다.</div>
+        </div>
+        <div>
+          <div class="slider-group">
+            <span class="slider-label">V<sub>ddπ</sub></span>
+            <input type="range" id="sl-pi" min="-0.5" max="1.0" step="0.01" value="0.20">
+            <span class="slider-value" id="val-pi">0.20</span>
+          </div>
+          <div class="slider-note">결합축을 <b>옆에서 스치듯</b> 겹칠 때 (|m| = 1). 크기는 σ의 절반 이하이고 부호가 반대입니다.</div>
+        </div>
+        <div>
+          <div class="slider-group">
+            <span class="slider-label">V<sub>ddδ</sub></span>
+            <input type="range" id="sl-delta-hop" min="-0.3" max="0.3" step="0.01" value="-0.03">
+            <span class="slider-value" id="val-delta-hop">-0.03</span>
+          </div>
+          <div class="slider-note">결합축을 마주 보고 <b>네 잎이</b> 겹칠 때 (|m| = 2). 겹침이 거의 없어 셋 중 가장 작습니다.</div>
+        </div>
+        <div>
+          <div class="slider-group">
+            <span class="slider-label">Δ<sub>CF</sub></span>
+            <input type="range" id="sl-cf" min="0.0" max="4.0" step="0.01" value="1.50">
+            <span class="slider-value" id="val-cf">1.50</span>
+          </div>
+          <div class="slider-note">팔면체 결정장 분리 (10<i>Dq</i>). e<sub>g</sub> 궤도의 <b>on-site 에너지만</b> 이만큼 올립니다 &mdash; hopping은 건드리지 않습니다.</div>
+        </div>
       </div>
-      <div class="slider-group">
-        <span class="slider-label">V<sub>ddπ</sub></span>
-        <input type="range" id="sl-pi" min="-0.5" max="1.0" step="0.01" value="0.20">
-        <span class="slider-value" id="val-pi">0.20</span>
-      </div>
-      <div class="slider-group">
-        <span class="slider-label">V<sub>ddδ</sub></span>
-        <input type="range" id="sl-delta-hop" min="-0.3" max="0.3" step="0.01" value="-0.03">
-        <span class="slider-value" id="val-delta-hop">-0.03</span>
-      </div>
-      <div class="slider-group">
-        <span class="slider-label">Δ<sub>CF</sub></span>
-        <input type="range" id="sl-cf" min="0.0" max="4.0" step="0.01" value="1.50">
-        <span class="slider-value" id="val-cf">1.50</span>
+      <div class="btn-row">
+        <button class="btn btn-reset" id="btn-reset">Reset</button>
       </div>
     </div>
-    <div class="btn-row">
-      <button class="btn btn-reset" id="btn-reset">Reset</button>
+
+    <div class="panel">
+      <div class="panel-title">Model</div>
+      <div class="eq">
+
+        <div class="eq-block">
+          <div class="eq-head">기저 · 해밀토니안</div>
+          (<span class="v">d</span><sub>xy</sub>, <span class="v">d</span><sub>yz</sub>, <span class="v">d</span><sub>zx</sub>, <span class="v">d</span><sub>x²−y²</sub>, <span class="v">d</span><sub>3z²−r²</sub>)<br>
+          <span class="v">H</span><sub>αβ</sub>(<b class="v">k</b>) = 2<span class="v">t</span><sup>x</sup><sub>αβ</sub> cos <span class="v">k</span><sub>x</sub> + 2<span class="v">t</span><sup>y</sup><sub>αβ</sub> cos <span class="v">k</span><sub>y</sub> + Δ<sub>CF</sub> δ<sub>αβ</sub>|<sub>α∈e<sub>g</sub></sub>
+          <div class="eq-note">정사각 격자, 최근접 이웃만, <i>a</i> = 1. t<sub>2g</sub>의 on-site 에너지를 0으로 잡았습니다.</div>
+        </div>
+
+        <hr>
+
+        <div class="eq-block">
+          <div class="eq-head">Slater–Koster hopping (x̂ 방향)</div>
+          <span class="v">t</span><sup>x</sup><sub>xy,xy</sub> = V<sub>ddπ</sub><br>
+          <span class="v">t</span><sup>x</sup><sub>yz,yz</sub> = V<sub>ddδ</sub>&nbsp;&nbsp;&nbsp;<span class="v">t</span><sup>x</sup><sub>zx,zx</sub> = V<sub>ddπ</sub><br>
+          <span class="v">t</span><sup>x</sup><sub>x²−y²</sub> = ¾V<sub>ddσ</sub> + ¼V<sub>ddδ</sub><br>
+          <span class="v">t</span><sup>x</sup><sub>3z²−r²</sub> = ¼V<sub>ddσ</sub> + ¾V<sub>ddδ</sub><br>
+          <span class="v">t</span><sup>x</sup><sub>x²−y², 3z²−r²</sub> = −(√3/4)(V<sub>ddσ</sub> − V<sub>ddδ</sub>)
+          <div class="eq-note">ŷ 방향은 <i>x</i> ↔ <i>y</i> 를 바꾼 것입니다: yz ↔ zx 가 서로 자리를 바꾸고, e<sub>g</sub> 사이 off-diagonal은 부호가 뒤집힙니다.</div>
+        </div>
+
+        <hr>
+
+        <div class="eq-block">
+          <div class="eq-head">밴드 &mdash; t<sub>2g</sub></div>
+          <span class="v">E</span><sub>xy</sub> = 2V<sub>ddπ</sub>(cos <span class="v">k</span><sub>x</sub> + cos <span class="v">k</span><sub>y</sub>)<br>
+          <span class="v">E</span><sub>yz</sub> = 2(V<sub>ddδ</sub> cos <span class="v">k</span><sub>x</sub> + V<sub>ddπ</sub> cos <span class="v">k</span><sub>y</sub>)<br>
+          <span class="v">E</span><sub>zx</sub> = 2(V<sub>ddπ</sub> cos <span class="v">k</span><sub>x</sub> + V<sub>ddδ</sub> cos <span class="v">k</span><sub>y</sub>)
+          <div class="eq-note">이 모형에서 t<sub>2g</sub> 셋은 서로 섞이지 않아 식이 그대로 밴드입니다. d<sub>yz</sub>·d<sub>zx</sub>가 한 방향으로만 넓게 분산하는 1차원적 성격이 여기서 나옵니다.</div>
+        </div>
+
+        <hr>
+
+        <div class="eq-block">
+          <div class="eq-head">밴드 &mdash; e<sub>g</sub></div>
+          <span class="v">E</span><sub>±</sub> = Δ<sub>CF</sub> + (V<sub>ddσ</sub> + V<sub>ddδ</sub>)<span class="v">C</span><sub>+</sub> ± ½(V<sub>ddσ</sub> − V<sub>ddδ</sub>)√(<span class="v">C</span><sub>+</sub>² + 3<span class="v">C</span><sub>−</sub>²)
+          <div class="eq-note"><i>C</i><sub>±</sub> = cos <i>k</i><sub>x</sub> ± cos <i>k</i><sub>y</sub>. Γ와 M에서 두 e<sub>g</sub> 밴드의 간격은 2(V<sub>ddσ</sub> − V<sub>ddδ</sub>), X에서는 2√3(V<sub>ddσ</sub> − V<sub>ddδ</sub>) 입니다. Δ<sub>CF</sub>는 t<sub>2g</sub>와 e<sub>g</sub>의 무게중심 사이만 벌릴 뿐 밴드 모양은 바꾸지 않습니다.</div>
+        </div>
+
+      </div>
     </div>
   </div>
 
@@ -534,7 +655,7 @@
         {
           x: dosEg, y: energies, mode: "lines",
           line: { color: "#ff9ff3", width: 2.5 },
-          name: "eₘ", hovertemplate: "eₘ: %{x:.2f}<br>E = %{y:.3f} eV<extra></extra>",
+          name: "e<sub>g</sub>", hovertemplate: "e<sub>g</sub>: %{x:.2f}<br>E = %{y:.3f} eV<extra></extra>",
         },
       ];
 

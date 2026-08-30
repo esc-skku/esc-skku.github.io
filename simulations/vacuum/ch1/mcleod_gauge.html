@@ -13,8 +13,8 @@
   .nb:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 </style>
 </head><body><main>
-<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 7</a><span>/</span>McLeod 게이지</nav>
-<div class="eyebrow">CHAPTER 7 · MEASURING A VACUUM</div>
+<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 1</a><span>/</span>McLeod 게이지</nav>
+<div class="eyebrow">CHAPTER 1 · INTRODUCTION</div>
 <h1>McLeod 게이지 — 측정 순서</h1>
 <p class="lede">알려진 부피의 기체를 수은으로 압축해, 압력을 <em>길이</em>로 바꿔 읽는 절대 게이지입니다. 아래 (a)&thinsp;→&thinsp;(b)&thinsp;→&thinsp;(c) 단계를 눌러가며 수은과 기체가 어떻게 움직이는지 확인해 보세요.</p>
 
@@ -30,6 +30,7 @@
 
 <rect id="gasCap" x="300" y="40" width="18" height="115" fill="#85B7EB"/>
 <rect id="gasBulb" x="266" y="155" width="86" height="95" rx="12" fill="#85B7EB"/>
+<rect id="gasStem" x="303" y="250" width="12" height="90" fill="#85B7EB"/>
 <rect id="gasRef" x="390" y="40" width="18" height="300" fill="#85B7EB"/>
 <rect id="gasRight" x="250" y="340" width="180" height="20" fill="#85B7EB"/>
 
@@ -84,7 +85,7 @@
 var S = [
  {lw:360, lr:360, arr:0, stem:0, bulb:0, cap:0, ref:0, seal:0, h:0, cap1:"", bulb1:"pᵢ",
   t:"(a) 챔버와 통해 있는 상태",
-  d:"수은면이 관 입구보다 아래에 있어 벌브와 두 모세관은 수은에 닿지 않습니다. 세 곳 모두 챔버와 기체로 통해 있어 압력은 pᵢ로 같습니다."},
+  d:"수은면이 관 입구보다 아래에 있어 벌브와 두 모세관이 모두 기체로 이어져 있습니다. 어디를 재도 압력은 챔버와 같은 pᵢ입니다."},
  {lw:390, lr:340, arr:1, stem:90, bulb:30, cap:0, ref:170, seal:1, h:0, cap1:"", bulb1:"p_f",
   t:"(b) 분기점이 막히며 기체가 갇힘",
   d:"피스톤이 내려간 만큼 실린더 수은면이 낮아지고, 그 수은이 저장조를 지나 관으로 올라갑니다. 분기점이 막히며 부피 Vᵢ가 확정됩니다. 벌브 쪽은 갇힌 기체가 밀어내 잘 못 올라가지만, 기준 모세관은 챔버(pᵢ)와 통해 있어 훨씬 높이 올라갑니다."},
@@ -103,6 +104,7 @@ function render(){
   setr('mBulb', 250-s.bulb, s.bulb);
   setr('mCap', 155-s.cap, s.cap);
   setr('mRef', 340-s.ref, s.ref);
+  setr('gasStem', 250, 90-s.stem);
   setr('gasBulb', 155, 95-s.bulb);
   setr('gasCap', 40, 115-s.cap);
   setr('gasRef', 40, 300-s.ref);
