@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tight-Binding Model: t2g + eg on Square Lattice</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.2.2/math.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #1a1a2e, #16213e);
+      min-height: 100vh;
+      color: #fff;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #e94560, #ff6b6b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 16px;
+    }
+
+    .main-layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .plot-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .controls-panel {
+      max-width: 1200px;
+      margin: 16px auto 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 20px 28px;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 40px;
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slider-label {
+      min-width: 50px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #ccc;
+      text-align: right;
+    }
+
+    .slider-label sub, .slider-label .sub {
+      font-size: 0.7em;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: #1a1a3e;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #e94560;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(233, 69, 96, 0.5);
+    }
+
+    .slider-value {
+      min-width: 52px;
+      font-size: 0.85rem;
+      color: #e94560;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-row {
+      display: flex;
+      justify-content: center;
+      margin-top: 16px;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 8px 28px;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .btn:active { transform: scale(0.96); }
+
+    .btn-reset {
+      background: rgba(233, 69, 96, 0.15);
+      color: #e94560;
+      border: 1px solid rgba(233, 69, 96, 0.3);
+    }
+
+    .btn-reset:hover { background: rgba(233, 69, 96, 0.25); }
+
+    .legend-bar {
+      max-width: 1200px;
+      margin: 12px auto 0;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: #aaa;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    #band-plot, #dos-plot {
+      height: 420px;
+    }
+
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .loading .spinner {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(233, 69, 96, 0.2);
+      border-top-color: #e94560;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 10px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+      .main-layout { grid-template-columns: 1fr; }
+      .controls-grid { grid-template-columns: 1fr; }
+      #band-plot, #dos-plot { height: 340px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Tight-Binding Model: t2g + eg</h1>
+  <p class="subtitle">Square Lattice &middot; Slater-Koster Parameterization &middot; 5 d-orbitals</p>
+
+  <div class="main-layout">
+    <div class="plot-card">
+      <div id="band-plot"><div class="loading"><div class="spinner"></div><br>Calculating...</div></div>
+    </div>
+    <div class="plot-card">
+      <div id="dos-plot"><div class="loading"><div class="spinner"></div><br>Calculating...</div></div>
+    </div>
+  </div>
+
+  <div class="legend-bar">
+    <div class="legend-item"><div class="legend-dot" style="background:#ff6b6b"></div>d<sub>xy</sub></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#feca57"></div>d<sub>yz</sub></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#48dbfb"></div>d<sub>zx</sub></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff9ff3"></div>d<sub>x²-y²</sub></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#54a0ff"></div>d<sub>3z²-r²</sub></div>
+  </div>
+
+  <div class="controls-panel">
+    <div class="controls-grid">
+      <div class="slider-group">
+        <span class="slider-label">V<sub>ddσ</sub></span>
+        <input type="range" id="sl-sigma" min="-2.0" max="0.5" step="0.01" value="-0.40">
+        <span class="slider-value" id="val-sigma">-0.40</span>
+      </div>
+      <div class="slider-group">
+        <span class="slider-label">V<sub>ddπ</sub></span>
+        <input type="range" id="sl-pi" min="-0.5" max="1.0" step="0.01" value="0.20">
+        <span class="slider-value" id="val-pi">0.20</span>
+      </div>
+      <div class="slider-group">
+        <span class="slider-label">V<sub>ddδ</sub></span>
+        <input type="range" id="sl-delta-hop" min="-0.3" max="0.3" step="0.01" value="-0.03">
+        <span class="slider-value" id="val-delta-hop">-0.03</span>
+      </div>
+      <div class="slider-group">
+        <span class="slider-label">Δ<sub>CF</sub></span>
+        <input type="range" id="sl-cf" min="0.0" max="4.0" step="0.01" value="1.50">
+        <span class="slider-value" id="val-cf">1.50</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-reset" id="btn-reset">Reset</button>
+    </div>
+  </div>
+
+  <script>
+    // ===== Parameters =====
+    const SQRT3 = Math.sqrt(3);
+    const PI = Math.PI;
+    const NK_BAND = 150;
+    const NK_DOS = 60;
+    const N_ENERGY = 400;
+    const BROADENING = 0.06;
+
+    const COLORS = ["#ff6b6b", "#feca57", "#48dbfb", "#ff9ff3", "#54a0ff"];
+    const NAMES = ["dxy", "dyz", "dzx", "dx²-y²", "d3z²-r²"];
+
+    // ===== Helper: drop the initial loading placeholder =====
+    function dropLoading(id) {
+      const el = document.getElementById(id).querySelector(".loading");
+      if (el) el.remove();
+    }
+
+    // ===== Helper: extract real number from math.js value =====
+    function toReal(v) {
+      if (v == null) return 0;
+      if (typeof v === 'number') return v;
+      if (typeof v === 'object' && v.re !== undefined) return v.re;
+      return Number(v) || 0;
+    }
+
+    function toArray(v) {
+      if (Array.isArray(v)) return v;
+      if (v && typeof v.toArray === 'function') return v.toArray();
+      if (v && typeof v.valueOf === 'function') return Array.from(v.valueOf());
+      return Array.from(v);
+    }
+
+    // ===== Eigenvalue solver for 5x5 symmetric real matrix =====
+    function eigvalsh(M) {
+      try {
+        const mat = math.matrix(M);
+        const result = math.eigs(mat);
+        const rawVals = toArray(result.values);
+        return rawVals.map(toReal).sort((a, b) => a - b);
+      } catch (e) {
+        console.error("eigvalsh error:", e, M);
+        return [0, 0, 0, 0, 0];
+      }
+    }
+
+    function eigh(M) {
+      try {
+        const n = M.length;
+        const mat = math.matrix(M);
+        const result = math.eigs(mat);
+
+        // eigenvectors is array of {value, vector}
+        const pairs = result.eigenvectors.map(ev => {
+          const vec = toArray(ev.vector);
+          return {
+            value: toReal(ev.value),
+            vector: vec.map(toReal)
+          };
+        });
+
+        pairs.sort((a, b) => a.value - b.value);
+
+        const values = pairs.map(p => p.value);
+        // vectors[i][j] = i-th component of j-th eigenvector
+        const vectors = Array.from({ length: n }, (_, i) =>
+          pairs.map(p => p.vector[i])
+        );
+
+        return { values, vectors };
+      } catch (e) {
+        console.error("eigh error:", e, M);
+        const n = M.length;
+        return {
+          values: Array(n).fill(0),
+          vectors: Array.from({ length: n }, (_, i) =>
+            Array.from({ length: n }, (_, j) => i === j ? 1 : 0))
+        };
+      }
+    }
+
+    // ===== Hopping matrices (plain arrays for math.js compatibility) =====
+    function hoppingX(Vs, Vp, Vd) {
+      const H = [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]];
+      H[0][0] = Vp;
+      H[1][1] = Vd;
+      H[2][2] = Vp;
+      H[3][3] = 0.75 * Vs + 0.25 * Vd;
+      H[4][4] = 0.25 * Vs + 0.75 * Vd;
+      H[3][4] = H[4][3] = -SQRT3 / 4 * (Vs - Vd);
+      return H;
+    }
+
+    function hoppingY(Vs, Vp, Vd) {
+      const H = [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]];
+      H[0][0] = Vp;
+      H[1][1] = Vp;
+      H[2][2] = Vd;
+      H[3][3] = 0.75 * Vs + 0.25 * Vd;
+      H[4][4] = 0.25 * Vs + 0.75 * Vd;
+      H[3][4] = H[4][3] = SQRT3 / 4 * (Vs - Vd);
+      return H;
+    }
+
+    function buildH(kx, ky, Vs, Vp, Vd, delta) {
+      const Hx = hoppingX(Vs, Vp, Vd);
+      const Hy = hoppingY(Vs, Vp, Vd);
+      const cx = 2 * Math.cos(kx);
+      const cy = 2 * Math.cos(ky);
+      const H = [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]];
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          let val = Hx[i][j] * cx + Hy[i][j] * cy;
+          if (i === j && i >= 3) val += delta;
+          H[i][j] = val;
+        }
+      }
+      return H;
+    }
+
+    // ===== Band structure =====
+    function computeBands(Vs, Vp, Vd, delta) {
+      const G = [0, 0], X = [PI, 0], M = [PI, PI];
+      const segments = [[G, X], [X, M], [M, G]];
+      const labels = ["Γ", "X", "M", "Γ"];
+
+      const kDist = [];
+      const bands = [[], [], [], [], []];
+      const tickPos = [0];
+      let offset = 0;
+
+      for (const [kStart, kEnd] of segments) {
+        const segLen = Math.sqrt((kEnd[0] - kStart[0]) ** 2 + (kEnd[1] - kStart[1]) ** 2);
+        for (let i = 0; i < NK_BAND; i++) {
+          const t = i / NK_BAND;
+          const kx = kStart[0] + t * (kEnd[0] - kStart[0]);
+          const ky = kStart[1] + t * (kEnd[1] - kStart[1]);
+          kDist.push(offset + t * segLen);
+
+          const H = buildH(kx, ky, Vs, Vp, Vd, delta);
+          const evals = eigvalsh(H);
+          for (let b = 0; b < 5; b++) bands[b].push(evals[b]);
+        }
+        offset += segLen;
+        tickPos.push(offset);
+      }
+
+      return { kDist, bands, tickPos, labels };
+    }
+
+    // ===== Orbital-resolved DOS =====
+    function computeDOS(Vs, Vp, Vd, delta) {
+      const nk = NK_DOS;
+      const allEvals = [];
+      const allT2g = [];
+      const allEg = [];
+
+      for (let ix = 0; ix < nk; ix++) {
+        const kx = -PI + (2 * PI * ix) / nk;
+        for (let iy = 0; iy < nk; iy++) {
+          const ky = -PI + (2 * PI * iy) / nk;
+          const H = buildH(kx, ky, Vs, Vp, Vd, delta);
+          const { values, vectors } = eigh(H);
+
+          for (let b = 0; b < 5; b++) {
+            allEvals.push(values[b]);
+            let t2g = 0, eg = 0;
+            for (let o = 0; o < 3; o++) t2g += vectors[o][b] ** 2;
+            for (let o = 3; o < 5; o++) eg += vectors[o][b] ** 2;
+            allT2g.push(t2g);
+            allEg.push(eg);
+          }
+        }
+      }
+
+      let eMin = Infinity, eMax = -Infinity;
+      for (const e of allEvals) {
+        if (e < eMin) eMin = e;
+        if (e > eMax) eMax = e;
+      }
+      eMin -= 0.5;
+      eMax += 0.5;
+
+      const energies = [];
+      for (let i = 0; i < N_ENERGY; i++) {
+        energies.push(eMin + (eMax - eMin) * i / (N_ENERGY - 1));
+      }
+
+      const dosT2g = new Float64Array(N_ENERGY);
+      const dosEg = new Float64Array(N_ENERGY);
+      const norm = BROADENING * Math.sqrt(2 * PI) * nk * nk;
+      const invBr2 = -0.5 / (BROADENING * BROADENING);
+
+      for (let i = 0; i < allEvals.length; i++) {
+        const e = allEvals[i];
+        const wt = allT2g[i];
+        const we = allEg[i];
+        for (let j = 0; j < N_ENERGY; j++) {
+          const diff = energies[j] - e;
+          const g = Math.exp(diff * diff * invBr2);
+          dosT2g[j] += g * wt;
+          dosEg[j] += g * we;
+        }
+      }
+
+      for (let j = 0; j < N_ENERGY; j++) {
+        dosT2g[j] /= norm;
+        dosEg[j] /= norm;
+      }
+
+      return { energies, dosT2g: Array.from(dosT2g), dosEg: Array.from(dosEg) };
+    }
+
+    // ===== Plotly layout =====
+    const darkLayout = {
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "#16213e",
+      font: { color: "#ccc", family: "Inter" },
+      margin: { t: 40, b: 40, l: 50, r: 20 },
+      xaxis: { gridcolor: "#222", zerolinecolor: "#444" },
+      yaxis: { gridcolor: "#222", zerolinecolor: "#444", title: { text: "Energy (eV)" } },
+      showlegend: false,
+    };
+
+    const plotConfig = { responsive: true, displayModeBar: false };
+
+    // ===== Main update =====
+    function updatePlots() {
+      const Vs = parseFloat(document.getElementById("sl-sigma").value);
+      const Vp = parseFloat(document.getElementById("sl-pi").value);
+      const Vd = parseFloat(document.getElementById("sl-delta-hop").value);
+      const delta = parseFloat(document.getElementById("sl-cf").value);
+
+      // Band structure
+      const { kDist, bands, tickPos, labels } = computeBands(Vs, Vp, Vd, delta);
+
+      const bandTraces = bands.map((b, i) => ({
+        x: kDist,
+        y: b,
+        mode: "lines",
+        line: { color: COLORS[i], width: 2.5 },
+        name: NAMES[i],
+        hovertemplate: `${NAMES[i]}<br>E = %{y:.3f} eV<extra></extra>`,
+      }));
+
+      // Vertical lines at high-symmetry points
+      const shapes = tickPos.map(tp => ({
+        type: "line", x0: tp, x1: tp, y0: 0, y1: 1, yref: "paper",
+        line: { color: "#444", width: 1, dash: "dot" },
+      }));
+
+      const bandLayout = {
+        ...darkLayout,
+        title: { text: "Band Structure", font: { size: 14, color: "#fff" } },
+        xaxis: {
+          ...darkLayout.xaxis,
+          tickvals: tickPos,
+          ticktext: labels,
+          range: [kDist[0], kDist[kDist.length - 1]],
+        },
+        shapes,
+      };
+
+      dropLoading("band-plot");
+      Plotly.react("band-plot", bandTraces, bandLayout, plotConfig);
+
+      // DOS
+      const { energies, dosT2g, dosEg } = computeDOS(Vs, Vp, Vd, delta);
+      const dosTotal = energies.map((_, i) => dosT2g[i] + dosEg[i]);
+
+      const dosTraces = [
+        {
+          x: dosTotal, y: energies, mode: "lines", fill: "tozerox",
+          fillcolor: "rgba(255,255,255,0.06)",
+          line: { color: "rgba(255,255,255,0.4)", width: 1.5, dash: "dash" },
+          name: "Total", hovertemplate: "Total: %{x:.2f}<br>E = %{y:.3f} eV<extra></extra>",
+        },
+        {
+          x: dosT2g, y: energies, mode: "lines",
+          line: { color: "#48dbfb", width: 2.5 },
+          name: "t₂g", hovertemplate: "t₂g: %{x:.2f}<br>E = %{y:.3f} eV<extra></extra>",
+        },
+        {
+          x: dosEg, y: energies, mode: "lines",
+          line: { color: "#ff9ff3", width: 2.5 },
+          name: "eₘ", hovertemplate: "eₘ: %{x:.2f}<br>E = %{y:.3f} eV<extra></extra>",
+        },
+      ];
+
+      const dosLayout = {
+        ...darkLayout,
+        title: { text: "Density of States", font: { size: 14, color: "#fff" } },
+        xaxis: { ...darkLayout.xaxis, title: { text: "DOS (states/eV)" } },
+        yaxis: { ...darkLayout.yaxis, range: [energies[0], energies[energies.length - 1]] },
+        showlegend: true,
+        legend: { x: 0.6, y: 0.98, bgcolor: "rgba(22,33,62,0.7)", font: { size: 11 } },
+      };
+
+      dropLoading("dos-plot");
+      Plotly.react("dos-plot", dosTraces, dosLayout, plotConfig);
+    }
+
+    // ===== Slider events =====
+    const sliders = [
+      { id: "sl-sigma", valId: "val-sigma" },
+      { id: "sl-pi", valId: "val-pi" },
+      { id: "sl-delta-hop", valId: "val-delta-hop" },
+      { id: "sl-cf", valId: "val-cf" },
+    ];
+
+    let debounceTimer = null;
+
+    sliders.forEach(({ id, valId }) => {
+      const sl = document.getElementById(id);
+      const valEl = document.getElementById(valId);
+      sl.addEventListener("input", () => {
+        valEl.textContent = parseFloat(sl.value).toFixed(2);
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(updatePlots, 120);
+      });
+    });
+
+    // Reset
+    const defaults = { "sl-sigma": -0.40, "sl-pi": 0.20, "sl-delta-hop": -0.03, "sl-cf": 1.50 };
+
+    document.getElementById("btn-reset").addEventListener("click", () => {
+      for (const [id, val] of Object.entries(defaults)) {
+        document.getElementById(id).value = val;
+        document.getElementById(id.replace("sl-", "val-")).textContent = val.toFixed(2);
+      }
+      updatePlots();
+    });
+
+    // Initial render
+    updatePlots();
+  </script>
+</body>
+</html>
