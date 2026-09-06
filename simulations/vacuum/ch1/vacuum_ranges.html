@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>진공의 분류 — 압력을 움직이며 다섯 물리량 보기</title>
+<style>
+  :root{
+    --bg:#FBFAF7; --surface:#F1EFE9; --line:#B9B5AC; --ink:#1F1E1B; --ink-2:#5B5954;
+    --accent:#2B5F9E; --mark:#C4502A;
+    --lv:#D9D2C3; --mv:#C7D3DE; --hv:#A9C2DC; --uhv:#7FA3CC; --xhv:#4F73A6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#1B1B19; --surface:#26261F; --line:#5B5952; --ink:#EDEBE5; --ink-2:#B3B0A7;
+           --accent:#8FB7E8; --mark:#E56A3D;
+           --lv:#4A463E; --mv:#3F4B58; --hv:#3B5573; --uhv:#3E6493; --xhv:#5A82B8; }
+  }
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:18px 16px 32px;}
+  h1{font-size:19px;font-weight:600;margin:0 0 4px;}
+  .sub{font-size:14px;color:var(--ink-2);margin:0 0 14px;line-height:1.6;}
+  .grid{display:grid;grid-template-columns:230px 1fr;gap:18px;align-items:start;}
+  @media (max-width:640px){ .grid{grid-template-columns:1fr;} }
+  svg{width:100%;height:auto;display:block;}
+  .axis text{fill:var(--ink-2);font-size:11px;}
+  .axis .reg{fill:var(--ink);font-size:12.5px;font-weight:600;}
+  .axis .app{fill:var(--ink-2);font-size:11px;}
+  .ctrl{margin:8px 0 14px;}
+  .trk{position:relative;padding:0 10px;}
+  .marks{position:relative;height:var(--mh,26px);margin:0 8px;}
+  .marks .m{position:absolute;transform:translateX(-50%);font-size:11px;color:var(--ink-2);white-space:nowrap;cursor:pointer;background:none;border:0;padding:0 2px;font-family:inherit;line-height:1.2;}
+  .marks .m::after{content:'';position:absolute;left:50%;width:1px;background:var(--line);}
+  .marks.top .m{bottom:0;padding-bottom:6px;} .marks.top .m::after{bottom:0;height:6px;}
+  .marks.bot .m{top:0;padding-top:6px;}   .marks.bot .m::after{top:0;height:6px;}
+  .marks.top .m{color:var(--ink);font-weight:600;}
+  .marks .m:hover,.marks .m.on{color:var(--accent);} .marks .m.on::after{background:var(--accent);}
+  .marks .m:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .ctrl input[type=range]{width:100%;accent-color:var(--accent);}
+  .ctrl .lab{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2);margin-top:2px;}
+  .pbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px;}
+  .pbox .p{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .pbox .p small{font-size:14px;font-weight:400;color:var(--ink-2);margin-left:6px;}
+  .pbox .reg{font-size:15px;margin-top:2px;}
+  .pbox .reg b{color:var(--accent);}
+  .pbox .why{font-size:13.5px;line-height:1.65;color:var(--ink-2);margin-top:8px;}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:640px){ .cards{grid-template-columns:1fr;} }
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+  .card.wide{grid-column:1 / -1;}
+  .card h3{margin:0 0 2px;font-size:14px;font-weight:600;}
+  .card .f{font-size:12.5px;color:var(--ink-2);margin-bottom:6px;}
+  .card .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .card .v small{font-size:13px;font-weight:400;color:var(--ink-2);margin-left:4px;}
+  .card .h{font-size:13.5px;color:var(--ink-2);line-height:1.6;margin-top:4px;}
+  .card .h b{color:var(--ink);font-weight:600;}
+  .mini{margin-top:8px;}
+  .foot{font-size:12.5px;color:var(--ink-2);margin-top:14px;line-height:1.6;}
+  input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  nav.crumb{font-size:12.5px;color:var(--ink-2);margin-bottom:14px;}
+  nav.crumb a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--line);}
+  nav.crumb a:hover{color:var(--accent);border-bottom-color:var(--accent);}
+  nav.crumb span{margin:0 7px;color:var(--line);}
+  footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 1</a><span>/</span>진공의 분류</nav>
+<h1>진공의 분류 — 압력을 움직이며 다섯 물리량 보기</h1>
+<p class="sub">실험실에서는 압력으로 대화하지만, 구간을 나누는 진짜 기준은 분자수 n과 그로부터 나오는 양들이다. 슬라이더를 움직여 어느 물리량이 언제 "용기 크기" "실험 시간"을 넘어서는지 보라. (질소·공기, 실온 기준 근사식)</p>
+
+<div class="grid">
+  <!-- left: log axis with regimes and applications -->
+  <div>
+    <svg class="axis" viewBox="0 0 230 620" role="img" aria-label="압력 축과 진공 구간">
+      <title>압력 축(torr, 로그)과 진공 구간, 대표 응용</title>
+      <g id="bands"></g>
+      <line x1="60" y1="20" x2="60" y2="600" stroke="var(--ink)" stroke-width="1.2"/>
+      <g id="ticks"></g>
+      <g id="apps"></g>
+      <g id="marker">
+        <line id="mk" x1="60" y1="0" x2="230" y2="0" stroke="var(--mark)" stroke-width="2"/>
+        <polygon id="mkTri" points="60,0 52,-6 52,6" fill="var(--mark)"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- right: controls and readouts -->
+  <div>
+    <div class="ctrl">
+      <div class="trk">
+        <div class="marks top" id="top"></div>
+        <input id="lp" type="range" min="-24" max="2.88" step="0.02" value="-6" oninput="curNote='';if(animId){cancelAnimationFrame(animId);animId=null;}update()" aria-label="압력 (로그 눈금)">
+        <div class="marks bot" id="bot"></div>
+      </div>
+      <div class="lab"><span>10⁻²⁴ torr</span><span>대기압 760 torr</span></div>
+    </div>
+
+    <div class="pbox">
+      <div class="p"><span id="pv"></span><small>torr</small><small id="pmb"></small></div>
+      <div class="reg" id="rg"></div>
+      <div class="why" id="why"></div>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <h3>1. 분자수 n</h3>
+        <div class="f">n = 3.3×10¹⁶ · P (개/cm³)</div>
+        <div class="v" id="nv"></div>
+        <div class="h" id="nh"></div>
+        <svg class="mini" viewBox="0 0 300 34" aria-hidden="true">
+          <line x1="10" y1="20" x2="290" y2="20" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>
+          <text x="10" y="8" font-size="9" fill="var(--ink-2)">1 개/cm³</text>
+          <text x="290" y="8" font-size="9" fill="var(--ink-2)" text-anchor="end">고체 5×10²²</text>
+          <circle cx="288" cy="20" r="4" fill="var(--ink-2)"/>
+          <circle id="nDot" cx="150" cy="20" r="5" fill="var(--mark)"/>
+        </svg>
+      </div>
+
+      <div class="card">
+        <h3>3. 분자 입사 빈도 J</h3>
+        <div class="f">J = 3.8×10²⁰ · P (개/cm²·s)</div>
+        <div class="v" id="jv"></div>
+        <div class="h" id="jh"></div>
+      </div>
+
+      <div class="card wide">
+        <h3>2. 평균 자유거리 λ</h3>
+        <div class="f">λ = 5×10⁻³ / P (cm) — 용기 크기 50 cm와 비교</div>
+        <div class="v" id="lv"></div>
+        <div class="h" id="lh"></div>
+        <svg class="mini" viewBox="0 0 600 120" aria-hidden="true">
+          <rect x="20" y="10" width="360" height="100" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+          <text x="200" y="118" font-size="10" fill="var(--ink-2)" text-anchor="middle" dominant-baseline="hanging" dy="-6">50 cm</text>
+          <polyline id="path" points="" fill="none" stroke="var(--mark)" stroke-width="1.6"/>
+          <circle id="mol" cx="30" cy="60" r="4" fill="var(--accent)"/>
+          <text id="ltxt" x="400" y="60" font-size="13" fill="var(--ink)" dominant-baseline="central"></text>
+        </svg>
+      </div>
+
+      <div class="card">
+        <h3>4. 단분자층 형성시간 T<sub>m</sub></h3>
+        <div class="f">T<sub>m</sub> = 2.4×10⁻⁶ / P (s), 부착확률 1</div>
+        <div class="v" id="tv"></div>
+        <div class="h" id="th"></div>
+      </div>
+
+      <div class="card">
+        <h3>5. 표면 평균 자유시간</h3>
+        <div class="f">100×100 원자(≈40 nm) 구획에 한 개도 안 오는 시간 ≈ T<sub>m</sub>/10⁴</div>
+        <div class="v" id="sv"></div>
+        <div class="h" id="sh"></div>
+      </div>
+    </div>
+
+    <div class="foot">기억할 숫자: 1 torr ≈ 133 Pa · 고체는 1 cm³당 약 5×10²² 개, 표면 1 cm²당 약 10¹⁵ 개 · 10⁻⁴ torr에서 λ ≈ 50 cm · 10⁻⁶ torr에서 단분자층 약 2.4 s.</div>
+  </div>
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+</div>
+
+<script>
+// ---- regimes (torr) ----
+var REG=[
+ {k:'LV', name:'저진공',   hi:760,  lo:1,     c:'var(--lv)',
+  why:'대기압과의 압력차가 만드는 힘을 쓰는 영역. 진공청소기(약 600 torr), 진공포장, 흡착 이송. 분자는 서로 끊임없이 부딪히며 유체처럼 흐른다.'},
+ {k:'MV', name:'중진공',   hi:1,    lo:1e-3,  c:'var(--mv)',
+  why:'표면에서 비교적 자유롭게 증발이 일어날 만큼 희박해진다. 진공 건조·동결 건조, 스퍼터링, CVD. λ는 아직 용기보다 훨씬 짧다.'},
+ {k:'HV', name:'고진공',   hi:1e-3, lo:1e-7,  c:'var(--hv)',
+  why:'λ가 용기 크기를 넘어선다 — 분자·전자·이온이 벽에서 벽으로 부딪힘 없이 날아간다. 증착, 진공관, 전자현미경, 질량분석기의 영역. 하지만 표면은 수 초 안에 덮인다.'},
+ {k:'UHV',name:'초고진공', hi:1e-7, lo:1e-11, c:'var(--uhv)',
+  why:'단분자층 형성시간이 실험 시간을 넘어선다. 깨끗한 표면을 수 시간 유지할 수 있어 표면과학·박막·가속기 저장링이 요구한다. 이제 문제는 공간의 기체가 아니라 벽 표면의 분자다.'},
+ {k:'XHV',name:'극고진공', hi:1e-11,lo:1e-14, c:'var(--xhv)',
+  why:'40 nm 크기의 원자 구획이 수십 초 이상 아무 분자도 맞지 않는다. 나노과학, 원자 조작, 단원자 소자가 이 여유 시간을 필요로 한다.'},
+ {k:'', name:'우주 공간',   hi:1e-14,lo:1e-24, c:'var(--surface)',
+  why:'실험실이 닿지 못하는 영역. 여기서는 온도가 10³~10⁷ K로 천차만별이라 p는 의미가 흐려지고 n으로 말해야 한다. 아래 값들은 n을 295 K로 환산한 것.'}
+];
+var APPS=[[600,'진공청소기'],[10,'진공포장'],[0.3,'진공건조'],[1e-4,'진공증착'],[1e-6,'진공관·SEM'],[1e-8,'박막·표면분석'],[1e-10,'저장링'],[2.5e-13,'나노·원자조작'],[1e-9,'ISS 궤도'],[1e-11,'달 표면'],[3e-16,'행성간'],[3e-23,'은하간']];
+
+// ---- formatting ----
+var SUP={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+function sup(n){ return String(n).split('').map(function(c){return SUP[c];}).join(''); }
+function sci(x,d){ if(x===0) return '0'; var e=Math.floor(Math.log10(x)), m=x/Math.pow(10,e); if(m>=9.95){m=1;e++;} d=(d==null)?1:d; return (e>=-2&&e<=3) ? (+x.toPrecision(2)).toLocaleString() : m.toFixed(d)+'×10'+sup(e); }
+function len(cm){ if(cm<1e-4) return sci(cm*1e7)+' nm'; if(cm<0.1) return sci(cm*1e4)+' μm'; if(cm<1) return sci(cm*10)+' mm'; if(cm<100) return sci(cm)+' cm'; if(cm<1e5) return sci(cm/100)+' m'; return sci(cm/1e5)+' km'; }
+function tm(s){ if(s<1e-9) return sci(s*1e12)+' ps'; if(s<1e-6) return sci(s*1e9)+' ns'; if(s<1e-3) return sci(s*1e6)+' μs'; if(s<1) return sci(s*1e3)+' ms'; if(s<60) return sci(s)+' s'; if(s<3600) return sci(s/60)+' 분'; if(s<86400) return sci(s/3600)+' 시간'; if(s<3.156e7) return sci(s/86400)+' 일'; return sci(s/3.156e7)+' 년'; }
+function timeFeel(s){ if(s<1e-3) return '순간. 표면은 늘 기체로 덮여 있다.'; if(s<1) return '눈 깜짝할 사이. 깨끗한 표면은 만들 수 없다.'; if(s<600) return '실험 준비도 못 하는 시간. 고진공의 한계.'; if(s<86400) return '한 실험을 할 여유. 표면과학이 시작되는 지점.'; return '실험 시간보다 훨씬 길다. 표면이 사실상 청정하게 유지된다.'; }
+
+var LMIN=-24, LMAX=Math.log10(760), Y0=20, Y1=600;
+function y(lp){ return Y0 + (LMAX-lp)/(LMAX-LMIN)*(Y1-Y0); }
+function svgEl(t,a){ var e=document.createElementNS('http://www.w3.org/2000/svg',t); for(var k in a) e.setAttribute(k,a[k]); return e; }
+(function build(){
+  var b=document.getElementById('bands'), t=document.getElementById('ticks'), ap=document.getElementById('apps');
+  REG.forEach(function(r){
+    var y1=y(Math.log10(r.hi)), y2=y(Math.log10(Math.max(r.lo,1e-24)));
+    b.appendChild(svgEl('rect',{x:60,y:y1,width:170,height:y2-y1,fill:r.c,opacity:r.k?.55:0,stroke:r.k?'none':'var(--line)','stroke-dasharray':'3 3'}));
+    var tx=svgEl('text',{x:66,y:(y1+y2)/2,'class':'reg','dominant-baseline':'central'}); tx.textContent=r.k?r.name+' ('+r.k+')':r.name; b.appendChild(tx);
+  });
+  for(var e=2;e>=-24;e--){
+    var yy=y(e);
+    t.appendChild(svgEl('line',{x1:55,y1:yy,x2:60,y2:yy,stroke:'var(--ink)','stroke-width':1}));
+    if(e%2===0||e===-7||e===-11){ var tx=svgEl('text',{x:50,y:yy,'text-anchor':'end','dominant-baseline':'central'}); tx.textContent='10'+sup(e); t.appendChild(tx); }
+  }
+  APPS.forEach(function(a){ var yy=y(Math.log10(a[0])); var tx=svgEl('text',{x:225,y:yy,'class':'app','text-anchor':'end','dominant-baseline':'central'}); tx.textContent=a[1]; ap.appendChild(tx); });
+  var ax=document.querySelector('.axis'); ax.style.cursor='pointer';
+  ax.addEventListener('click',function(ev){ var r=ax.getBoundingClientRect(); var yy=(ev.clientY-r.top)/r.height*620; var lp=LMAX-(yy-Y0)/(Y1-Y0)*(LMAX-LMIN); lp=Math.max(LMIN,Math.min(LMAX,lp)); curNote=''; animateTo(lp); });
+})();
+
+var PRESETS1=[
+ ['대기압',760,''],['중진공',1,''],['고진공',1e-6,''],['초고진공',1e-10,''],['극고진공',1e-13,'']];
+var PRESETS2=[
+ ['진공청소기',600,'대기압보다 조금 낮은 압력차로 먼지를 빨아들인다'],
+ ['에베레스트 정상',250,'8,849 m, 대기압의 약 1/3'],
+ ['여객기 고도',170,'약 11 km. 기내는 ~600 torr로 가압'],
+ ['진공포장',10,'식품 포장기 도달 압력 수준'],
+ ['전구·진공관',1e-6,'필라멘트·음극이 산화되지 않을 정도'],
+ ['ISS 궤도',3e-9,'고도 400 km, n ≈ 10⁸/cm³ (295 K 환산)'],
+ ['달 표면',1e-11,'n ≈ 10⁵/cm³ 수준'],
+ ['우리 실험실 기록',2e-11,'우리 실험실에서 도달한 최저 압력'],
+ ['행성간 공간',3e-16,'태양풍, n ≈ 5~10/cm³ (295 K 환산)'],
+ ['은하간 공간',3e-23,'수소 원자 1개/m³ 미만 (295 K 환산)']];
+var curNote='';
+function pct(lp){ return (lp-LMIN)/(LMAX-LMIN)*100; }
+function placeMarks(id,list,dir){
+  var box=document.getElementById(id); box.innerHTML='';
+  var W=box.clientWidth||600, rows=[], items=[];
+  list.forEach(function(p){ var b=document.createElement('button'); b.className='m'; b.type='button'; b.textContent=p[0]; b.dataset.lp=Math.log10(p[1]);
+    b.onclick=function(){ curNote=p[2]; animateTo(Math.log10(p[1])); }; b.style.left=pct(Math.log10(p[1]))+'%'; box.appendChild(b); items.push(b); });
+  // greedy row assignment so labels in a row don't overlap
+  items.sort(function(a,b){return parseFloat(a.dataset.lp)-parseFloat(b.dataset.lp);});
+  var rowEnd=[];
+  items.forEach(function(b){ var x=parseFloat(b.dataset.lp), px=pct(x)/100*W, half=b.offsetWidth/2+6, r=0;
+    while(rowEnd[r]!==undefined && rowEnd[r]>px-half) r++;
+    rowEnd[r]=px+half; b.style[dir==='top'?'bottom':'top']=(r*15)+'px'; });
+  box.style.setProperty('--mh',(rowEnd.length*15+12)+'px');
+}
+function layoutMarks(){ placeMarks('top',PRESETS1,'top'); placeMarks('bot',PRESETS2,'bot'); markButtons(parseFloat(document.getElementById('lp').value)); }
+window.addEventListener('resize',layoutMarks);
+var animId=null;
+function animateTo(target){
+  if(animId) cancelAnimationFrame(animId);
+  var el=document.getElementById('lp'), from=parseFloat(el.value);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){ el.value=target; update(); return; }
+  var t0=performance.now(), dur=400+Math.min(600,Math.abs(target-from)*40);
+  function step(t){ var u=Math.min(1,(t-t0)/dur), e=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2; el.value=(from+(target-from)*e).toFixed(3); update(); if(u<1) animId=requestAnimationFrame(step); else { animId=null; el.value=target; update(); } }
+  animId=requestAnimationFrame(step);
+}
+function markButtons(lp){ document.querySelectorAll('.marks .m').forEach(function(b){ b.className='m'+(Math.abs(parseFloat(b.dataset.lp)-lp)<0.03?' on':''); }); }
+function update(){
+  var lp=parseFloat(document.getElementById('lp').value), P=Math.pow(10,lp);
+  var n=3.3e16*P, lam=5e-3/P, J=3.8e20*P, T=2.4e-6/P, S=T/1e4;
+  var r=REG.filter(function(q){return P<=q.hi && P>q.lo;})[0] || REG[REG.length-1]; if(P>760) r=REG[0];
+
+  document.getElementById('pv').textContent=sci(P);
+  document.getElementById('pmb').textContent='≈ '+sci(P*133)+' Pa';
+  document.getElementById('rg').innerHTML='<b>'+(r.k?r.name+' ('+r.k+')':r.name)+'</b>'+(curNote?' <span style="color:var(--ink-2)">— '+curNote+'</span>':'');
+  document.getElementById('why').textContent=r.why;
+
+  document.getElementById('nv').innerHTML=sci(n)+'<small>개/cm³</small>';
+  var ratio=5e22/n;
+  document.getElementById('nh').innerHTML='고체 원자밀도의 <b>1/('+sci(ratio,0)+')</b>. 대기압(2.5×10¹⁹)보다 '+sci(2.5e19/n,0)+'배 희박.';
+  document.getElementById('nDot').setAttribute('cx', 10+Math.max(0,Math.min(1,Math.log10(n)/Math.log10(5e22)))*278);
+
+  document.getElementById('jv').innerHTML=sci(J)+'<small>개/cm²·s</small>';
+  document.getElementById('jh').innerHTML='표면 1 cm²의 원자 10¹⁵개에 대해 매초 <b>'+sci(J/1e15,1)+'층</b>분의 분자가 입사.';
+
+  document.getElementById('lv').innerHTML=len(lam);
+  var k=lam/50;
+  document.getElementById('lh').innerHTML= k<1 ? '용기(50 cm)의 <b>1/('+sci(1/k,0)+')</b>. 벽까지 가는 동안 약 '+sci(50/lam,0)+'번 충돌 — 유체처럼 행동.' : '용기의 <b>'+sci(k,0)+'배</b>. 벽에서 벽으로 충돌 없이 날아간다 — 분자 흐름.';
+  // zigzag path inside 360x100 box (20..380, 10..110)
+  var pts=[], x=30, yy=60, segs=Math.min(60,Math.max(1,Math.round(50/lam))), step=350/segs;
+  pts.push(x+','+yy);
+  if(k>=1){ pts.push('375,'+(60+(k>3?0:12))); }
+  else { for(var i=0;i<segs;i++){ x+=step; yy=60+((i%2)?-1:1)*Math.min(38, 8+segs*0.5) * ((i*7)%5+3)/7; pts.push(x.toFixed(1)+','+yy.toFixed(1)); } }
+  document.getElementById('path').setAttribute('points',pts.join(' '));
+  document.getElementById('ltxt').textContent= k<1 ? '충돌 '+sci(50/lam,0)+'회' : '무충돌 통과';
+
+  document.getElementById('tv').innerHTML=tm(T);
+  document.getElementById('th').innerHTML=timeFeel(T);
+  document.getElementById('sv').innerHTML=tm(S);
+  document.getElementById('sh').innerHTML= S<1 ? '40 nm 구획도 1초를 못 버틴다.' : (S<30 ? '나노 구조 하나에 몇 초의 작업 여유.' : '수십 초 이상 — 원자 단위 조작이 가능한 여유.');
+
+  markButtons(lp);
+  var ym=y(lp); document.getElementById('mk').setAttribute('y1',ym); document.getElementById('mk').setAttribute('y2',ym);
+  document.getElementById('mkTri').setAttribute('transform','translate(0,'+ym+')');
+}
+layoutMarks(); update();
+</script>
+</body>
+</html>
