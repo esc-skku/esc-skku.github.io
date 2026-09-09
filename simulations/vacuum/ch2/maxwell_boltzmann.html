@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기체 분자의 속력 분포 (Maxwell–Boltzmann)</title>
+<style>
+:root{
+  --surface-0:#f9f9f7; --surface-1:#fcfcfb; --surface-2:#f0efec;
+  --text-1:#0b0b0b; --text-2:#52514e; --text-3:#898781;
+  --border:#e1e0d9; --border-strong:#c3c2b7;
+  --blue:#2a78d6; --orange:#eb6834; --aqua:#1baf7a; --yellow:#eda100; --violet:#4a3aa7; --red:#e34948;
+  --radius:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-1);font-family:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 48px}
+h1{font-size:24px;margin:0 0 4px;font-weight:600}
+.sub{color:var(--text-2);margin:0 0 18px}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px}
+.row{display:flex;align-items:center;gap:12px;margin:8px 0;flex-wrap:wrap}
+.row label{min-width:120px;color:var(--text-2);font-size:14px}
+.row input[type=range]{flex:1;min-width:180px;accent-color:var(--blue)}
+.row.b input[type=range]{accent-color:var(--orange)}
+.val{min-width:110px;font-variant-numeric:tabular-nums;font-weight:500}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:3px 10px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface-1);font-size:13px;cursor:pointer;color:var(--text-2);font-family:inherit}
+.chip:hover{background:var(--surface-2)}
+.chip.on{background:var(--text-1);color:#fff;border-color:var(--text-1)}
+.chip.on.b{background:var(--orange);border-color:var(--orange)}
+.layout{display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-top:16px}
+@media(max-width:940px){.layout{grid-template-columns:1fr}}
+canvas{display:block;width:100%;height:auto;background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+@media(max-width:940px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.tile .k{font-size:12.5px;color:var(--text-3)}
+.tile .v{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;margin:2px 0}
+.tile .n{font-size:12.5px;color:var(--text-2)}
+.cap{font-size:13px;color:var(--text-3);margin-top:6px;line-height:1.6}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--text-2);margin:8px 0 0}
+.legend span{display:flex;align-items:center;gap:6px}
+.line{width:18px;height:0;border-top:2.5px solid}
+.note{font-size:14px;color:var(--text-2);margin-top:14px;line-height:1.75}
+h2{font-size:16px;margin:0 0 8px;font-weight:600}
+sup,sub{line-height:0}
+.tt{position:absolute;pointer-events:none;background:rgba(11,11,11,.92);color:#fff;font-size:12.5px;padding:6px 9px;border-radius:8px;line-height:1.5;display:none;white-space:nowrap;z-index:5}
+.rel{position:relative}
+.btn{padding:6px 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-1);font:inherit;font-size:14px;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.small{font-size:13px;color:var(--text-3)}
+  nav.crumb{font-size:12.5px;color:var(--text-2);margin-bottom:14px;}
+  nav.crumb a{color:var(--text-2);text-decoration:none;border-bottom:1px solid var(--border-strong);}
+  nav.crumb a:hover{color:var(--blue);border-bottom-color:var(--blue);}
+  nav.crumb span{margin:0 7px;color:var(--border-strong);}
+  footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 2</a><span>/</span>속력 분포</nav>
+<h1>기체 분자의 속력 분포 (Maxwell–Boltzmann)</h1>
+<p class="sub"><i>f</i>(<i>v</i>)d<i>v</i> = 4π<i>v</i>²(<i>m</i>/2π<i>kT</i>)<sup>3/2</sup> e<sup>−<i>mv</i>²/2<i>kT</i></sup> d<i>v</i>. 온도와 질량을 바꾸고, 상자 속 분자들이 이 곡선에 수렴하는 것을 본다.</p>
+
+<div class="card">
+  <div class="row">
+    <label>기체 A</label>
+    <div class="chips" id="gasA"></div>
+  </div>
+  <div class="row">
+    <label>온도 <i>T</i><sub>A</sub></label>
+    <input type="range" id="tA" min="1" max="3.6" step="0.001" value="2.467">
+    <span class="val" id="tAv"></span>
+    <div class="chips" id="tAchips">
+      <button class="chip" data-t="77">77 K</button>
+      <button class="chip" data-t="293">20 ℃</button>
+      <button class="chip" data-t="1000">1000 K</button>
+      <button class="chip" data-t="3000">3000 K</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>비교 곡선 B</label>
+    <button class="chip" id="cmpTgl">켜기</button>
+    <div class="chips" id="gasB" style="display:none"></div>
+  </div>
+  <div class="row b" id="rowTB" style="display:none">
+    <label>온도 <i>T</i><sub>B</sub></label>
+    <input type="range" id="tB" min="1" max="3.6" step="0.001" value="2.467">
+    <span class="val" id="tBv"></span>
+  </div>
+  <div class="row">
+    <label>표시</label>
+    <div class="chips">
+      <button class="chip on" id="showEsc">지구 탈출속도 11.2 km/s</button>
+      <button class="chip" id="showFlux">표면 도달 가중 <i>v f</i>(<i>v</i>)</button>
+      <button class="chip" id="showHist">상자 히스토그램 겹치기</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="rel">
+      <canvas id="plot" width="760" height="430"></canvas>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="tiles">
+      <div class="tile"><div class="k">최빈 속력 <i>v<sub>p</sub></i> = √(2<i>kT</i>/<i>m</i>)</div><div class="v" id="vp"></div><div class="n">= 129 √(T/M) m/s</div></div>
+      <div class="tile"><div class="k">평균 속력 <i>v̄</i> = √(8<i>kT</i>/π<i>m</i>)</div><div class="v" id="va"></div><div class="n">= 146 √(T/M) m/s</div></div>
+      <div class="tile"><div class="k">실효 속력 <i>v</i><sub>rms</sub> = √(3<i>kT</i>/<i>m</i>)</div><div class="v" id="vr"></div><div class="n">= 158 √(T/M) m/s</div></div>
+      <div class="tile"><div class="k">탈출속도(11.2 km/s)보다 빠른 비율</div><div class="v" id="esc"></div><div class="n" id="escN"></div></div>
+    </div>
+    <div class="cap" id="cap"></div>
+  </div>
+  <div>
+    <div class="card" style="padding:12px 14px">
+      <h2>상자 속 분자 (기체 A, 벽 온도 = <i>T</i><sub>A</sub>)</h2>
+      <canvas id="box" width="460" height="330" style="border:none;background:var(--surface-2)"></canvas>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="play">일시정지</button>
+        <button class="btn" id="reset">다시 뿌리기</button>
+        <span class="small">입자 <span id="npLbl">300</span>개 · 색 = 속력</span>
+      </div>
+      <input type="range" id="np" min="50" max="800" step="50" value="300" style="width:100%;accent-color:var(--blue)">
+      <div class="cap">분자는 벽에 닿을 때 벽 온도의 열평형 분포에서 새 속도를 받는다(열벽). 히스토그램은 시간에 따라 누적되어 곡선에 수렴한다. 온도를 바꾸면 이전 분포에서 새 분포로 옮겨가는 과정이 보인다. 화면의 이동 속도는 실제 속력에 비례(축척 조정).</div>
+    </div>
+    <div class="card" style="padding:12px 14px;margin-top:12px">
+      <h2>이 온도의 에너지 눈금</h2>
+      <div class="note" id="energy" style="margin-top:4px"></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>세 속력의 순서</b> <i>v<sub>p</sub></i> &lt; <i>v̄</i> &lt; <i>v</i><sub>rms</sub> = 1 : 1.128 : 1.225 는 온도·질량과 무관하다. 분포가 오른쪽으로 꼬리가 길기 때문에 평균이 최빈값보다 크고, 제곱평균은 큰 값에 더 가중되어 더 크다.
+  <b>실효 속력</b>은 운동에너지(½<i>m</i>⟨<i>v</i>²⟩ = 3/2 <i>kT</i>)와 압력(<i>P</i> = ⅓<i>nm</i>⟨<i>v</i>²⟩)에, <b>평균 속력</b>은 분자 입사빈도(<i>J</i> = ¼<i>nv̄</i>)와 컨덕턴스에 쓰인다.
+  <b>표면 도달 가중</b> <i>vf</i>(<i>v</i>)는 빠른 분자가 표면에 더 자주 닿는다는 것을 보여준다 — 표면을 때리는 분자의 평균 운동에너지가 3/2<i>kT</i>가 아닌 2<i>kT</i>인 이유(2.9.4 분자류 열전도).
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+</div>
+
+<script>
+const kB=1.380649e-23, amu=1.66053907e-27, kB_meV=0.08617333, VESC=11200;
+const GASES=[{n:'H₂',M:2.016},{n:'He',M:4.003},{n:'H₂O',M:18.02},{n:'N₂',M:28.01},{n:'공기',M:28.97},{n:'O₂',M:32.00},{n:'Ar',M:39.95},{n:'CO₂',M:44.01},{n:'Xe',M:131.3}];
+let gA=4, gB=0, cmp=false, showEsc=true, showFlux=false, showHist=false;
+const $=id=>document.getElementById(id);
+const TA=()=>Math.round(10**parseFloat($('tA').value)), TB=()=>Math.round(10**parseFloat($('tB').value));
+const mOf=g=>GASES[g].M*amu;
+const vp=(T,m)=>Math.sqrt(2*kB*T/m), va=(T,m)=>Math.sqrt(8*kB*T/(Math.PI*m)), vr=(T,m)=>Math.sqrt(3*kB*T/m);
+function f(v,T,m){ const a=m/(2*kB*T); return 4*Math.PI*v*v*Math.pow(a/Math.PI,1.5)*Math.exp(-a*v*v); }
+function erfc(x){ // Numerical Recipes erfcc, |err|<1.2e-7
+  const z=Math.abs(x), t=1/(1+0.5*z);
+  const r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
+  return x>=0? r : 2-r;
+}
+function fracAbove(v0,T,m){ const a=v0/vp(T,m); return erfc(a)+2*a/Math.sqrt(Math.PI)*Math.exp(-a*a); }
+function fmtV(v){ return v>=10000? (v/1000).toFixed(1)+' km/s' : Math.round(v)+' m/s'; }
+function fmtFrac(p){ if(p===0) return '0'; if(p>=1e-3) return (p*100).toPrecision(3)+' %'; const e=Math.floor(Math.log10(p)); return (p/10**e).toFixed(1)+'×10'+String(e).replace(/-/g,'⁻').replace(/\d/g,c=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[c]); }
+
+// ---------- plot ----------
+const P={l:62,r:20,t:16,b:46};
+let vmaxAxis=2000;
+function drawPlot(){
+  const c=$('plot'), ctx=c.getContext('2d'), W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+  const mA=mOf(gA), T1=TA();
+  let vm=vr(T1,mA)*2.6;
+  if(cmp) vm=Math.max(vm, vr(TB(),mOf(gB))*2.6);
+  // nice axis max
+  const step=Math.pow(10,Math.floor(Math.log10(vm))); vmaxAxis=Math.ceil(vm/step)*step; if(vmaxAxis/step<2) vmaxAxis=Math.ceil(vm/(step/2))*(step/2);
+  const X=v=>P.l+(v/vmaxAxis)*(W-P.l-P.r);
+  let fmax=f(vp(T1,mA),T1,mA); if(cmp) fmax=Math.max(fmax,f(vp(TB(),mOf(gB)),TB(),mOf(gB)));
+  const Y=y=>H-P.b-(y/(fmax*1.12))*(H-P.t-P.b);
+  // grid
+  ctx.font='12px system-ui'; ctx.fillStyle='#898781'; ctx.textAlign='center';
+  const nt=vmaxAxis/step>=6? step : step/2;
+  for(let v=0;v<=vmaxAxis+1e-9;v+=nt){ const x=X(v); ctx.strokeStyle='#e1e0d9'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,P.t); ctx.lineTo(x,H-P.b); ctx.stroke(); ctx.fillText(v>=1000? (v/1000)+' k':v, x, H-P.b+16); }
+  ctx.fillText('속력 v (m/s)', (P.l+W-P.r)/2, H-8);
+  ctx.save(); ctx.translate(14,(P.t+H-P.b)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText('f(v)  [확률 / (m/s)]', 0,0); ctx.restore();
+  ctx.strokeStyle='#c3c2b7'; ctx.beginPath(); ctx.moveTo(P.l,H-P.b); ctx.lineTo(W-P.r,H-P.b); ctx.stroke();
+  // histogram overlay
+  if(showHist && histN>0){
+    ctx.save(); ctx.beginPath(); ctx.rect(P.l,P.t,W-P.l-P.r,H-P.t-P.b); ctx.clip();
+    const bw=hist.vmax/hist.bins; ctx.fillStyle='#2a78d6'; ctx.globalAlpha=.22;
+    for(let i=0;i<hist.bins;i++){ const dens=hist.c[i]/(histN*bw); const x0=X(i*bw), x1=X((i+1)*bw); if(x0>W-P.r) break; ctx.fillRect(x0, Y(dens), Math.max(1,x1-x0-1), H-P.b-Y(dens)); }
+    ctx.globalAlpha=1; ctx.restore();
+  }
+  function curve(T,m,col,w,dash,transform){
+    ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash(dash||[]); ctx.beginPath();
+    const N=400; let started=false;
+    for(let i=0;i<=N;i++){ const v=vmaxAxis*i/N; let y=f(v,T,m); if(transform) y=transform(v,y); const px=X(v), py=Y(y); started?ctx.lineTo(px,py):ctx.moveTo(px,py); started=true; }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  // fill under A
+  ctx.fillStyle='#2a78d6'; ctx.globalAlpha=.10; ctx.beginPath(); ctx.moveTo(X(0),Y(0)); for(let i=0;i<=400;i++){const v=vmaxAxis*i/400; ctx.lineTo(X(v),Y(f(v,T1,mA)));} ctx.lineTo(X(vmaxAxis),Y(0)); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1;
+  if(showEsc){ // shade above escape velocity (if visible)
+    if(VESC<vmaxAxis){ ctx.fillStyle='#e34948'; ctx.globalAlpha=.35; ctx.beginPath(); ctx.moveTo(X(VESC),Y(0)); for(let i=0;i<=200;i++){const v=VESC+(vmaxAxis-VESC)*i/200; ctx.lineTo(X(v),Y(f(v,T1,mA)));} ctx.lineTo(X(vmaxAxis),Y(0)); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1;
+      ctx.strokeStyle='#e34948'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(X(VESC),P.t); ctx.lineTo(X(VESC),H-P.b); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#e34948'; ctx.textAlign='right'; ctx.font='12px system-ui'; ctx.fillText('탈출속도 11.2 km/s', X(VESC)-5, P.t+12); }
+    else { ctx.fillStyle='#e34948'; ctx.textAlign='right'; ctx.font='12px system-ui'; ctx.fillText('탈출속도 11.2 km/s → 축 밖 (오른쪽)', W-P.r-4, P.t+12); }
+  }
+  curve(T1,mA,'#2a78d6',2.5);
+  if(showFlux){ // v f(v) normalized to same peak height for shape comparison
+    const vaA=va(T1,mA); const norm=1/vaA; // v f(v)/v̄ is a normalized pdf
+    curve(T1,mA,'#4a3aa7',2,[6,4],(v,y)=>v*y*norm);
+  }
+  if(cmp) curve(TB(),mOf(gB),'#eb6834',2.5);
+  // markers A
+  const marks=[[vp(T1,mA),'vₚ','right'],[va(T1,mA),'v̄','center'],[vr(T1,mA),'vᵣₘₛ','left']];
+  ctx.font='12px system-ui';
+  marks.forEach(([v,lab,al],i)=>{ const x=X(v), y=Y(f(v,T1,mA)); ctx.strokeStyle='#52514e'; ctx.lineWidth=1; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(x,H-P.b); ctx.lineTo(x,y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#fcfcfb'; ctx.beginPath(); ctx.arc(x,y,5.5,0,7); ctx.fill(); ctx.fillStyle='#2a78d6'; ctx.beginPath(); ctx.arc(x,y,3.5,0,7); ctx.fill();
+    ctx.fillStyle='#0b0b0b'; ctx.textAlign=al; ctx.fillText(lab, x+(al==='right'?-6:al==='left'?6:0), y-10-(i===1?12:0)); });
+  // legend text
+  let lg=`<span><i class="line" style="border-color:#2a78d6"></i>A: ${GASES[gA].n} (M=${GASES[gA].M}), ${T1} K</span>`;
+  if(cmp) lg+=`<span><i class="line" style="border-color:#eb6834"></i>B: ${GASES[gB].n} (M=${GASES[gB].M}), ${TB()} K</span>`;
+  if(showFlux) lg+=`<span><i class="line" style="border-color:#4a3aa7;border-top-style:dashed"></i>v f(v)/v̄ (표면 도달 가중)</span>`;
+  if(showHist) lg+=`<span><i class="sw" style="display:inline-block;width:12px;height:12px;background:#2a78d6;opacity:.3"></i>상자 누적 히스토그램 (${histN.toLocaleString()} 표본)</span>`;
+  $('legend').innerHTML=lg;
+  c._X=X; c._Y=Y;
+}
+
+function updateText(){
+  const m=mOf(gA), T=TA(), M=GASES[gA].M;
+  $('tAv').textContent=T+' K'+(T>=200&&T<=400?' ('+(T-273)+' ℃)':'');
+  $('tBv').textContent=TB()+' K';
+  $('vp').textContent=fmtV(vp(T,m)); $('va').textContent=fmtV(va(T,m)); $('vr').textContent=fmtV(vr(T,m));
+  const fr=fracAbove(VESC,T,m); $('esc').textContent=fmtFrac(fr);
+  $('escN').textContent= fr<1e-30? '사실상 0 — 그래도 지수 꼬리는 0이 아니다' : fr<1e-6? '아주 작지만 0이 아님: 대기 상층에서 새어 나가는 원인' : '무시할 수 없는 비율!';
+  $('cap').innerHTML= `${GASES[gA].n}, ${T} K: 공식으로는 v<sub>p</sub> = 129√(${T}/${M}) = ${Math.round(129*Math.sqrt(T/M))} m/s, v̄ = ${Math.round(146*Math.sqrt(T/M))} m/s, v<sub>rms</sub> = ${Math.round(158*Math.sqrt(T/M))} m/s. `+
+    (cmp? `B(${GASES[gB].n}, ${TB()} K)와 비교: 질량이 작거나 온도가 높으면 분포가 넓고 오른쪽으로 이동하지만, 곡선 아래 넓이(=1)는 항상 같다.` : '온도를 올리면 봉우리가 낮아지고 넓어진다 — 넓이는 1로 일정.');
+  $('energy').innerHTML=`kT = ${(kB_meV*T).toFixed(1)} meV &nbsp;·&nbsp; 평균 병진 운동에너지 3/2 kT = ${(1.5*kB_meV*T).toFixed(1)} meV<br>`+
+    `분자 1개 질량 m = ${(m*1e27).toFixed(2)}×10⁻²⁷ kg &nbsp;·&nbsp; ½mv<sub>rms</sub>² = ${(0.5*m*vr(T,m)**2/1.602e-22).toFixed(1)} meV (검산)<br>`+
+    `<span style="color:var(--text-3)">표면을 때리는 분자의 평균 운동에너지는 2kT = ${(2*kB_meV*T).toFixed(1)} meV (v 가중)</span>`;
+  document.querySelectorAll('#gasA .chip').forEach((c,i)=>c.classList.toggle('on',i===gA));
+  document.querySelectorAll('#gasB .chip').forEach((c,i)=>{c.classList.toggle('on',i===gB); c.classList.toggle('b',i===gB);});
+  document.querySelectorAll('#tAchips .chip').forEach(c=>c.classList.toggle('on',parseInt(c.dataset.t)===T));
+  $('showEsc').classList.toggle('on',showEsc); $('showFlux').classList.toggle('on',showFlux); $('showHist').classList.toggle('on',showHist);
+  $('cmpTgl').textContent=cmp?'끄기':'켜기'; $('cmpTgl').classList.toggle('on',cmp);
+  $('gasB').style.display=cmp?'flex':'none'; $('rowTB').style.display=cmp?'flex':'none';
+}
+function update(){ updateText(); drawPlot(); }
+
+// ---------- particle box ----------
+const box=$('box'), bctx=box.getContext('2d');
+let parts=[], running=true, hist={bins:40,vmax:1,c:[]}, histN=0, lastT=0;
+function gauss(){ let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function sampleVel(T,m){ const s=Math.sqrt(kB*T/m); return [gauss()*s, gauss()*s, gauss()*s]; }
+function resetParts(){
+  const N=parseInt($('np').value), T=TA(), m=mOf(gA); parts=[];
+  for(let i=0;i<N;i++){ const [vx,vy,vz]=sampleVel(T,m); parts.push({x:Math.random()*box.width, y:Math.random()*box.height, vx,vy,vz}); }
+  resetHist();
+}
+function resetHist(){ const T=TA(), m=mOf(gA); hist.vmax=vr(T,m)*3; hist.c=new Array(hist.bins).fill(0); histN=0; }
+function speedColor(v,T,m){ const t=Math.min(1, v/(vr(T,m)*2)); // blue -> orange -> red
+  const stops=[[0,[42,120,214]],[0.5,[235,161,0]],[1,[227,73,72]]];
+  for(let i=1;i<stops.length;i++){ if(t<=stops[i][0]){ const [t0,c0]=stops[i-1],[t1,c1]=stops[i]; const u=(t-t0)/(t1-t0); return `rgb(${c0.map((c,j)=>Math.round(c+(c1[j]-c)*u)).join(',')})`; } }
+  return 'rgb(227,73,72)';
+}
+let stepCount=0;
+function step(dt){
+  const T=TA(), m=mOf(gA), W=box.width, H=box.height; const sampleNow=(stepCount++%6===0);
+  const scale=110/vr(300,mOf(4)); // px per (m/s): N2 at 300K -> v_rms = 110 px/s
+  for(const p of parts){
+    p.x+=p.vx*scale*dt; p.y+=p.vy*scale*dt;
+    let hit=false;
+    if(p.x<3){p.x=3; hit=true;} if(p.x>W-3){p.x=W-3; hit=true;}
+    if(p.y<3){p.y=3; hit=true;} if(p.y>H-3){p.y=H-3; hit=true;}
+    if(hit){ // diffuse thermal wall (Maxwell): normal component flux-weighted (Rayleigh), tangential Gaussian
+      const sg=Math.sqrt(kB*T/m), vn=sg*Math.sqrt(-2*Math.log(1-Math.random()));
+      if(p.x<=3||p.x>=W-3){ p.vx=(p.x<=3?vn:-vn); p.vy=gauss()*sg; }
+      else { p.vy=(p.y<=3?vn:-vn); p.vx=gauss()*sg; }
+      p.vz=gauss()*sg;
+    }
+    if(sampleNow){ const s=Math.hypot(p.vx,p.vy,p.vz); const b=Math.floor(s/hist.vmax*hist.bins); if(b<hist.bins){hist.c[b]++; histN++;} }
+  }
+}
+function drawBox(){
+  const T=TA(), m=mOf(gA), W=box.width, H=box.height;
+  bctx.clearRect(0,0,W,H);
+  for(const p of parts){ const s=Math.hypot(p.vx,p.vy,p.vz); bctx.fillStyle=speedColor(s,T,m); bctx.beginPath(); bctx.arc(p.x,p.y,3,0,7); bctx.fill(); }
+  bctx.fillStyle='#52514e'; bctx.font='12px system-ui'; bctx.textAlign='left';
+  bctx.fillText(`${GASES[gA].n} · 벽 온도 ${T} K · 표본 ${histN.toLocaleString()}`, 8, H-8);
+}
+let frame=0;
+function loop(ts){
+  if(!lastT) lastT=ts; let dt=(ts-lastT)/1000; lastT=ts; if(dt>0.05) dt=0.05;
+  if(running){ step(dt); drawBox(); if(showHist && (frame++%4===0)) drawPlot(); }
+  requestAnimationFrame(loop);
+}
+
+// ---------- wiring ----------
+GASES.forEach((g,i)=>{ const a=document.createElement('button'); a.className='chip'; a.textContent=g.n; a.onclick=()=>{gA=i; resetHist(); update();}; $('gasA').appendChild(a);
+  const b=document.createElement('button'); b.className='chip'; b.textContent=g.n; b.onclick=()=>{gB=i; update();}; $('gasB').appendChild(b); });
+$('tA').addEventListener('input',()=>{ resetHist(); update(); });
+$('tB').addEventListener('input',update);
+document.querySelectorAll('#tAchips .chip').forEach(c=>c.onclick=()=>{$('tA').value=Math.log10(parseInt(c.dataset.t)); resetHist(); update();});
+$('cmpTgl').onclick=()=>{cmp=!cmp; update();};
+$('showEsc').onclick=()=>{showEsc=!showEsc; update();};
+$('showFlux').onclick=()=>{showFlux=!showFlux; update();};
+$('showHist').onclick=()=>{showHist=!showHist; update();};
+$('play').onclick=()=>{running=!running; $('play').textContent=running?'일시정지':'재생';};
+$('reset').onclick=()=>{resetParts(); drawBox(); update();};
+$('np').addEventListener('input',()=>{$('npLbl').textContent=$('np').value; resetParts();});
+// hover
+const plot=$('plot'), tt=$('tt');
+plot.addEventListener('mousemove',e=>{ const r=plot.getBoundingClientRect(), sx=plot.width/r.width; const px=(e.clientX-r.left)*sx; if(px<P.l||px>plot.width-P.r){tt.style.display='none';return;}
+  const v=(px-P.l)/(plot.width-P.l-P.r)*vmaxAxis; const T=TA(), m=mOf(gA);
+  let s=`v = ${Math.round(v)} m/s<br>f(v) = ${f(v,T,m).toExponential(2)} /(m/s)<br>이보다 빠른 비율 ${fmtFrac(fracAbove(v,T,m))}`;
+  if(cmp) s+=`<br><span style="color:#f5a67f">B: f(v) = ${f(v,TB(),mOf(gB)).toExponential(2)}</span>`;
+  tt.innerHTML=s; tt.style.display='block'; tt.style.left=(e.clientX-r.left+14)+'px'; tt.style.top=(e.clientY-r.top-10)+'px'; });
+plot.addEventListener('mouseleave',()=>tt.style.display='none');
+
+resetParts(); update(); drawBox(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

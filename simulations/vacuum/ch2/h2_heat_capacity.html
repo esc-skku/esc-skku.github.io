@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>이원자 분자의 비열: 병진·회전·진동</title>
+<style>
+:root{
+  --surface-0:#f9f9f7; --surface-1:#fcfcfb; --surface-2:#f0efec;
+  --text-1:#0b0b0b; --text-2:#52514e; --text-3:#898781;
+  --border:#e1e0d9; --border-strong:#c3c2b7;
+  --blue:#2a78d6; --orange:#eb6834; --aqua:#1baf7a; --yellow:#eda100; --violet:#4a3aa7; --red:#e34948;
+  --radius:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-1);font-family:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1140px;margin:0 auto;padding:24px 20px 48px}
+h1{font-size:24px;margin:0 0 4px;font-weight:600}
+.sub{color:var(--text-2);margin:0 0 18px}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px}
+.row{display:flex;align-items:center;gap:12px;margin:8px 0;flex-wrap:wrap}
+.row label{min-width:90px;color:var(--text-2);font-size:14px}
+.row input[type=range]{flex:1;min-width:200px;accent-color:var(--blue)}
+.val{min-width:150px;font-variant-numeric:tabular-nums;font-weight:500}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:3px 10px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface-1);font-size:13px;cursor:pointer;color:var(--text-2);font-family:inherit}
+.chip:hover{background:var(--surface-2)}
+.chip.on{background:var(--text-1);color:#fff;border-color:var(--text-1)}
+.layout{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:16px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+canvas{display:block;width:100%;height:auto;background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+@media(max-width:900px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.tile .k{font-size:12.5px;color:var(--text-3);display:flex;align-items:center;gap:6px}
+.tile .v{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;margin:2px 0}
+.tile .n{font-size:12.5px;color:var(--text-2)}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+.cap{font-size:13px;color:var(--text-3);margin-top:6px;line-height:1.6}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--text-2);margin:8px 0 0}
+.legend span{display:flex;align-items:center;gap:6px}
+.line{width:18px;height:0;border-top:2.5px solid}
+.note{font-size:14px;color:var(--text-2);margin-top:14px;line-height:1.75}
+h2{font-size:16px;margin:0 0 8px;font-weight:600}
+sup,sub{line-height:0}
+.tt{position:absolute;pointer-events:none;background:rgba(11,11,11,.92);color:#fff;font-size:12.5px;padding:6px 9px;border-radius:8px;line-height:1.5;display:none;white-space:nowrap;z-index:5}
+.rel{position:relative}
+  nav.crumb{font-size:12.5px;color:var(--text-2);margin-bottom:14px;}
+  nav.crumb a{color:var(--text-2);text-decoration:none;border-bottom:1px solid var(--border-strong);}
+  nav.crumb a:hover{color:var(--blue);border-bottom-color:var(--blue);}
+  nav.crumb span{margin:0 7px;color:var(--border-strong);}
+  footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 2</a><span>/</span>이원자 분자의 비열</nav>
+<h1>이원자 분자의 비열 <i>C<sub>V</sub></i>(T): 병진·회전·진동</h1>
+<p class="sub">에너지 등분배는 "온도가 그 운동의 양자 간격보다 충분히 높을 때"만 성립한다. 온도를 움직여 자유도가 하나씩 "켜지는" 것을 본다.</p>
+
+<div class="card">
+  <div class="row">
+    <label>기체</label>
+    <div class="chips" id="gasChips"></div>
+  </div>
+  <div class="row" id="modeRow">
+    <label>H₂ 회전 모형</label>
+    <div class="chips" id="modeChips">
+      <button class="chip on" data-m="simple">단순 rigid rotor</button>
+      <button class="chip" data-m="normal">normal H₂ (ortho:para = 3:1, 동결)</button>
+      <button class="chip" data-m="eq">equilibrium H₂</button>
+      <button class="chip" data-m="para">para H₂만</button>
+      <button class="chip" data-m="ortho">ortho H₂만</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>온도 <i>T</i></label>
+    <input type="range" id="tSl" min="1" max="4.3" step="0.001" value="2.4771">
+    <span class="val" id="tVal"></span>
+    <div class="chips" id="tChips">
+      <button class="chip" data-t="20">20 K</button>
+      <button class="chip" data-t="77">77 K</button>
+      <button class="chip" data-t="300">300 K</button>
+      <button class="chip" data-t="1000">1000 K</button>
+      <button class="chip" data-t="5000">5000 K</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>표시</label>
+    <div class="chips">
+      <button class="chip on" id="viewStack">누적 (병진 + 회전 + 진동)</button>
+      <button class="chip" id="viewSep">기여별 따로</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="rel">
+      <canvas id="plot" width="760" height="440"></canvas>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="legend">
+      <span><i class="line" style="border-color:#2a78d6"></i>병진 3/2</span>
+      <span><i class="line" style="border-color:#eb6834"></i>회전</span>
+      <span><i class="line" style="border-color:#1baf7a"></i>진동</span>
+      <span><i class="line" style="border-color:#0b0b0b"></i>합계 <i>C<sub>V</sub></i>/<i>R</i></span>
+      <span style="color:var(--text-3)">점선: Θ<sub>rot</sub>, Θ<sub>vib</sub></span>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k"><span class="sw" style="background:#0b0b0b"></span>합계 <i>C<sub>V</sub></i>/<i>R</i></div><div class="v" id="cvTot"></div><div class="n" id="cvJ"></div></div>
+      <div class="tile"><div class="k"><span class="sw" style="background:#2a78d6"></span>병진</div><div class="v">1.500</div><div class="n">x, y, z 각 ½</div></div>
+      <div class="tile"><div class="k"><span class="sw" style="background:#eb6834"></span>회전</div><div class="v" id="cvRot"></div><div class="n" id="rotN"></div></div>
+      <div class="tile"><div class="k"><span class="sw" style="background:#1baf7a"></span>진동</div><div class="v" id="cvVib"></div><div class="n" id="vibN"></div></div>
+    </div>
+    <div class="cap" id="capMain"></div>
+  </div>
+  <div>
+    <div class="card" style="padding:12px 14px;margin-bottom:12px">
+      <h2>분자 모형: 지금 온도에서 켜진 운동</h2>
+      <canvas id="mol" width="360" height="230" style="border:none;background:var(--surface-2)"></canvas>
+      <div class="cap" id="molCap"></div>
+    </div>
+    <div class="card" style="padding:12px 14px">
+      <h2>회전 준위와 점유 (선택한 T)</h2>
+      <canvas id="ladder" width="360" height="330" style="border:none"></canvas>
+      <div class="cap"><i>E<sub>J</sub></i> = <i>J</i>(<i>J</i>+1)<i>k</i>Θ<sub>rot</sub>, 겹침 2<i>J</i>+1. 막대 길이 ∝ 점유 확률. 회색 가로선은 <i>kT</i>.</div>
+    </div>
+    <div class="card" style="padding:12px 14px;margin-top:12px">
+      <h2>에너지 눈금 비교</h2>
+      <div class="note" id="scales" style="margin-top:4px"></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>모형.</b> 병진은 고전적(3/2 <i>R</i>). 회전은 강체 회전자(rigid rotor)의 양자 준위를 직접 합해서 <i>C<sub>V</sub></i> = (⟨<i>E</i>²⟩ − ⟨<i>E</i>⟩²)/<i>kT</i>² 로 계산. 진동은 조화진동자(<i>C<sub>V</sub></i>/<i>R</i> = <i>x</i>²e<sup><i>x</i></sup>/(e<sup><i>x</i></sup>−1)², <i>x</i> = Θ<sub>vib</sub>/<i>T</i>). 비조화성, 원심 왜곡, 해리(H₂는 ~3000 K 이상에서 유의), 전자 들뜸은 무시.
+  <br><b>H₂의 ortho/para.</b> 두 양성자의 핵스핀 때문에 홀수 <i>J</i>(ortho, 핵스핀 삼중항)와 짝수 <i>J</i>(para, 단일항)가 나뉜다. 촉매가 없으면 둘 사이 전환이 매우 느려 상온에서 만든 수소는 3:1 혼합비를 그대로 "동결"한 채 냉각된다(normal H₂). 그래서 실제 저온 <i>C<sub>V</sub></i> 곡선은 단순 rigid rotor와 다르게 생긴다.
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+</div>
+
+<script>
+const GASES=[
+  {n:'H₂', tr:87.6, tv:6332, homo:true},
+  {n:'D₂', tr:43.8, tv:4487},
+  {n:'N₂', tr:2.88, tv:3393},
+  {n:'O₂', tr:2.08, tv:2274},
+  {n:'CO', tr:2.78, tv:3122},
+  {n:'HCl', tr:15.2, tv:4303},
+  {n:'Cl₂', tr:0.351, tv:808},
+];
+let gi=0, mode='simple', stacked=true;
+const kB_meV=0.08617333; // meV/K
+const $=id=>document.getElementById(id);
+
+// ---- physics ----
+function rotStats(T, tr, parity){ // parity: 'all','even','odd','eq'
+  // returns {cv (units of k), pop: array of populations for J=0..Jmax}
+  const b=tr/T; let Z=0,E1=0,E2=0; const w=[];
+  const Jmax=Math.min(400, Math.ceil(Math.sqrt(60/b))+5);
+  for(let J=0;J<=Jmax;J++){
+    let g=2*J+1;
+    if(parity==='even' && J%2) g=0;
+    if(parity==='odd' && !(J%2)) g=0;
+    if(parity==='eq') g*= (J%2)?3:1;
+    const e=J*(J+1)*b; // in units of kT
+    const p=g*Math.exp(-e);
+    w.push(p); Z+=p; E1+=p*e; E2+=p*e*e;
+  }
+  if(Z===0) return {cv:0,pop:[]};
+  E1/=Z; E2/=Z;
+  return {cv:E2-E1*E1, pop:w.map(x=>x/Z)};
+}
+function cvRot(T,g){
+  if(g.homo && mode!=='simple'){
+    if(mode==='normal') return 0.75*rotStats(T,g.tr,'odd').cv+0.25*rotStats(T,g.tr,'even').cv;
+    if(mode==='eq') return rotStats(T,g.tr,'eq').cv;
+    if(mode==='para') return rotStats(T,g.tr,'even').cv;
+    if(mode==='ortho') return rotStats(T,g.tr,'odd').cv;
+  }
+  return rotStats(T,g.tr,'all').cv;
+}
+function cvVib(T,g){ const x=g.tv/T; if(x>600) return 0; const ex=Math.exp(x); return x*x*ex/((ex-1)*(ex-1)); }
+
+// ---- plotting ----
+const P={l:58,r:20,t:18,b:44}, Tmin=10, Tmax=20000, Ymax=3.9;
+function xOf(T,W){return P.l+(Math.log10(T)-1)/(Math.log10(Tmax)-1)*(W-P.l-P.r)}
+function yOf(y,H){return H-P.b-(y/Ymax)*(H-P.t-P.b)}
+function sup(s){return String(s).replace(/-/g,'⁻').replace(/\d/g,c=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[c])}
+
+function drawPlot(){
+  const c=$('plot'), ctx=c.getContext('2d'), W=c.width, H=c.height, g=GASES[gi];
+  ctx.clearRect(0,0,W,H);
+  // grid & axes
+  ctx.font='12px system-ui'; ctx.fillStyle='#898781'; ctx.textAlign='center';
+  for(let e=1;e<=4;e++){ for(let m=1;m<10;m++){ const T=m*10**e; if(T>Tmax) break; const x=xOf(T,W);
+    ctx.strokeStyle= m===1?'#e1e0d9':'#f0efec'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,P.t); ctx.lineTo(x,H-P.b); ctx.stroke();
+    if(m===1||m===3) ctx.fillText(T>=1000?(T/1000)+'k':T, x, H-P.b+16); } }
+  ctx.fillText('온도 T (K, 로그 눈금)', (P.l+W-P.r)/2, H-8);
+  ctx.textAlign='right';
+  [0.5,1,1.5,2,2.5,3,3.5].forEach(y=>{ const yy=yOf(y,H); ctx.strokeStyle= (y===1.5||y===2.5||y===3.5)?'#c3c2b7':'#e1e0d9'; ctx.setLineDash((y===1.5||y===2.5||y===3.5)?[4,4]:[]); ctx.beginPath(); ctx.moveTo(P.l,yy); ctx.lineTo(W-P.r,yy); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#898781'; ctx.fillText(y.toFixed(1), P.l-8, yy+4); });
+  ctx.save(); ctx.translate(16,(P.t+H-P.b)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText('C_V / R', 0,0); ctx.restore();
+  ctx.textAlign='left'; ctx.fillStyle='#52514e'; ctx.font='11.5px system-ui';
+  ctx.fillText('3/2 병진만', P.l+4, yOf(1.5,H)-4); ctx.fillText('5/2 병진+회전', P.l+4, yOf(2.5,H)-4); ctx.fillText('7/2 병진+회전+진동', P.l+4, yOf(3.5,H)-4);
+  // theta lines
+  [[g.tr,'Θrot = '+g.tr+' K','#eb6834'],[g.tv,'Θvib = '+g.tv+' K','#1baf7a']].forEach(([T,lab,col])=>{ if(T<Tmin||T>Tmax) return; const x=xOf(T,W); ctx.strokeStyle=col; ctx.setLineDash([2,4]); ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(x,P.t); ctx.lineTo(x,H-P.b); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=col; ctx.textAlign='left'; ctx.fillText(lab, x+4, P.t+12); });
+  // curves
+  const N=320, xs=[], tr=[], vb=[], tot=[];
+  for(let i=0;i<=N;i++){ const T=10**(1+(Math.log10(Tmax)-1)*i/N); xs.push(T); const r=cvRot(T,g), v=cvVib(T,g); tr.push(r); vb.push(v); tot.push(1.5+r+v); }
+  function path(arr, transform, col, w){ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.beginPath(); arr.forEach((y,i)=>{ const X=xOf(xs[i],W), Y=yOf(transform(y,i),H); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); }); ctx.stroke(); }
+  if(stacked){
+    // fills
+    function fill(lo,hi,col){ ctx.fillStyle=col; ctx.globalAlpha=.18; ctx.beginPath(); xs.forEach((T,i)=>{const X=xOf(T,W),Y=yOf(hi(i),H); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);}); for(let i=xs.length-1;i>=0;i--){ctx.lineTo(xOf(xs[i],W),yOf(lo(i),H));} ctx.closePath(); ctx.fill(); ctx.globalAlpha=1; }
+    fill(()=>0,()=>1.5,'#2a78d6'); fill(()=>1.5,i=>1.5+tr[i],'#eb6834'); fill(i=>1.5+tr[i],i=>1.5+tr[i]+vb[i],'#1baf7a');
+    path(tr,()=>1.5,'#2a78d6',2); path(tr,(y)=>1.5+y,'#eb6834',2); path(tot,(y)=>y,'#0b0b0b',2.5);
+  } else {
+    path(tr,()=>1.5,'#2a78d6',2); path(tr,(y)=>y,'#eb6834',2); path(vb,(y)=>y,'#1baf7a',2); path(tot,(y)=>y,'#0b0b0b',2.5);
+  }
+  // marker
+  const T=curT(); const x=xOf(T,W);
+  ctx.strokeStyle='#0b0b0b'; ctx.lineWidth=1; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(x,P.t); ctx.lineTo(x,H-P.b); ctx.stroke(); ctx.setLineDash([]);
+  const r=cvRot(T,g), v=cvVib(T,g);
+  const pts= stacked? [[1.5,'#2a78d6'],[1.5+r,'#eb6834'],[1.5+r+v,'#0b0b0b']] : [[1.5,'#2a78d6'],[r,'#eb6834'],[v,'#1baf7a'],[1.5+r+v,'#0b0b0b']];
+  pts.forEach(([y,col])=>{ ctx.fillStyle='#fcfcfb'; ctx.beginPath(); ctx.arc(x,yOf(y,H),6,0,7); ctx.fill(); ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,yOf(y,H),4,0,7); ctx.fill(); });
+  c._data={xs,tr,vb,tot};
+}
+
+function drawLadder(){
+  const c=$('ladder'), ctx=c.getContext('2d'), W=c.width, H=c.height, g=GASES[gi], T=curT();
+  ctx.clearRect(0,0,W,H);
+  const kT=kB_meV*T, E=J=>J*(J+1)*g.tr*kB_meV;
+  // energy window: at least up to J=3, at least 5kT, at most J=40
+  let Emax=Math.max(E(3), 5*kT); let Jshow=0; while(Jshow<40 && E(Jshow+1)<=Emax) Jshow++; Emax=Math.max(Emax, E(Jshow)*1.08);
+  const par = (g.homo && mode!=='simple') ? (mode==='para'?'even': mode==='ortho'?'odd': mode==='eq'?'eq':'normal') : 'all';
+  let pop;
+  if(par==='normal'){ const o=rotStats(T,g.tr,'odd').pop, e=rotStats(T,g.tr,'even').pop; pop=[]; for(let J=0;J<=Jshow;J++) pop.push(0.75*(o[J]||0)+0.25*(e[J]||0)); }
+  else pop=rotStats(T,g.tr,par).pop;
+  const x0=70, x1=W-16, yb=H-34, yt=30;
+  const yOfE=e=>yb-(e/Emax)*(yb-yt);
+  ctx.font='11.5px system-ui'; ctx.fillStyle='#898781'; ctx.textAlign='left';
+  ctx.fillText('E (meV)   ·   막대 = 점유 확률 (겹침 2J+1 포함)', x0-56, 14);
+  // kT line
+  const ykT=yOfE(kT); ctx.strokeStyle='#898781'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(x0,ykT); ctx.lineTo(x1,ykT); ctx.stroke(); ctx.setLineDash([]);
+  ctx.textAlign='right'; ctx.fillText('kT = '+(kT<10?kT.toFixed(1):kT.toFixed(0))+' meV', x1, ykT-4);
+  const pmax=Math.max(...pop.slice(0,Jshow+1), 1e-9);
+  let lastLabelY=-1e9;
+  for(let J=Jshow;J>=0;J--){
+    const e=E(J), y=yOfE(e), odd=J%2===1;
+    const col= g.homo && mode!=='simple' ? (odd?'#eb6834':'#2a78d6') : '#eb6834';
+    ctx.strokeStyle='#c3c2b7'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
+    const p=pop[J]||0; const L=(p/pmax)*(x1-x0-48);
+    if(L>0.5){ ctx.fillStyle=col; ctx.globalAlpha=.85; ctx.fillRect(x0+44, y-4, L, 8); ctx.globalAlpha=1; }
+    if(y-lastLabelY>12){ ctx.fillStyle='#52514e'; ctx.textAlign='right'; ctx.fillText('J='+J, x0-6, y+4);
+      ctx.textAlign='left'; ctx.fillStyle='#898781'; ctx.fillText(e<10?e.toFixed(1):e.toFixed(0), x0+2, y+4); lastLabelY=y; }
+  }
+  ctx.textAlign='left';
+  if(g.homo && mode!=='simple'){ ctx.fillStyle='#2a78d6'; ctx.fillText('■ para (짝수 J)', x0-56, H-8); ctx.fillStyle='#eb6834'; ctx.fillText('■ ortho (홀수 J)', x0+60, H-8); }
+  ctx.fillStyle='#898781'; ctx.fillText('J = 0 … '+Jshow+' 표시', x1-90, H-8);
+}
+
+function curT(){ return Math.round(10**parseFloat($('tSl').value)); }
+function update(){
+  const g=GASES[gi], T=curT();
+  $('tVal').textContent=T+' K'+(T>=200&&T<=400?' ('+(T-273)+' ℃)':'');
+  const r=cvRot(T,g), v=cvVib(T,g), tot=1.5+r+v;
+  $('cvTot').textContent=tot.toFixed(3);
+  $('cvJ').textContent='= '+(tot*8.314).toFixed(2)+' J/(mol·K)  ·  γ = '+((tot+1)/tot).toFixed(3);
+  $('cvRot').textContent=r.toFixed(3);
+  $('rotN').textContent= r>0.98? '완전히 켜짐 (→1)' : r<0.02? '동결 (Θrot ≫ T)' : '켜지는 중';
+  $('cvVib').textContent=v.toFixed(3);
+  $('vibN').textContent= v>0.95? '완전히 켜짐 (→1 = ½운동+½위치)' : v<0.02? '동결 (Θvib ≫ T)' : '켜지는 중';
+  $('modeRow').style.display= g.homo? 'flex':'none';
+  document.querySelectorAll('#gasChips .chip').forEach((c,i)=>c.classList.toggle('on',i===gi));
+  document.querySelectorAll('#modeChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.m===mode));
+  document.querySelectorAll('#tChips .chip').forEach(c=>c.classList.toggle('on',parseInt(c.dataset.t)===T));
+  $('viewStack').classList.toggle('on',stacked); $('viewSep').classList.toggle('on',!stacked);
+  const kT=kB_meV*T;
+  $('scales').innerHTML=
+    `<b>${g.n}</b><br>`+
+    `kΘ<sub>rot</sub> = ${(g.tr*kB_meV).toFixed(2)} meV, 첫 회전 들뜸 E₁ = 2kΘ<sub>rot</sub> = ${(2*g.tr*kB_meV).toFixed(1)} meV (${(2*g.tr).toFixed(0)} K)<br>`+
+    `kΘ<sub>vib</sub> = ${(g.tv*kB_meV).toFixed(0)} meV (${g.tv} K)<br>`+
+    `현재 kT = ${kT<10?kT.toFixed(2):kT.toFixed(0)} meV (${T} K)<br>`+
+    `<span style="color:var(--text-3)">비율 T/Θ<sub>rot</sub> = ${(T/g.tr).toPrecision(3)}, T/Θ<sub>vib</sub> = ${(T/g.tv).toPrecision(3)}</span>`;
+  let cap='';
+  if(g.n==='H₂'){
+    cap='H₂는 Θ<sub>rot</sub>가 88 K로 유난히 커서(가벼워서) 회전이 상온 근처에서야 완전히 켜진다. 상온 H₂의 C<sub>V</sub>/R ≈ 2.5, 진동은 6300 K 스케일이라 상온에선 완전히 동결.';
+    if(mode==='normal') cap+=' normal H₂(3:1 동결 혼합)는 저온에서 para·ortho가 각자 따로 C<sub>V</sub>에 기여해 단순 모형보다 더 낮고 완만한 곡선을 준다 — 실제 실험 곡선은 이쪽이다.';
+    if(mode==='eq') cap+=' equilibrium H₂(촉매로 ortho↔para 평형)는 저온에서 ortho→para 전환 자체가 열을 흡수해 C<sub>V</sub>에 뾰족한 피크가 생긴다.';
+    if(mode==='para') cap+=' para H₂만: J=0→2 간격이 6kΘ<sub>rot</sub>≈45 meV로 커서 회전이 더 높은 온도에서 켜진다.';
+  } else if(g.tr<5) cap=`${g.n}는 Θ<sub>rot</sub>가 몇 K밖에 안 되어 실험실에서 만나는 모든 온도에서 회전이 이미 켜져 있다(C<sub>V</sub>/R ≈ 2.5). 진동은 ${g.tv} K 스케일.`;
+  else cap=`${g.n}: Θ<sub>rot</sub> = ${g.tr} K, Θ<sub>vib</sub> = ${g.tv} K. 두 눈금 사이 넓은 온도 구간에서 C<sub>V</sub>/R = 5/2 평탄부가 나타난다.`;
+  $('capMain').innerHTML=cap;
+  drawPlot(); drawLadder();
+}
+
+// build chips
+GASES.forEach((g,i)=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=g.n; b.onclick=()=>{gi=i; update();}; $('gasChips').appendChild(b); });
+document.querySelectorAll('#modeChips .chip').forEach(c=>c.onclick=()=>{mode=c.dataset.m; update();});
+document.querySelectorAll('#tChips .chip').forEach(c=>c.onclick=()=>{$('tSl').value=Math.log10(parseInt(c.dataset.t)); update();});
+$('tSl').addEventListener('input',update);
+$('viewStack').onclick=()=>{stacked=true; update();}; $('viewSep').onclick=()=>{stacked=false; update();};
+
+// hover tooltip
+const plot=$('plot'), tt=$('tt');
+plot.addEventListener('mousemove',e=>{
+  const r=plot.getBoundingClientRect(), sx=plot.width/r.width; const px=(e.clientX-r.left)*sx;
+  if(px<P.l||px>plot.width-P.r){tt.style.display='none';return;}
+  const T=10**(1+(px-P.l)/(plot.width-P.l-P.r)*(Math.log10(Tmax)-1)); const g=GASES[gi];
+  const rr=cvRot(T,g), v=cvVib(T,g);
+  tt.style.display='block'; tt.style.left=(e.clientX-r.left+14)+'px'; tt.style.top=(e.clientY-r.top-10)+'px';
+  tt.innerHTML=`T = ${T<100?T.toFixed(1):T.toFixed(0)} K<br>합계 ${(1.5+rr+v).toFixed(3)} · 회전 ${rr.toFixed(3)} · 진동 ${v.toFixed(3)}`;
+});
+plot.addEventListener('mouseleave',()=>tt.style.display='none');
+plot.addEventListener('click',e=>{ const r=plot.getBoundingClientRect(), sx=plot.width/r.width; const px=(e.clientX-r.left)*sx; if(px<P.l||px>plot.width-P.r) return; const lg=1+(px-P.l)/(plot.width-P.l-P.r)*(Math.log10(Tmax)-1); $('tSl').value=Math.min(4.3,Math.max(1,lg)); update(); });
+update();
+
+// ---- molecule animation ----
+const mol=$('mol'), mctx=mol.getContext('2d');
+let mState={x:180,y:115,vx:22,vy:14,phi:0.6,vibPhase:0,last:0};
+const ATOM={'H₂':['#2a78d6','#2a78d6',11,11],'D₂':['#2a78d6','#2a78d6',10,10],'N₂':['#4a3aa7','#4a3aa7',13,13],'O₂':['#e34948','#e34948',13,13],'CO':['#52514e','#e34948',12,13],'HCl':['#2a78d6','#1baf7a',8,15],'Cl₂':['#1baf7a','#1baf7a',15,15]};
+function molLoop(ts){
+  const g=GASES[gi], T=curT(); const dt=mState.last? Math.min(0.05,(ts-mState.last)/1000):0.016; mState.last=ts;
+  const r=cvRot(T,g), v=cvVib(T,g);           // activation 0..1
+  const W=mol.width, H=mol.height;
+  // translation: speed ~ sqrt(T) but capped for display
+  const sp=Math.min(1.6, 0.35+Math.sqrt(T/300)*0.45);
+  mState.x+=mState.vx*sp*dt; mState.y+=mState.vy*sp*dt;
+  if(mState.x<40||mState.x>W-40) mState.vx*=-1; if(mState.y<40||mState.y>H-40) mState.vy*=-1;
+  // rotation: angular speed follows activation (frozen -> stops), slight sqrt to show onset
+  mState.phi+= (0.4+3.2*Math.sqrt(Math.max(0,r)))*dt*(r>0.02?1:0);
+  // vibration: amplitude ∝ activation, frequency fixed for display
+  mState.vibPhase+= 9*dt;
+  const amp= 0.22*Math.min(1,v/1.0);
+  const [c1,c2,r1,r2]=ATOM[g.n]||['#2a78d6','#2a78d6',10,10];
+  const d0=58, d=d0*(1+amp*Math.sin(mState.vibPhase));
+  const ax=Math.cos(mState.phi)*d/2, ay=Math.sin(mState.phi)*d/2*0.55; // slight foreshortening
+  mctx.clearRect(0,0,W,H);
+  // trail of rotation plane (faint ellipse) when rotating
+  if(r>0.02){ mctx.strokeStyle='#c3c2b7'; mctx.setLineDash([3,4]); mctx.beginPath(); mctx.ellipse(mState.x,mState.y,d0/2+6,(d0/2+6)*0.55,0,0,7); mctx.stroke(); mctx.setLineDash([]); }
+  // bond as spring when vibrating, else line
+  mctx.strokeStyle='#52514e'; mctx.lineWidth= amp>0.01? 2:3; mctx.beginPath();
+  if(amp>0.01){ const n=8; for(let i=0;i<=n;i++){ const t=i/n, px=mState.x-ax+2*ax*t, py=mState.y-ay+2*ay*t; const off=(i%2?1:-1)*6*(i>0&&i<n?1:0); const nx=-(ay)/(d/2), ny=(ax)/(d/2); i?mctx.lineTo(px+nx*off,py+ny*off):mctx.moveTo(px,py);} }
+  else { mctx.moveTo(mState.x-ax,mState.y-ay); mctx.lineTo(mState.x+ax,mState.y+ay); }
+  mctx.stroke();
+  const back = ay>0; // draw far atom first
+  const atoms=[[mState.x-ax,mState.y-ay,c1,r1],[mState.x+ax,mState.y+ay,c2,r2]]; if(back) atoms.reverse();
+  atoms.forEach(([x,y,c,rr])=>{ mctx.fillStyle=c; mctx.beginPath(); mctx.arc(x,y,rr,0,7); mctx.fill(); mctx.strokeStyle='#fcfcfb'; mctx.lineWidth=2; mctx.stroke(); });
+  // indicators
+  mctx.font='12.5px system-ui'; mctx.textAlign='left';
+  const ind=[['병진',1,'#2a78d6'],['회전',r,'#eb6834'],['진동',v,'#1baf7a']];
+  ind.forEach(([lab,a,col],i)=>{ const x=12, y=18+i*20; mctx.fillStyle='#e1e0d9'; mctx.fillRect(x+40,y-8,90,10); mctx.fillStyle=col; mctx.fillRect(x+40,y-8,90*Math.max(0,Math.min(1,a)),10); mctx.fillStyle='#0b0b0b'; mctx.fillText(lab, x, y+1); mctx.fillStyle='#52514e'; mctx.fillText((100*Math.max(0,Math.min(1,a))).toFixed(0)+'%', x+136, y+1); });
+  mctx.fillStyle='#898781'; mctx.fillText(g.n+' · '+T+' K', 12, H-10);
+  $('molCap').innerHTML = (r<0.02? '회전이 <b>동결</b>: 첫 회전 준위 간격(2kΘ<sub>rot</sub>)이 kT보다 훨씬 커서 분자가 돌지 못한다. 병진만 남아 C<sub>V</sub>/R = 3/2.' : r<0.9? '회전이 <b>켜지는 중</b>: kT가 회전 준위 간격과 비슷해져 일부 분자가 돌기 시작한다.' : '회전 <b>완전히 켜짐</b>: 두 축의 회전이 각각 ½kT를 가져 C<sub>V</sub>/R = 5/2.')
+    + (v<0.02? ' 진동은 동결(결합이 딱딱한 막대처럼 보인다).' : v<0.9? ' 진동이 켜지는 중 — 결합이 스프링처럼 늘었다 줄었다 한다.' : ' 진동도 완전히 켜져(운동 ½ + 위치 ½ = kT) C<sub>V</sub>/R = 7/2.')
+    + ' <span style="color:var(--text-3)">막대 = 각 운동이 등분배값에 도달한 비율. 그림의 회전·진동 속도는 실제 비율이 아닌 표시용.</span>';
+  requestAnimationFrame(molLoop);
+}
+requestAnimationFrame(molLoop);
+</script>
+</body>
+</html>
