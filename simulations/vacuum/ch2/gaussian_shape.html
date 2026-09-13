@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>e^(−ax²)의 개형</title>
 <style>
-:root{--surface-0:#f9f9f7;--surface-1:#fcfcfb;--surface-2:#f0efec;--text-1:#0b0b0b;--text-2:#52514e;--text-3:#898781;--border:#e1e0d9;--border-strong:#c3c2b7;--blue:#2a78d6;--orange:#eb6834;--aqua:#1baf7a;--violet:#4a3aa7;--radius:12px}
+:root{--surface-0:#101211;--surface-1:#1a1d1b;--surface-2:#222623;--text-1:#e8ece9;--text-2:#a8b0aa;--text-3:#6f7772;--border:#2c302d;--border-strong:#3a403c;--blue:#6aa6f2;--orange:#f28b62;--aqua:#3fcf98;--violet:#a596f5;--radius:12px}
 *{box-sizing:border-box}
 body{margin:0;background:var(--surface-0);color:var(--text-1);font-family:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.55}
 .wrap{max-width:1080px;margin:0 auto;padding:24px 20px 48px}
@@ -19,7 +19,7 @@ h1{font-size:24px;margin:0 0 4px;font-weight:600}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:3px 10px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface-1);font-size:13px;cursor:pointer;color:var(--text-2);font-family:inherit}
 .chip:hover{background:var(--surface-2)}
-.chip.on{background:var(--text-1);color:#fff;border-color:var(--text-1)}
+.chip.on{background:var(--text-1);color:var(--surface-0);border-color:var(--text-1)}
 .layout{display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-top:16px}
 @media(max-width:900px){.layout{grid-template-columns:1fr}}
 canvas{display:block;width:100%;height:auto;background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius)}
@@ -34,7 +34,7 @@ canvas{display:block;width:100%;height:auto;background:var(--surface-1);border:1
 .note{font-size:14px;color:var(--text-2);margin-top:14px;line-height:1.8}
 h2{font-size:16px;margin:0 0 8px;font-weight:600}
 sup,sub{line-height:0}
-.tt{position:absolute;pointer-events:none;background:rgba(11,11,11,.92);color:#fff;font-size:12.5px;padding:6px 9px;border-radius:8px;line-height:1.5;display:none;white-space:nowrap}
+.tt{position:absolute;pointer-events:none;background:rgba(232,236,233,.96);color:#101211;font-size:12.5px;padding:6px 9px;border-radius:8px;line-height:1.5;display:none;white-space:nowrap}
 .rel{position:relative}
 table{border-collapse:collapse;width:100%;font-size:13.5px}
 td,th{padding:5px 8px;border-bottom:1px solid var(--border);text-align:left}
@@ -123,7 +123,7 @@ td.num{font-variant-numeric:tabular-nums;text-align:right}
 <script>
 const $=id=>document.getElementById(id);
 let a=1, curves=[true,false,false,false], showRef=true, normalize=false, showMarks=true;
-const COL=['#2a78d6','#eb6834','#1baf7a','#4a3aa7'], NAME=['e^(−ax²)','x e^(−ax²)','x² e^(−ax²)','x³ e^(−ax²)'];
+const COL=['#6aa6f2','#f28b62','#3fcf98','#a596f5'], NAME=['e^(−ax²)','x e^(−ax²)','x² e^(−ax²)','x³ e^(−ax²)'];
 const SQPI=Math.sqrt(Math.PI);
 function fn(k,x,aa){ return Math.pow(x,k)*Math.exp(-aa*x*x); }
 // normalization constants over the plotted domain: k=0 over (−∞,∞); k≥1 over (0,∞)
@@ -141,32 +141,32 @@ function drawPlot(){
   if(ymax<=0) ymax=1; ymax*=1.1;
   const Y=y=>H-P.b-(y/ymax)*(H-P.t-P.b);
   // grid
-  ctx.font='12px system-ui'; ctx.fillStyle='#898781'; ctx.textAlign='center';
-  for(let x=Math.ceil(xmin);x<=xmax;x++){ const px=X(x); ctx.strokeStyle= x===0?'#c3c2b7':'#e1e0d9'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(px,P.t); ctx.lineTo(px,H-P.b); ctx.stroke(); ctx.fillText(x, px, H-P.b+16); }
+  ctx.font='12px system-ui'; ctx.fillStyle='#6f7772'; ctx.textAlign='center';
+  for(let x=Math.ceil(xmin);x<=xmax;x++){ const px=X(x); ctx.strokeStyle= x===0?'#3a403c':'#2c302d'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(px,P.t); ctx.lineTo(px,H-P.b); ctx.stroke(); ctx.fillText(x, px, H-P.b+16); }
   ctx.fillText('x', (P.l+W-P.r)/2, H-8);
   ctx.textAlign='right';
   const ystep= ymax>2? 0.5 : ymax>1? 0.25 : 0.1;
-  for(let y=0;y<=ymax;y+=ystep){ const py=Y(y); ctx.strokeStyle='#e1e0d9'; ctx.beginPath(); ctx.moveTo(P.l,py); ctx.lineTo(W-P.r,py); ctx.stroke(); ctx.fillStyle='#898781'; ctx.fillText(y.toFixed(ystep<0.25?1:2).replace(/\.?0+$/,''), P.l-6, py+4); }
-  ctx.strokeStyle='#c3c2b7'; ctx.beginPath(); ctx.moveTo(P.l,Y(0)); ctx.lineTo(W-P.r,Y(0)); ctx.stroke();
+  for(let y=0;y<=ymax;y+=ystep){ const py=Y(y); ctx.strokeStyle='#2c302d'; ctx.beginPath(); ctx.moveTo(P.l,py); ctx.lineTo(W-P.r,py); ctx.stroke(); ctx.fillStyle='#6f7772'; ctx.fillText(y.toFixed(ystep<0.25?1:2).replace(/\.?0+$/,''), P.l-6, py+4); }
+  ctx.strokeStyle='#3a403c'; ctx.beginPath(); ctx.moveTo(P.l,Y(0)); ctx.lineTo(W-P.r,Y(0)); ctx.stroke();
   function path(k,aa,col,w,dash){ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash(dash||[]); ctx.beginPath(); let st=false; for(let i=0;i<=N;i++){ const x=xmin+(xmax-xmin)*i/N; if(k>0&&x<0) continue; const px=X(x), py=Y(evalC(k,x,aa)); st?ctx.lineTo(px,py):ctx.moveTo(px,py); st=true;} ctx.stroke(); ctx.setLineDash([]); }
-  for(let k=0;k<4;k++){ if(!curves[k]) continue; if(showRef && Math.abs(a-1)>1e-3) path(k,1,'#c3c2b7',1.5,[5,4]); }
+  for(let k=0;k<4;k++){ if(!curves[k]) continue; if(showRef && Math.abs(a-1)>1e-3) path(k,1,'#3a403c',1.5,[5,4]); }
   for(let k=0;k<4;k++){ if(!curves[k]) continue; path(k,a,COL[k],2.5); }
   // marks for e^{-ax^2}
   if(showMarks && curves[0]){
     const w=1/Math.sqrt(a), s=1/Math.sqrt(2*a), y1e=evalC(0,w,a), ys=evalC(0,s,a);
-    ctx.strokeStyle='#2a78d6'; ctx.setLineDash([3,3]); ctx.lineWidth=1;
+    ctx.strokeStyle='#6aa6f2'; ctx.setLineDash([3,3]); ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(X(-w),Y(y1e)); ctx.lineTo(X(w),Y(y1e)); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(X(-s),Y(0)); ctx.lineTo(X(-s),Y(ys)); ctx.moveTo(X(s),Y(0)); ctx.lineTo(X(s),Y(ys)); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle='#2a78d6'; ctx.textAlign='left'; ctx.fillText('1/e 높이, 폭 2/√a = '+(2*w).toFixed(2), X(w)+6, Y(y1e)+4);
+    ctx.fillStyle='#6aa6f2'; ctx.textAlign='left'; ctx.fillText('1/e 높이, 폭 2/√a = '+(2*w).toFixed(2), X(w)+6, Y(y1e)+4);
     ctx.textAlign='center'; ctx.fillText('±σ', X(s), Y(0)-6); ctx.fillText('', X(-s), Y(0)-6);
     // inflection points
-    ctx.fillStyle='#2a78d6'; [ -s, s].forEach(x=>{ ctx.beginPath(); ctx.arc(X(x),Y(evalC(0,x,a)),3.5,0,7); ctx.fill(); });
+    ctx.fillStyle='#6aa6f2'; [ -s, s].forEach(x=>{ ctx.beginPath(); ctx.arc(X(x),Y(evalC(0,x,a)),3.5,0,7); ctx.fill(); });
   }
-  if(curves[2]){ const vp=1/Math.sqrt(a); ctx.strokeStyle='#1baf7a'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(vp),Y(0)); ctx.lineTo(X(vp),Y(evalC(2,vp,a))); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#1baf7a'; ctx.textAlign='center'; ctx.fillText('봉우리 x = 1/√a', X(vp), Y(evalC(2,vp,a))-8); }
-  if(curves[3]){ const vq=Math.sqrt(1.5/a); ctx.strokeStyle='#4a3aa7'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(vq),Y(0)); ctx.lineTo(X(vq),Y(evalC(3,vq,a))); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#4a3aa7'; ctx.textAlign='center'; ctx.fillText('봉우리 x = √(3/2a)', X(vq)+70, Y(evalC(3,vq,a))-8); }
+  if(curves[2]){ const vp=1/Math.sqrt(a); ctx.strokeStyle='#3fcf98'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(vp),Y(0)); ctx.lineTo(X(vp),Y(evalC(2,vp,a))); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#3fcf98'; ctx.textAlign='center'; ctx.fillText('봉우리 x = 1/√a', X(vp), Y(evalC(2,vp,a))-8); }
+  if(curves[3]){ const vq=Math.sqrt(1.5/a); ctx.strokeStyle='#a596f5'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(vq),Y(0)); ctx.lineTo(X(vq),Y(evalC(3,vq,a))); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#a596f5'; ctx.textAlign='center'; ctx.fillText('봉우리 x = √(3/2a)', X(vq)+70, Y(evalC(3,vq,a))-8); }
   c._X=X; c._xmin=xmin; c._xmax=xmax; c._eval=evalC;
   let lg=''; for(let k=0;k<4;k++){ if(curves[k]) lg+=`<span><i class="line" style="border-color:${COL[k]}"></i>${NAME[k].replace('a',a.toFixed(2))}</span>`; }
-  if(showRef && Math.abs(a-1)>1e-3) lg+=`<span><i class="line" style="border-color:#c3c2b7;border-top-style:dashed"></i>a = 1 기준</span>`;
+  if(showRef && Math.abs(a-1)>1e-3) lg+=`<span><i class="line" style="border-color:#3a403c;border-top-style:dashed"></i>a = 1 기준</span>`;
   if(normalize) lg+=`<span style="color:var(--text-3)">각 곡선 넓이 = 1 (x≥0 곡선은 0→∞)</span>`;
   $('legend').innerHTML=lg;
 }

@@ -35,3 +35,10 @@ h2.cat:first-of-type{margin-top:0}
   letter-spacing:.1em;display:block;margin-bottom:3px}
 footer{margin-top:48px;font-size:12.5px;color:var(--text-muted);border-top:1px solid var(--border);
   padding-top:16px;font-family:'IBM Plex Mono',monospace}
+
+/* Simulation pages (simulations/**/*.html, not index pages) inline these same
+   neutrals in their own :root so each file stays standalone, and add data colours
+   for charts/canvas that are tuned for this dark ground:
+     blue #6aa6f2  orange #f28b62  aqua #3fcf98  yellow #f3bb45  violet #a596f5  red #f27070
+   Neutrals must match the tokens above: bg #101211, surface-1 #1a1d1b, surface-2 #222623,
+   text #e8ece9 / #a8b0aa / #6f7772, border #2c302d / #3a403c.  Change here -> change there. */

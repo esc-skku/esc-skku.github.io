@@ -6,10 +6,10 @@
 <title>아보가드로 수 vs 로슈미트 수</title>
 <style>
 :root{
-  --surface-0:#f9f9f7; --surface-1:#fcfcfb; --surface-2:#f0efec;
-  --text-1:#0b0b0b; --text-2:#52514e; --text-3:#898781;
-  --border:#e1e0d9; --border-strong:#c3c2b7;
-  --blue:#2a78d6; --orange:#eb6834; --aqua:#1baf7a; --yellow:#eda100; --violet:#4a3aa7; --red:#e34948;
+  --surface-0:#101211; --surface-1:#1a1d1b; --surface-2:#222623;
+  --text-1:#e8ece9; --text-2:#a8b0aa; --text-3:#6f7772;
+  --border:#2c302d; --border-strong:#3a403c;
+  --blue:#6aa6f2; --orange:#f28b62; --aqua:#3fcf98; --yellow:#f3bb45; --violet:#a596f5; --red:#f27070;
   --radius:12px;
 }
 *{box-sizing:border-box}
@@ -36,7 +36,7 @@ h1{font-size:24px;margin:0 0 4px;font-weight:600}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:3px 10px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface-1);font-size:13px;cursor:pointer;color:var(--text-2);font-family:inherit}
 .chip:hover{background:var(--surface-2)}
-.chip.on{background:var(--text-1);color:#fff;border-color:var(--text-1)}
+.chip.on{background:var(--text-1);color:var(--surface-0);border-color:var(--text-1)}
 select{padding:5px 8px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-1);font:inherit}
 .tile{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
 .tile .k{font-size:13px;color:var(--text-3)}
@@ -168,11 +168,11 @@ function fmtP(P){
   return sci(P,2)+' torr';
 }
 function regime(P){
-  if(P>=1) return ['저진공 (LV)','#898781'];
-  if(P>=1e-3) return ['중진공 (MV)','#eda100'];
-  if(P>=1e-7) return ['고진공 (HV)','#1baf7a'];
-  if(P>=1e-10) return ['초고진공 (UHV)','#2a78d6'];
-  return ['극고진공 (XHV)','#4a3aa7'];
+  if(P>=1) return ['저진공 (LV)','#6f7772'];
+  if(P>=1e-3) return ['중진공 (MV)','#f3bb45'];
+  if(P>=1e-7) return ['고진공 (HV)','#3fcf98'];
+  if(P>=1e-10) return ['초고진공 (UHV)','#6aa6f2'];
+  return ['극고진공 (XHV)','#a596f5'];
 }
 function fmtLen(m){
   if(m<1e-9) return (m*1e12).toFixed(0)+' pm';
@@ -210,31 +210,31 @@ function drawRuler(N,n,P,T,V){
   const x0=40, x1=W-30, lo=0, hi=25;
   const X=v=>x0+(Math.log10(Math.max(v,1))-lo)/(hi-lo)*(x1-x0);
   const y=150;
-  ctx.strokeStyle='#c3c2b7'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
-  ctx.fillStyle='#898781'; ctx.font='11px system-ui'; ctx.textAlign='center';
+  ctx.strokeStyle='#3a403c'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
+  ctx.fillStyle='#6f7772'; ctx.font='11px system-ui'; ctx.textAlign='center';
   for(let e=0;e<=25;e+=5){ const x=X(10**e); ctx.beginPath(); ctx.moveTo(x,y-5); ctx.lineTo(x,y+5); ctx.stroke(); ctx.fillText('10'+String(e).replace(/\d/g,ch=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[ch]),x,y+20); }
   ctx.fillText('분자 수 (개, 로그 눈금)', (x0+x1)/2, y+40);
   const marks=[
-    {v:NA, lab:'N_A (1 mol)', col:'#2a78d6', dy:-95},
-    {v:n0, lab:'n₀ × 1 cm³ (0 ℃, 1 atm)', col:'#eb6834', dy:-65},
-    {v:n, lab:'선택 조건 × 1 cm³', col:'#1baf7a', dy:-35},
+    {v:NA, lab:'N_A (1 mol)', col:'#6aa6f2', dy:-95},
+    {v:n0, lab:'n₀ × 1 cm³ (0 ℃, 1 atm)', col:'#f28b62', dy:-65},
+    {v:n, lab:'선택 조건 × 1 cm³', col:'#3fcf98', dy:-35},
   ];
-  if(V!==1) marks.push({v:N, lab:'선택 조건 × '+vSel.options[vSel.selectedIndex].text.split(' (')[0], col:'#4a3aa7', dy:-125});
+  if(V!==1) marks.push({v:N, lab:'선택 조건 × '+vSel.options[vSel.selectedIndex].text.split(' (')[0], col:'#a596f5', dy:-125});
   ctx.textAlign='left'; ctx.font='12px system-ui';
   marks.forEach(m=>{
     const x=X(m.v); ctx.strokeStyle=m.col; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y+m.dy+6); ctx.stroke();
     ctx.fillStyle=m.col; ctx.beginPath(); ctx.arc(x,y,4.5,0,7); ctx.fill();
-    ctx.fillStyle='#fcfcfb'; ctx.beginPath(); ctx.arc(x,y,2.5,0,7); ctx.fill();
-    ctx.fillStyle='#0b0b0b';
+    ctx.fillStyle='#1a1d1b'; ctx.beginPath(); ctx.arc(x,y,2.5,0,7); ctx.fill();
+    ctx.fillStyle='#e8ece9';
     const txt=m.lab+'  '+sci(m.v,1);
     const tw=ctx.measureText(txt).width; let tx=x+6; if(tx+tw>W-6) tx=x-6-tw;
     ctx.fillText(txt, tx, y+m.dy);
   });
   // gap annotation between NA and n0
-  ctx.fillStyle='#52514e'; ctx.font='11px system-ui'; ctx.textAlign='center';
+  ctx.fillStyle='#a8b0aa'; ctx.font='11px system-ui'; ctx.textAlign='center';
   const xa=X(n0), xb=X(NA);
-  ctx.strokeStyle='#c3c2b7'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(xa,y+52); ctx.lineTo(xb,y+52); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle='#3a403c'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(xa,y+52); ctx.lineTo(xb,y+52); ctx.stroke(); ctx.setLineDash([]);
   ctx.fillText('÷ 22,414 (22.4 L를 cm³로)', (xa+xb)/2, y+64);
 }
 
@@ -243,8 +243,8 @@ function drawBox(n,P,T){
   const c=$('box'), ctx=c.getContext('2d'), W=c.width, H=c.height;
   ctx.clearRect(0,0,W,H);
   const bx=20, by=20, bw=W-40, bh=H-70;
-  ctx.fillStyle='#f0efec'; ctx.fillRect(bx,by,bw,bh);
-  ctx.strokeStyle='#c3c2b7'; ctx.lineWidth=1.5; ctx.strokeRect(bx,by,bw,bh);
+  ctx.fillStyle='#222623'; ctx.fillRect(bx,by,bw,bh);
+  ctx.strokeStyle='#3a403c'; ctx.lineWidth=1.5; ctx.strokeRect(bx,by,bw,bh);
   // choose scale: each dot = 10^kk molecules, dots between 1 and ~1500
   let kk=Math.max(0, Math.ceil(Math.log10(n/1500)));
   let cnt=Math.round(n/10**kk);
@@ -254,12 +254,12 @@ function drawBox(n,P,T){
     for(let i=0;i<3000;i++) dots.push([rng(),rng()]);
     dotsK=kk;
   }
-  ctx.fillStyle='#1baf7a';
+  ctx.fillStyle='#3fcf98';
   const show=Math.min(cnt,3000), rad= show>800?1.6: show>200?2.4:3.2;
   for(let i=0;i<show;i++){ ctx.beginPath(); ctx.arc(bx+6+dots[i][0]*(bw-12), by+6+dots[i][1]*(bh-12), rad,0,7); ctx.fill(); }
-  ctx.fillStyle='#0b0b0b'; ctx.font='13px system-ui'; ctx.textAlign='left';
+  ctx.fillStyle='#e8ece9'; ctx.font='13px system-ui'; ctx.textAlign='left';
   ctx.fillText('1 cm³  ·  '+fmtP(P)+', '+(Math.round(T*100)/100)+' K', bx, H-30);
-  ctx.fillStyle='#52514e'; ctx.font='12px system-ui';
+  ctx.fillStyle='#a8b0aa'; ctx.font='12px system-ui';
   ctx.fillText('점 1개 = 10'+String(kk).replace(/\d/g,ch=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[ch])+' 개  →  점 '+cnt.toLocaleString()+'개'+(cnt>3000?' (3,000개까지만 표시)':''), bx, H-12);
   $('boxCap').textContent = kk===0 ? '이제 점 하나가 분자 하나. 10⁻¹³ torr 근처에서야 1 cm³ 안의 분자를 "셀 수 있는" 수가 된다.' :
     '점 하나가 분자 10'+String(kk).replace(/\d/g,ch=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[ch])+'개를 대표한다. 슬라이더로 압력을 낮추며 점의 의미가 바뀌는 순간을 눌러 보자.';
