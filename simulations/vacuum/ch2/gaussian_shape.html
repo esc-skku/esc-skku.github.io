@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e^(−ax²)의 개형</title>
+<style>
+:root{--surface-0:#f9f9f7;--surface-1:#fcfcfb;--surface-2:#f0efec;--text-1:#0b0b0b;--text-2:#52514e;--text-3:#898781;--border:#e1e0d9;--border-strong:#c3c2b7;--blue:#2a78d6;--orange:#eb6834;--aqua:#1baf7a;--violet:#4a3aa7;--radius:12px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-1);font-family:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px 48px}
+h1{font-size:24px;margin:0 0 4px;font-weight:600}
+.sub{color:var(--text-2);margin:0 0 18px}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px}
+.row{display:flex;align-items:center;gap:12px;margin:8px 0;flex-wrap:wrap}
+.row label{min-width:110px;color:var(--text-2);font-size:14px}
+.row input[type=range]{flex:1;min-width:200px;accent-color:var(--blue)}
+.val{min-width:120px;font-variant-numeric:tabular-nums;font-weight:500}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:3px 10px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface-1);font-size:13px;cursor:pointer;color:var(--text-2);font-family:inherit}
+.chip:hover{background:var(--surface-2)}
+.chip.on{background:var(--text-1);color:#fff;border-color:var(--text-1)}
+.layout{display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-top:16px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+canvas{display:block;width:100%;height:auto;background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--text-2);margin:8px 0 0}
+.legend span{display:flex;align-items:center;gap:6px}
+.line{width:18px;height:0;border-top:2.5px solid}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.tile{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.tile .k{font-size:12.5px;color:var(--text-3)}
+.tile .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;margin:2px 0}
+.tile .n{font-size:12.5px;color:var(--text-2)}
+.note{font-size:14px;color:var(--text-2);margin-top:14px;line-height:1.8}
+h2{font-size:16px;margin:0 0 8px;font-weight:600}
+sup,sub{line-height:0}
+.tt{position:absolute;pointer-events:none;background:rgba(11,11,11,.92);color:#fff;font-size:12.5px;padding:6px 9px;border-radius:8px;line-height:1.5;display:none;white-space:nowrap}
+.rel{position:relative}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{padding:5px 8px;border-bottom:1px solid var(--border);text-align:left}
+th{color:var(--text-3);font-weight:500}
+td.num{font-variant-numeric:tabular-nums;text-align:right}
+  nav.crumb{font-size:12.5px;color:var(--text-2);margin-bottom:14px;}
+  nav.crumb a{color:var(--text-2);text-decoration:none;border-bottom:1px solid var(--border-strong);}
+  nav.crumb a:hover{color:var(--blue);border-bottom-color:var(--blue);}
+  nav.crumb span{margin:0 7px;color:var(--border-strong);}
+  footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 2</a><span>/</span>e^(−ax²)의 개형</nav>
+<h1>e<sup>−ax²</sup>의 개형</h1>
+<p class="sub">가우스 함수 하나만 알면 2.3절이 다 보인다: 속도 성분 분포 f(v<sub>x</sub>) ∝ e<sup>−av²</sup>, 속력 분포 f(v) ∝ v² e<sup>−av²</sup>, 표면 도달 가중 v³e<sup>−av²</sup>. 여기서 a = m/2kT.</p>
+
+<div class="card">
+  <div class="row">
+    <label>a</label>
+    <input type="range" id="aSl" min="-1" max="1" step="0.01" value="0">
+    <span class="val" id="aVal"></span>
+    <div class="chips" id="aChips">
+      <button class="chip" data-a="0.25">a = 0.25</button>
+      <button class="chip" data-a="0.5">a = 0.5</button>
+      <button class="chip on" data-a="1">a = 1</button>
+      <button class="chip" data-a="2">a = 2</button>
+      <button class="chip" data-a="4">a = 4</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>곡선</label>
+    <div class="chips">
+      <button class="chip on" id="c0">e<sup>−ax²</sup></button>
+      <button class="chip" id="c1">x e<sup>−ax²</sup></button>
+      <button class="chip" id="c2">x² e<sup>−ax²</sup> (속력 분포 꼴)</button>
+      <button class="chip" id="c3">x³ e<sup>−ax²</sup> (입사빈도 가중)</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>표시</label>
+    <div class="chips">
+      <button class="chip on" id="ref">a = 1 기준 곡선 (회색)</button>
+      <button class="chip" id="norm">넓이 1로 정규화</button>
+      <button class="chip on" id="marks">1/e 폭 · 표준편차 표시</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="rel"><canvas id="plot" width="700" height="420"></canvas><div class="tt" id="tt"></div></div>
+    <div class="legend" id="legend"></div>
+    <div class="tiles">
+      <div class="tile"><div class="k">1/e 폭 (e<sup>−ax²</sup> = 1/e 인 x)</div><div class="v" id="w1e"></div><div class="n">x = 1/√a</div></div>
+      <div class="tile"><div class="k">표준편차 σ (정규분포로 볼 때)</div><div class="v" id="sig"></div><div class="n">σ = 1/√(2a)</div></div>
+      <div class="tile"><div class="k">전체 넓이 ∫e<sup>−ax²</sup>dx</div><div class="v" id="area"></div><div class="n">= √(π/a)</div></div>
+    </div>
+  </div>
+  <div>
+    <div class="card" style="padding:12px 14px">
+      <h2>2.3절에서 쓰는 적분 (a = m/2kT)</h2>
+      <table>
+        <tr><th>적분 (0 → ∞)</th><th>값</th><th>어디에</th></tr>
+        <tr><td>∫ e<sup>−ax²</sup> dx</td><td class="num">½√(π/a)</td><td>정규화(성분 분포)</td></tr>
+        <tr><td>∫ x e<sup>−ax²</sup> dx</td><td class="num">1/(2a)</td><td>—</td></tr>
+        <tr><td>∫ x² e<sup>−ax²</sup> dx</td><td class="num">√π/(4a<sup>3/2</sup>)</td><td>f(v) 정규화 → A′ (p.24)</td></tr>
+        <tr><td>∫ x³ e<sup>−ax²</sup> dx</td><td class="num">1/(2a²)</td><td>평균 속력 v̄ = √(8kT/πm)</td></tr>
+        <tr><td>∫ x⁴ e<sup>−ax²</sup> dx</td><td class="num">3√π/(8a<sup>5/2</sup>)</td><td>⟨v²⟩ = 3kT/m → v<sub>rms</sub> (p.24)</td></tr>
+        <tr><td>∫ x⁵ e<sup>−ax²</sup> dx</td><td class="num">1/a³</td><td>표면 도달 분자의 ⟨½mv²⟩ = 2kT</td></tr>
+      </table>
+      <div class="note" style="margin-top:10px">규칙: 짝수 거듭제곱은 √π가 붙고(가우스 적분에서 옴), 홀수 거듭제곱은 치환 u = x²으로 초등적으로 풀려 √π가 없다. 지수를 2 올릴 때마다 a를 한 번 더 나누고(차원!), 계수는 (2n−1)/2 씩 곱한다.</div>
+    </div>
+    <div class="card" style="padding:12px 14px;margin-top:12px">
+      <h2>a를 바꾸면</h2>
+      <div class="note" id="story" style="margin-top:0"></div>
+    </div>
+  </div>
+</div>
+
+
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let a=1, curves=[true,false,false,false], showRef=true, normalize=false, showMarks=true;
+const COL=['#2a78d6','#eb6834','#1baf7a','#4a3aa7'], NAME=['e^(−ax²)','x e^(−ax²)','x² e^(−ax²)','x³ e^(−ax²)'];
+const SQPI=Math.sqrt(Math.PI);
+function fn(k,x,aa){ return Math.pow(x,k)*Math.exp(-aa*x*x); }
+// normalization constants over the plotted domain: k=0 over (−∞,∞); k≥1 over (0,∞)
+function normC(k,aa){ return k===0? Math.sqrt(aa/Math.PI) : k===1? 2*aa : k===2? 4*Math.pow(aa,1.5)/SQPI : 2*aa*aa; }
+const P={l:52,r:16,t:16,b:40};
+function drawPlot(){
+  const c=$('plot'), ctx=c.getContext('2d'), W=c.width, H=c.height; ctx.clearRect(0,0,W,H);
+  const onlyEven = curves[0] && !curves[1]&&!curves[2]&&!curves[3];
+  const xmin= onlyEven? -3.5 : (curves[0]? -3.5 : 0), xmax=3.5;
+  const X=x=>P.l+(x-xmin)/(xmax-xmin)*(W-P.l-P.r);
+  // y max
+  let ymax=0; const N=400;
+  const evalC=(k,x,aa)=> (normalize? normC(k,aa):1)*fn(k,x,aa);
+  for(let k=0;k<4;k++){ if(!curves[k]) continue; for(let i=0;i<=N;i++){ const x=xmin+(xmax-xmin)*i/N; if(k>0&&x<0) continue; ymax=Math.max(ymax, evalC(k,x,a), showRef?evalC(k,x,1):0); } }
+  if(ymax<=0) ymax=1; ymax*=1.1;
+  const Y=y=>H-P.b-(y/ymax)*(H-P.t-P.b);
+  // grid
+  ctx.font='12px system-ui'; ctx.fillStyle='#898781'; ctx.textAlign='center';
+  for(let x=Math.ceil(xmin);x<=xmax;x++){ const px=X(x); ctx.strokeStyle= x===0?'#c3c2b7':'#e1e0d9'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(px,P.t); ctx.lineTo(px,H-P.b); ctx.stroke(); ctx.fillText(x, px, H-P.b+16); }
+  ctx.fillText('x', (P.l+W-P.r)/2, H-8);
+  ctx.textAlign='right';
+  const ystep= ymax>2? 0.5 : ymax>1? 0.25 : 0.1;
+  for(let y=0;y<=ymax;y+=ystep){ const py=Y(y); ctx.strokeStyle='#e1e0d9'; ctx.beginPath(); ctx.moveTo(P.l,py); ctx.lineTo(W-P.r,py); ctx.stroke(); ctx.fillStyle='#898781'; ctx.fillText(y.toFixed(ystep<0.25?1:2).replace(/\.?0+$/,''), P.l-6, py+4); }
+  ctx.strokeStyle='#c3c2b7'; ctx.beginPath(); ctx.moveTo(P.l,Y(0)); ctx.lineTo(W-P.r,Y(0)); ctx.stroke();
+  function path(k,aa,col,w,dash){ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash(dash||[]); ctx.beginPath(); let st=false; for(let i=0;i<=N;i++){ const x=xmin+(xmax-xmin)*i/N; if(k>0&&x<0) continue; const px=X(x), py=Y(evalC(k,x,aa)); st?ctx.lineTo(px,py):ctx.moveTo(px,py); st=true;} ctx.stroke(); ctx.setLineDash([]); }
+  for(let k=0;k<4;k++){ if(!curves[k]) continue; if(showRef && Math.abs(a-1)>1e-3) path(k,1,'#c3c2b7',1.5,[5,4]); }
+  for(let k=0;k<4;k++){ if(!curves[k]) continue; path(k,a,COL[k],2.5); }
+  // marks for e^{-ax^2}
+  if(showMarks && curves[0]){
+    const w=1/Math.sqrt(a), s=1/Math.sqrt(2*a), y1e=evalC(0,w,a), ys=evalC(0,s,a);
+    ctx.strokeStyle='#2a78d6'; ctx.setLineDash([3,3]); ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(X(-w),Y(y1e)); ctx.lineTo(X(w),Y(y1e)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X(-s),Y(0)); ctx.lineTo(X(-s),Y(ys)); ctx.moveTo(X(s),Y(0)); ctx.lineTo(X(s),Y(ys)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#2a78d6'; ctx.textAlign='left'; ctx.fillText('1/e 높이, 폭 2/√a = '+(2*w).toFixed(2), X(w)+6, Y(y1e)+4);
+    ctx.textAlign='center'; ctx.fillText('±σ', X(s), Y(0)-6); ctx.fillText('', X(-s), Y(0)-6);
+    // inflection points
+    ctx.fillStyle='#2a78d6'; [ -s, s].forEach(x=>{ ctx.beginPath(); ctx.arc(X(x),Y(evalC(0,x,a)),3.5,0,7); ctx.fill(); });
+  }
+  if(curves[2]){ const vp=1/Math.sqrt(a); ctx.strokeStyle='#1baf7a'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(vp),Y(0)); ctx.lineTo(X(vp),Y(evalC(2,vp,a))); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#1baf7a'; ctx.textAlign='center'; ctx.fillText('봉우리 x = 1/√a', X(vp), Y(evalC(2,vp,a))-8); }
+  if(curves[3]){ const vq=Math.sqrt(1.5/a); ctx.strokeStyle='#4a3aa7'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(X(vq),Y(0)); ctx.lineTo(X(vq),Y(evalC(3,vq,a))); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#4a3aa7'; ctx.textAlign='center'; ctx.fillText('봉우리 x = √(3/2a)', X(vq)+70, Y(evalC(3,vq,a))-8); }
+  c._X=X; c._xmin=xmin; c._xmax=xmax; c._eval=evalC;
+  let lg=''; for(let k=0;k<4;k++){ if(curves[k]) lg+=`<span><i class="line" style="border-color:${COL[k]}"></i>${NAME[k].replace('a',a.toFixed(2))}</span>`; }
+  if(showRef && Math.abs(a-1)>1e-3) lg+=`<span><i class="line" style="border-color:#c3c2b7;border-top-style:dashed"></i>a = 1 기준</span>`;
+  if(normalize) lg+=`<span style="color:var(--text-3)">각 곡선 넓이 = 1 (x≥0 곡선은 0→∞)</span>`;
+  $('legend').innerHTML=lg;
+}
+function update(){
+  a=10**parseFloat($('aSl').value);
+  $('aVal').textContent='a = '+a.toFixed(2);
+  $('w1e').textContent=(1/Math.sqrt(a)).toFixed(3); $('sig').textContent=(1/Math.sqrt(2*a)).toFixed(3); $('area').textContent=Math.sqrt(Math.PI/a).toFixed(3);
+  document.querySelectorAll('#aChips .chip').forEach(c=>c.classList.toggle('on',Math.abs(parseFloat(c.dataset.a)-a)<0.02));
+  ['c0','c1','c2','c3'].forEach((id,i)=>$(id).classList.toggle('on',curves[i]));
+  $('ref').classList.toggle('on',showRef); $('norm').classList.toggle('on',normalize); $('marks').classList.toggle('on',showMarks);
+  $('story').innerHTML=
+    `a가 커지면(= 질량이 크거나 온도가 낮으면) 봉우리는 그대로 x = 0에 있고 폭만 1/√a로 좁아진다. 넓이는 √(π/a)로 줄어드니, 확률분포로 쓰려면 앞에 √(a/π)를 곱해 넓이를 1로 맞춘다 — 이것이 (m/2πkT)<sup>1/2</sup>의 정체.<br>`+
+    `현재 a = ${a.toFixed(2)}: 폭 1/√a = ${(1/Math.sqrt(a)).toFixed(2)}, 높이는 항상 1(정규화 전). a를 4배 하면 폭은 정확히 절반이 된다.<br>`+
+    `<span style="color:var(--text-3)">x² e<sup>−ax²</sup>의 봉우리 1/√a는 그대로 최빈 속력 v<sub>p</sub> = √(2kT/m); 위 표의 적분 비율에서 v̄/v<sub>p</sub> = 2/√π = 1.128, v<sub>rms</sub>/v<sub>p</sub> = √(3/2) = 1.225가 나온다.</span>`;
+  drawPlot();
+}
+$('aSl').addEventListener('input',update);
+document.querySelectorAll('#aChips .chip').forEach(c=>c.onclick=()=>{$('aSl').value=Math.log10(parseFloat(c.dataset.a)); update();});
+['c0','c1','c2','c3'].forEach((id,i)=>$(id).onclick=()=>{curves[i]=!curves[i]; if(!curves.some(x=>x)) curves[i]=true; update();});
+$('ref').onclick=()=>{showRef=!showRef;update();}; $('norm').onclick=()=>{normalize=!normalize;update();}; $('marks').onclick=()=>{showMarks=!showMarks;update();};
+const plot=$('plot'), tt=$('tt');
+plot.addEventListener('mousemove',e=>{ const r=plot.getBoundingClientRect(), sx=plot.width/r.width; const px=(e.clientX-r.left)*sx; if(px<P.l||px>plot.width-P.r){tt.style.display='none';return;} const x=plot._xmin+(px-P.l)/(plot.width-P.l-P.r)*(plot._xmax-plot._xmin); let s=`x = ${x.toFixed(2)}`; for(let k=0;k<4;k++){ if(curves[k]&&(k===0||x>=0)) s+=`<br>${NAME[k]} = ${plot._eval(k,x,a).toFixed(4)}`; } tt.innerHTML=s; tt.style.display='block'; tt.style.left=(e.clientX-r.left+14)+'px'; tt.style.top=(e.clientY-r.top-10)+'px'; });
+plot.addEventListener('mouseleave',()=>tt.style.display='none');
+update();
+</script>
+</body>
+</html>
