@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>분자 입사빈도와 단분자층 형성</title>
+<style>
+:root{--surface-0:#101211;--surface-1:#1a1d1b;--surface-2:#222623;--text-1:#e8ece9;--text-2:#a8b0aa;--text-3:#6f7772;--border:#2c302d;--border-strong:#3a403c;--blue:#6aa6f2;--orange:#f28b62;--aqua:#3fcf98;--violet:#a596f5;--red:#f27070;--radius:12px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-1);font-family:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 48px}
+h1{font-size:24px;margin:0 0 4px;font-weight:600}
+.sub{color:var(--text-2);margin:0 0 18px}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px}
+.row{display:flex;align-items:center;gap:12px;margin:8px 0;flex-wrap:wrap}
+.row label{min-width:130px;color:var(--text-2);font-size:14px}
+.row input[type=range]{flex:1;min-width:180px;accent-color:var(--blue)}
+.val{min-width:150px;font-variant-numeric:tabular-nums;font-weight:500}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:3px 10px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface-1);font-size:13px;cursor:pointer;color:var(--text-2);font-family:inherit}
+.chip:hover{background:var(--surface-2)}
+.chip.on{background:var(--text-1);color:var(--surface-0);border-color:var(--text-1)}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media(max-width:940px){.layout{grid-template-columns:1fr}}
+canvas{display:block;width:100%;height:auto;background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.tile{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.tile .k{font-size:12.5px;color:var(--text-3)}
+.tile .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;margin:2px 0}
+.tile .n{font-size:12.5px;color:var(--text-2)}
+.tile.hi{border-color:var(--blue)}
+.cap{font-size:13px;color:var(--text-3);margin-top:6px;line-height:1.6}
+.note{font-size:14px;color:var(--text-2);margin-top:12px;line-height:1.8}
+h2{font-size:16px;margin:0 0 8px;font-weight:600}
+sup,sub{line-height:0}
+.btn{padding:6px 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-1);font:inherit;font-size:14px;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.step{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14.5px;align-items:baseline}
+.step .lhs{color:var(--text-3);text-align:right;white-space:nowrap}
+.step .rhs{font-variant-numeric:tabular-nums}
+.step b{color:var(--blue)}
+.regime{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;background:var(--surface-2);color:var(--text-2)}
+  nav.crumb{font-size:12.5px;color:var(--text-2);margin-bottom:14px;}
+  nav.crumb a{color:var(--text-2);text-decoration:none;border-bottom:1px solid var(--border-strong);}
+  nav.crumb a:hover{color:var(--blue);border-bottom-color:var(--blue);}
+  nav.crumb span{margin:0 7px;color:var(--border-strong);}
+  footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 2</a><span>/</span>분자 입사빈도와 단분자층</nav>
+<h1>분자 입사빈도 <i>J</i> = ¼<i>nv̄</i> 와 단분자층 형성</h1>
+<p class="sub">압력을 정하면 1초에 1 cm²를 때리는 분자 수가 정해지고, 그 수가 표면의 자리 수(~10¹⁵/cm²)를 채우는 데 걸리는 시간이 "깨끗한 표면의 수명"이다.</p>
+
+<div class="card">
+  <div class="row">
+    <label>압력 <i>P</i></label>
+    <input type="range" id="pSl" min="-12" max="2.881" step="0.001" value="-5.699">
+    <span class="val" id="pVal"></span>
+    <span class="regime" id="regime"></span>
+  </div>
+  <div class="row"><label></label>
+    <div class="chips" id="pChips">
+      <button class="chip" data-p="2e-6">2×10⁻⁶ torr (슬라이드 예제)</button>
+      <button class="chip" data-p="1e-6">10⁻⁶ torr</button>
+      <button class="chip" data-p="1e-8">10⁻⁸ torr</button>
+      <button class="chip" data-p="1e-10">10⁻¹⁰ torr</button>
+      <button class="chip" data-p="1e-11">10⁻¹¹ torr (ARPES)</button>
+      <button class="chip" data-p="760">760 torr</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>기체</label><div class="chips" id="gasChips"></div>
+    <label style="min-width:auto;margin-left:10px">온도</label>
+    <input type="range" id="tSl" min="77" max="1000" step="1" value="298" style="max-width:180px">
+    <span class="val" id="tVal" style="min-width:70px"></span>
+  </div>
+  <div class="row">
+    <label>부착 확률 <i>s</i></label>
+    <input type="range" id="sSl" min="0.05" max="1" step="0.05" value="1" style="max-width:220px">
+    <span class="val" id="sVal" style="min-width:60px"></span>
+    <label style="min-width:auto;margin-left:10px">표면 자리 밀도 <i>N<sub>s</sub></i></label>
+    <div class="chips" id="nsChips">
+      <button class="chip" data-ns="5e14">5×10¹⁴ /cm² (교재)</button>
+      <button class="chip on" data-ns="1e15">10¹⁵ /cm²</button>
+      <button class="chip" data-ns="2e15">2×10¹⁵ /cm²</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="card" style="padding:12px 14px">
+      <h2><i>J</i> 계산 과정 (선택한 조건)</h2>
+      <div class="step" id="steps"></div>
+      <div class="cap" style="margin-top:10px">교재 공식과의 관계: <i>J</i> = ¼<i>nv̄</i> = ¼·(<i>P</i>/<i>kT</i>)·√(8<i>kT</i>/π<i>m</i>) = <i>P</i>/√(2π<i>mkT</i>). 여기에 <i>P</i>[torr]×133.32 Pa, <i>m</i> = <i>M</i>×1.6605×10⁻²⁷ kg, m² → cm²(÷10⁴)를 넣으면 <i>J</i> = 133.32 / (10⁴ √(2π·1.6605×10⁻²⁷·1.3806×10⁻²³)) · <i>P</i>/√(<i>MT</i>) = <b>3.51×10²²</b> <i>P</i>/√(<i>MT</i>) 개/cm²·s.</div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k">수밀도 <i>n</i></div><div class="v" id="nOut"></div><div class="n">개/cm³</div></div>
+      <div class="tile"><div class="k">평균 속력 <i>v̄</i></div><div class="v" id="vOut"></div><div class="n">146 √(T/M) m/s</div></div>
+      <div class="tile hi"><div class="k">입사빈도 <i>J</i> = ¼<i>nv̄</i></div><div class="v" id="jOut"></div><div class="n">개/cm²·s</div></div>
+      <div class="tile hi"><div class="k">단분자층 시간 τ = <i>N<sub>s</sub></i>/(<i>sJ</i>)</div><div class="v" id="tauOut"></div><div class="n" id="tauN"></div></div>
+      <div class="tile"><div class="k">단위시간·단위면적 입사 기체 부피 <i>J</i>/<i>n</i> = <i>v̄</i>/4</div><div class="v" id="jvOut"></div><div class="n">L/cm²·s (압력 무관!)</div></div>
+      <div class="tile"><div class="k">1 L(Langmuir) = 10⁻⁶ torr·s 에 해당하는 시간</div><div class="v" id="lTime"></div><div class="n" id="lNote"></div></div>
+    </div>
+  </div>
+  <div>
+    <div class="card" style="padding:12px 14px">
+      <h2>표면 덮이는 과정 <span style="font-weight:400;color:var(--text-3);font-size:13px">(격자 한 칸 = 표면 자리 하나, 총 <span id="nsites"></span>개)</span></h2>
+      <canvas id="surf" width="560" height="300" style="border:none;background:var(--surface-2)"></canvas>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="play">일시정지</button>
+        <button class="btn" id="reset">표면 초기화</button>
+        <span style="font-size:13px;color:var(--text-2)">배속 <span id="spdLbl"></span></span>
+        <input type="range" id="spd" min="-1" max="1" step="0.1" value="0" style="max-width:150px;accent-color:var(--blue)">
+      </div>
+      <div class="cap">떨어지는 점 하나 = 표면에 도달한 분자. 부착 확률 <i>s</i>로 빈자리에 붙고(빨간 점), 이미 찬 자리에 오면 튕겨 나간다. 그래서 덮임 θ는 선형이 아니라 1 − e<sup>−t/τ</sup>로 포화한다. 배속은 τ가 약 8초에 오도록 자동 조정된 값에 곱해진다.</div>
+    </div>
+    <canvas id="plot" width="560" height="250" style="margin-top:12px"></canvas>
+    <div class="cap">덮임 θ(t) 이론 곡선(파랑)과 시뮬레이션(주황 점). 위쪽 눈금은 노출량 <i>L</i> = <i>P</i>(torr)·<i>t</i>(s)/10⁻⁶. τ에서 63%, 3τ에서 95%.</div>
+  </div>
+</div>
+
+<div class="note" id="story"></div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+</div>
+
+<script>
+const kB=1.380649e-23, amu=1.66053907e-27, TORR=133.322;
+const GASES=[{n:'N₂ (공기)',M:28},{n:'H₂',M:2.016},{n:'He',M:4.003},{n:'H₂O',M:18.02},{n:'O₂',M:32},{n:'Ar',M:39.95},{n:'CO',M:28.01}];
+let gi=0, Ns=1e15;
+const $=id=>document.getElementById(id);
+function sci(x,d=2){ if(x===0) return '0'; const e=Math.floor(Math.log10(Math.abs(x))); let m=x/10**e; if(m>=9.995){return sci(m*10**(e+1)/10*10,d);} return m.toFixed(d)+'×10'+String(e).replace(/-/g,'⁻').replace(/\d/g,c=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[c]); }
+function fmtP(P){ if(P>=1) return (P>=10?P.toFixed(0):P.toFixed(2))+' torr'; return sci(P,1)+' torr'; }
+function fmtT(t){ if(t<1e-3) return sci(t,1)+' s'; if(t<1) return (t*1000).toFixed(0)+' ms'; if(t<60) return t.toFixed(t<10?2:1)+' s'; if(t<3600) return (t/60).toFixed(1)+' 분'; if(t<86400) return (t/3600).toFixed(1)+' 시간'; if(t<86400*365) return (t/86400).toFixed(1)+' 일'; return (t/86400/365).toFixed(1)+' 년'; }
+function regime(P){ if(P>=1) return ['저진공','#6f7772']; if(P>=1e-3) return ['중진공','#f3bb45']; if(P>=1e-7) return ['고진공','#3fcf98']; if(P>=1e-10) return ['초고진공','#6aa6f2']; return ['극고진공','#a596f5']; }
+function state(){
+  const P=10**parseFloat($('pSl').value), T=parseFloat($('tSl').value), s=parseFloat($('sSl').value), M=GASES[gi].M, m=M*amu;
+  const n=P*TORR/(kB*T);                 // /m^3
+  const vbar=Math.sqrt(8*kB*T/(Math.PI*m));
+  const J=0.25*n*vbar*1e-4;              // /cm^2 s
+  const tau=Ns/(s*J);
+  return {P,T,s,M,m,n,vbar,J,tau};
+}
+function update(){
+  const st=state(), {P,T,s,M,n,vbar,J,tau}=st;
+  $('pVal').textContent=fmtP(P); const [rg,rc]=regime(P); $('regime').textContent=rg; $('regime').style.color=rc;
+  $('tVal').textContent=T+' K'; $('sVal').textContent=s.toFixed(2);
+  document.querySelectorAll('#pChips .chip').forEach(c=>c.classList.toggle('on',Math.abs(Math.log10(parseFloat(c.dataset.p))-Math.log10(P))<0.01));
+  document.querySelectorAll('#gasChips .chip').forEach((c,i)=>c.classList.toggle('on',i===gi));
+  document.querySelectorAll('#nsChips .chip').forEach(c=>c.classList.toggle('on',parseFloat(c.dataset.ns)===Ns));
+  $('steps').innerHTML=
+    `<div class="lhs">n = P/kT</div><div class="rhs">= ${sci(P*TORR,2)} Pa / (1.38×10⁻²³ × ${T}) = <b>${sci(n*1e-6)}</b> 개/cm³</div>`+
+    `<div class="lhs">v̄ = √(8kT/πm)</div><div class="rhs">= 146 √(${T}/${M}) = <b>${vbar.toFixed(0)}</b> m/s = ${(vbar*100).toFixed(0)} cm/s</div>`+
+    `<div class="lhs">J = ¼ n v̄</div><div class="rhs">= ¼ × ${sci(n*1e-6)} × ${(vbar*100).toFixed(0)} = <b>${sci(J)}</b> 개/cm²·s</div>`+
+    `<div class="lhs">검산</div><div class="rhs">3.51×10²² × ${sci(P,1)} / √(${M}×${T}) = ${sci(3.51e22*P/Math.sqrt(M*T))}</div>`+
+    `<div class="lhs">τ = N<sub>s</sub>/(sJ)</div><div class="rhs">= ${sci(Ns,0)} / (${s.toFixed(2)} × ${sci(J)}) = <b>${fmtT(tau)}</b></div>`;
+  $('nOut').textContent=sci(n*1e-6); $('vOut').textContent=vbar.toFixed(0)+' m/s'; $('jOut').textContent=sci(J);
+  $('tauOut').textContent=fmtT(tau); $('tauN').textContent= tau<1? '1초도 못 버틴다' : tau<3600? '측정 한 번 하는 동안 덮인다' : tau<86400? '반나절 실험은 가능' : '며칠 동안 깨끗';
+  $('jvOut').textContent=(vbar/4*100/1000).toFixed(1); // cm/s -> L/(cm^2 s): cm^3/(cm^2 s)=cm/s ; 1 cm^3 = 1e-3 L
+  const tL=1e-6/P; $('lTime').textContent=fmtT(tL); $('lNote').textContent='이 압력에서 1 L 노출까지 걸리는 시간';
+  // stories
+  const parts=[];
+  if(Math.abs(Math.log10(P/2e-6))<0.02 && gi===0 && Math.abs(T-298)<3 && s===1 && Ns===1e15) parts.push('슬라이드 예제 조건: 질소, 2×10⁻⁶ torr, 298 K → 1초에 표면이 한 층 덮인다.');
+  if(P<=1e-10) parts.push(`10⁻¹⁰ torr에서 1시간이면 노출량 ${(P*3600/1e-6).toFixed(2)} L. τ = ${fmtT(tau)} 이니 ARPES처럼 몇 시간 걸리는 측정에 초고진공이 필요한 이유가 여기 있다.`);
+  if(gi===1||gi===2) parts.push('가벼운 기체는 v̄가 커서 같은 압력에서도 J가 크다 — 잔류 H₂가 UHV에서 특히 신경 쓰이는 이유.');
+  if(s<1) parts.push(`부착 확률 s = ${s}: 실제 표면은 도달한 분자를 전부 붙잡지 않는다. τ가 1/s 배 늘어난다. 금속 표면 위의 CO는 s ~ 0.5~1, 불활성 기체는 상온에서 거의 0.`);
+  parts.push(`J/n = v̄/4 = ${(vbar/4*100/1000).toFixed(1)} L/cm²·s 는 압력과 무관하다: 상온 공기면 1 cm²에 매초 약 11.6 L의 기체가 "쏟아진다"(p.50). 압력은 그 부피 안에 든 분자 수만 바꾼다.`);
+  $('story').innerHTML=parts.join('<br>');
+  resetSim();
+}
+
+// ---------- simulation ----------
+const surf=$('surf'), sctx=surf.getContext('2d'), COLS=40, ROWS=10, NS=COLS*ROWS;
+$('nsites').textContent=NS;
+let sites=new Uint8Array(NS), filled=0, tSim=0, running=true, drops=[], lastTs=0, acc=0, autoSpeed=1, samples=[];
+function resetSim(){ sites.fill(0); filled=0; tSim=0; drops=[]; acc=0; samples=[]; const {tau}=state(); autoSpeed=tau/8; }
+function speedFactor(){ return autoSpeed*10**parseFloat($('spd').value); }
+function stepSim(dtReal){
+  const {J,s,tau}=state(); const f=speedFactor(); const dt=dtReal*f; tSim+=dt;
+  // arrivals onto represented area A = NS/Ns cm^2 : rate = J*NS/Ns per sim-second
+  const rate=J*NS/Ns; acc+=rate*dt;
+  let nNew=Math.floor(acc); acc-=nNew; nNew=Math.min(nNew,400);
+  for(let i=0;i<nNew;i++){ const col=Math.floor(Math.random()*COLS), row=Math.floor(Math.random()*ROWS); drops.push({col,row,y:0,stick:Math.random()<s}); }
+  // move drops (visual): fall in ~0.35 s real time
+  for(const d of drops){ d.y+=dtReal/0.35; }
+  const landed=drops.filter(d=>d.y>=1); drops=drops.filter(d=>d.y<1);
+  for(const d of landed){ const idx=d.row*COLS+d.col; if(d.stick && !sites[idx]){ sites[idx]=1; filled++; } else { d.bounce=1; drops.push(Object.assign(d,{y:1,bounce:0.0001})); } }
+  drops=drops.filter(d=>{ if(d.bounce){ d.bounce+=dtReal/0.3; return d.bounce<1; } return true; });
+  if(samples.length===0 || tSim-samples[samples.length-1][0] > tau/60) samples.push([tSim, filled/NS]);
+}
+function drawSurf(){
+  const W=surf.width, H=surf.height; sctx.clearRect(0,0,W,H);
+  const pad=14, gw=(W-2*pad)/COLS, gh=90/ROWS, y0=H-pad-90;
+  // substrate
+  sctx.fillStyle='#3a3450'; sctx.fillRect(pad,y0,W-2*pad,90);
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ const x=pad+c*gw, y=y0+r*gh; sctx.strokeStyle='rgba(255,255,255,.14)'; sctx.strokeRect(x,y,gw,gh); if(sites[r*COLS+c]){ sctx.fillStyle='#f27070'; sctx.beginPath(); sctx.arc(x+gw/2,y+gh/2,Math.min(gw,gh)*0.36,0,7); sctx.fill(); } }
+  // drops
+  for(const d of drops){ const x=pad+d.col*gw+gw/2; let y; if(d.bounce){ const b=d.bounce; y=y0+d.row*gh+gh/2 - Math.sin(b*Math.PI)*40; sctx.globalAlpha=1-b; } else { y=10+(y0+d.row*gh+gh/2-10)*d.y; } sctx.fillStyle= d.stick||d.bounce? '#f27070':'#6f7772'; sctx.beginPath(); sctx.arc(x,y,3.2,0,7); sctx.fill(); sctx.globalAlpha=1; }
+  const {P,tau}=state();
+  sctx.fillStyle='#e8ece9'; sctx.font='13px system-ui'; sctx.textAlign='left';
+  sctx.fillText(`경과 ${fmtT(tSim)}  ·  노출량 ${(P*tSim/1e-6).toPrecision(3)} L  ·  덮임 θ = ${(100*filled/NS).toFixed(1)} %`, pad, 22);
+  sctx.fillStyle='#a8b0aa'; sctx.font='12px system-ui'; sctx.fillText(`τ = ${fmtT(tau)} (이론상 63% 덮이는 시간)`, pad, 40);
+}
+const plot=$('plot'), pctx=plot.getContext('2d');
+function drawPlot(){
+  const W=plot.width, H=plot.height, {P,tau}=state(); pctx.clearRect(0,0,W,H);
+  const L=50,R=16,T=30,B=36, tmax=Math.max(4*tau, tSim*1.05);
+  const X=t=>L+(t/tmax)*(W-L-R), Y=th=>H-B-th*(H-T-B);
+  pctx.font='11.5px system-ui'; pctx.fillStyle='#6f7772'; pctx.textAlign='center';
+  for(let i=0;i<=4;i++){ const t=tmax*i/4, x=X(t); pctx.strokeStyle='#2c302d'; pctx.beginPath(); pctx.moveTo(x,T); pctx.lineTo(x,H-B); pctx.stroke(); pctx.fillText(fmtT(t), x, H-B+15); pctx.fillText((P*t/1e-6).toPrecision(2)+' L', x, T-8); }
+  pctx.textAlign='right'; [0,0.5,1].forEach(th=>{ const y=Y(th); pctx.strokeStyle='#2c302d'; pctx.beginPath(); pctx.moveTo(L,y); pctx.lineTo(W-R,y); pctx.stroke(); pctx.fillText((th*100)+'%', L-6, y+4); });
+  pctx.fillStyle='#6f7772'; pctx.textAlign='center'; pctx.fillText('시간', (L+W-R)/2, H-4);
+  // tau marker
+  pctx.strokeStyle='#3a403c'; pctx.setLineDash([3,3]); pctx.beginPath(); pctx.moveTo(X(tau),T); pctx.lineTo(X(tau),H-B); pctx.stroke(); pctx.setLineDash([]);
+  pctx.fillStyle='#a8b0aa'; pctx.textAlign='left'; pctx.fillText("τ (63%)", X(tau)+4, Y(0.4));
+  // theory
+  pctx.strokeStyle='#6aa6f2'; pctx.lineWidth=2.2; pctx.beginPath(); for(let i=0;i<=200;i++){ const t=tmax*i/200; const y=Y(1-Math.exp(-t/tau)); i?pctx.lineTo(X(t),y):pctx.moveTo(X(t),y);} pctx.stroke();
+  // linear estimate
+  pctx.strokeStyle='#3a403c'; pctx.lineWidth=1.2; pctx.setLineDash([5,4]); pctx.beginPath(); pctx.moveTo(X(0),Y(0)); pctx.lineTo(X(tau),Y(1)); pctx.stroke(); pctx.setLineDash([]); pctx.fillStyle='#6f7772'; pctx.fillText('빈자리 무시(선형)', X(tau*0.55)+4, Y(0.75)-2);
+  // sim samples
+  pctx.fillStyle='#f28b62'; for(const [t,th] of samples){ pctx.beginPath(); pctx.arc(X(t),Y(th),2.6,0,7); pctx.fill(); }
+  pctx.beginPath(); pctx.arc(X(tSim),Y(filled/NS),4.5,0,7); pctx.fill();
+}
+function loop(ts){ if(!lastTs) lastTs=ts; let dt=(ts-lastTs)/1000; lastTs=ts; if(dt>0.05) dt=0.05; if(running){ stepSim(dt); } drawSurf(); drawPlot(); $('spdLbl').textContent='×'+(10**parseFloat($('spd').value)).toFixed(1)+' (시뮬 1초 = 실제 '+fmtT(speedFactor())+')'; requestAnimationFrame(loop); }
+
+GASES.forEach((g,i)=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=g.n; b.onclick=()=>{gi=i; update();}; $('gasChips').appendChild(b); });
+document.querySelectorAll('#pChips .chip').forEach(c=>c.onclick=()=>{$('pSl').value=Math.log10(parseFloat(c.dataset.p)); update();});
+document.querySelectorAll('#nsChips .chip').forEach(c=>c.onclick=()=>{Ns=parseFloat(c.dataset.ns); update();});
+['pSl','tSl','sSl'].forEach(id=>$(id).addEventListener('input',update));
+$('play').onclick=()=>{running=!running; $('play').textContent=running?'일시정지':'재생';};
+$('reset').onclick=()=>resetSim();
+update(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>
