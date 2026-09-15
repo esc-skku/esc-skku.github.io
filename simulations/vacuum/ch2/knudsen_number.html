@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>누센 수와 흐름의 유형</title>
+<style>
+:root{--surface-0:#101211;--surface-1:#1a1d1b;--surface-2:#222623;--text-1:#e8ece9;--text-2:#a8b0aa;--text-3:#6f7772;--border:#2c302d;--border-strong:#3a403c;--blue:#6aa6f2;--orange:#f28b62;--aqua:#3fcf98;--violet:#a596f5;--red:#f27070;--yellow:#f3bb45;--radius:12px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-1);font-family:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 48px}
+h1{font-size:24px;margin:0 0 4px;font-weight:600}
+.sub{color:var(--text-2);margin:0 0 18px}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px}
+.row{display:flex;align-items:center;gap:12px;margin:8px 0;flex-wrap:wrap}
+.row label{min-width:120px;color:var(--text-2);font-size:14px}
+.row input[type=range]{flex:1;min-width:180px;accent-color:var(--blue)}
+.val{min-width:140px;font-variant-numeric:tabular-nums;font-weight:500}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:3px 10px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface-1);font-size:13px;cursor:pointer;color:var(--text-2);font-family:inherit}
+.chip:hover{background:var(--surface-2)}
+.chip.on{background:var(--text-1);color:var(--surface-0);border-color:var(--text-1)}
+.layout{display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-top:16px}
+@media(max-width:940px){.layout{grid-template-columns:1fr}}
+canvas{display:block;width:100%;height:auto;background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.tile{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.tile .k{font-size:12.5px;color:var(--text-3)}
+.tile .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;margin:2px 0}
+.tile .n{font-size:12.5px;color:var(--text-2)}
+.tile.hi{border-color:var(--blue)}
+.cap{font-size:13px;color:var(--text-3);margin-top:6px;line-height:1.6}
+.note{font-size:14px;color:var(--text-2);margin-top:12px;line-height:1.8}
+h2{font-size:16px;margin:0 0 8px;font-weight:600}
+sup,sub{line-height:0}
+.btn{padding:6px 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-1);font:inherit;font-size:14px;cursor:pointer}
+.regime{display:inline-block;padding:4px 14px;border-radius:999px;font-size:15px;font-weight:600;color:var(--surface-0)}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;border:1px solid var(--border)}
+.bar div{height:100%}
+  nav.crumb{font-size:12.5px;color:var(--text-2);margin-bottom:14px;}
+  nav.crumb a{color:var(--text-2);text-decoration:none;border-bottom:1px solid var(--border-strong);}
+  nav.crumb a:hover{color:var(--blue);border-bottom-color:var(--blue);}
+  nav.crumb span{margin:0 7px;color:var(--border-strong);}
+  footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 2</a><span>/</span>누센 수와 흐름의 유형</nav>
+<h1>누센 수 <i>K<sub>n</sub></i> = λ/<i>d</i> 와 흐름의 유형</h1>
+<p class="sub">분자가 다른 분자와 부딪히기 전에 벽에 먼저 닿는가(분자류), 아니면 벽은 구경도 못 하고 분자끼리만 부딪히는가(점성류). 압력과 관 지름을 바꾸어 본다.</p>
+
+<div class="card">
+  <div class="row">
+    <label>압력 <i>P</i></label>
+    <input type="range" id="pSl" min="-9" max="2.881" step="0.001" value="-4">
+    <span class="val" id="pVal"></span>
+    <div class="chips" id="pChips">
+      <button class="chip" data-p="760">760</button>
+      <button class="chip" data-p="1">1 torr</button>
+      <button class="chip" data-p="1e-2">10⁻²</button>
+      <button class="chip" data-p="1e-4">10⁻⁴</button>
+      <button class="chip" data-p="1e-6">10⁻⁶</button>
+      <button class="chip" data-p="1e-9">10⁻⁹</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>관(용기) 지름 <i>d</i></label>
+    <input type="range" id="dSl" min="-4" max="0" step="0.01" value="-1">
+    <span class="val" id="dVal"></span>
+    <div class="chips" id="dChips">
+      <button class="chip" data-d="1e-3">1 mm (게이지 튜브)</button>
+      <button class="chip" data-d="1e-2">1 cm</button>
+      <button class="chip" data-d="0.04">4 cm (KF40)</button>
+      <button class="chip" data-d="0.1">10 cm (CF100)</button>
+      <button class="chip" data-d="0.5">50 cm (챔버)</button>
+    </div>
+  </div>
+  <div class="row">
+    <label>기체</label><div class="chips" id="gasChips"></div>
+    <label style="min-width:auto;margin-left:10px">온도</label>
+    <input type="range" id="tSl" min="77" max="600" step="1" value="293" style="max-width:160px"><span class="val" id="tVal" style="min-width:60px"></span>
+  </div>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="card" style="padding:12px 14px">
+      <div class="row" style="margin:0 0 8px">
+        <h2 style="margin:0">관 속 분자의 움직임</h2>
+        <span class="regime" id="regime"></span>
+        <span style="flex:1"></span>
+        <button class="btn" id="play">일시정지</button>
+      </div>
+      <canvas id="pipe" width="700" height="300" style="border:none;background:var(--surface-2)"></canvas>
+      <div class="cap">관 지름을 화면 높이에 맞추고, 분자의 평균자유거리를 같은 비율(λ/<i>d</i> = <i>K<sub>n</sub></i>)로 축척했다. 분자끼리 충돌하면 <span style="color:#f28b62">●</span> 주황, 벽에 부딪히면 <span style="color:#6aa6f2">●</span> 파랑으로 깜빡인다. 분자 간 충돌은 평균 λ의 지수분포 자유거리로 무작위 방향 전환하는 모형(속도는 MB 분포에서 새로 뽑음), 벽은 확산 반사.</div>
+      <div class="row" style="margin-top:10px">
+        <label style="min-width:auto">최근 충돌 비율</label>
+        <div class="bar" style="flex:1"><div id="barW" style="background:#6aa6f2"></div><div id="barM" style="background:#f28b62"></div></div>
+        <span class="val" id="ratio" style="min-width:200px;font-size:13px"></span>
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="k">평균자유거리 λ = <i>kT</i>/(√2 π σ² <i>P</i>)</div><div class="v" id="lamOut"></div><div class="n" id="lamN"></div></div>
+      <div class="tile hi"><div class="k">누센 수 <i>K<sub>n</sub></i> = λ/<i>d</i></div><div class="v" id="knOut"></div><div class="n" id="knN"></div></div>
+      <div class="tile"><div class="k">분자가 벽 사이를 가로지르며 겪는 충돌 수 ≈ <i>d</i>/λ</div><div class="v" id="colOut"></div><div class="n">= 1/<i>K<sub>n</sub></i></div></div>
+    </div>
+    <div class="note" id="story"></div>
+  </div>
+  <div>
+    <canvas id="map" width="480" height="440"></canvas>
+    <div class="cap">압력–지름 지도(로그). 두 대각선은 <i>K<sub>n</sub></i> = 1 과 0.01. 왼쪽 아래 파란 영역이 분자류(λ > d), 오른쪽 위 회색이 점성류, 사이 노란 띠가 과도 흐름. 점은 지금 선택한 조건, 지도를 클릭해도 조건이 바뀐다.</div>
+    <div class="card" style="padding:12px 14px;margin-top:12px">
+      <h2>이 영역에서 쓰는 컨덕턴스 식 (2.10.3)</h2>
+      <div class="note" id="cond" style="margin-top:0"></div>
+    </div>
+  </div>
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+</div>
+
+<script>
+const kB=1.380649e-23, TORR=133.322, amu=1.66053907e-27;
+const GASES=[{n:'공기 (N₂)',M:28.97,sig:3.7e-10},{n:'H₂',M:2.016,sig:2.7e-10},{n:'He',M:4.003,sig:2.2e-10},{n:'H₂O',M:18.02,sig:4.6e-10},{n:'Ar',M:39.95,sig:3.6e-10},{n:'CO₂',M:44.01,sig:4.5e-10}];
+let gi=0;
+const $=id=>document.getElementById(id);
+function sci(x,d=2){ if(x===0) return '0'; const e=Math.floor(Math.log10(Math.abs(x))); const m=x/10**e; return m.toFixed(d)+'×10'+String(e).replace(/-/g,'⁻').replace(/\d/g,c=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[c]); }
+function fmtKn(k){ return k>=100? Math.round(k).toLocaleString() : k>=0.01? k.toPrecision(3) : sci(k,1); }
+function fmtP(P){ if(P>=1) return (P>=10?P.toFixed(0):P.toFixed(2))+' torr'; return sci(P,1)+' torr'; }
+function fmtL(m){ if(m<1e-6) return (m*1e9).toFixed(0)+' nm'; if(m<1e-3) return (m*1e6).toFixed(1)+' μm'; if(m<1e-2) return (m*1e3).toFixed(2)+' mm'; if(m<1) return (m*1e2).toFixed(m<0.1?2:1)+' cm'; if(m<1000) return m.toFixed(m<10?2:1)+' m'; return (m/1000).toFixed(1)+' km'; }
+function lambda(P,T,g){ return kB*T/(Math.SQRT2*Math.PI*g.sig*g.sig*P*TORR); }
+function state(){ const P=10**parseFloat($('pSl').value), d=10**parseFloat($('dSl').value), T=parseFloat($('tSl').value), g=GASES[gi]; const lam=lambda(P,T,g); return {P,d,T,g,lam,Kn:lam/d}; }
+function regimeOf(Kn){ return Kn>1? ['분자류 (molecular flow)','#6aa6f2'] : Kn>0.01? ['과도 흐름 (transition)','#f3bb45'] : ['점성류 (viscous / continuum)','#a8b0aa']; }
+
+function update(){
+  const {P,d,T,g,lam,Kn}=state();
+  $('pVal').textContent=fmtP(P); $('dVal').textContent=fmtL(d); $('tVal').textContent=T+' K';
+  document.querySelectorAll('#pChips .chip').forEach(c=>c.classList.toggle('on',Math.abs(Math.log10(parseFloat(c.dataset.p))-Math.log10(P))<0.01));
+  document.querySelectorAll('#dChips .chip').forEach(c=>c.classList.toggle('on',Math.abs(Math.log10(parseFloat(c.dataset.d))-Math.log10(d))<0.01));
+  document.querySelectorAll('#gasChips .chip').forEach((c,i)=>c.classList.toggle('on',i===gi));
+  const [rn,rc]=regimeOf(Kn); const re=$('regime'); re.textContent=rn; re.style.background=rc;
+  $('lamOut').textContent=fmtL(lam);
+  $('lamN').textContent= gi===0? `교재 근사 5×10⁻³/P cm = ${fmtL(5e-3/P*1e-2)}` : `분자 지름 σ = ${(g.sig*1e9).toFixed(2)} nm 사용`;
+  $('knOut').textContent= Kn>=100? Kn.toPrecision(3).replace(/\.?0+$/,'') : Kn>=0.01? Kn.toPrecision(3) : sci(Kn,1);
+  $('knN').textContent= Kn>1? 'Kn > 1: 벽 충돌이 지배' : Kn>0.01? '0.01 < Kn < 1: 둘 다 중요' : 'Kn < 0.01: 분자 간 충돌이 지배';
+  $('colOut').textContent= 1/Kn<1? '< 1 (거의 없음)' : (1/Kn).toPrecision(3).replace(/\.?0+$/,'')+' 회';
+  $('cond').innerHTML= Kn>1?
+    `<b>분자류</b> — 컨덕턴스가 압력과 무관. 긴 원형관 <i>C</i> = 3.81√(<i>T</i>/<i>M</i>) <i>d</i>³/<i>l</i> ∝ <i>d</i>³, 구멍 <i>C</i> = 3.64√(<i>T</i>/<i>M</i>) <i>A</i> ∝ <i>d</i>². 관 벽 표면이 결정적. 펌프는 "들어온 분자를 잡아두는" 것밖에 못 하므로 입구를 크게.` :
+    Kn>0.01? `<b>과도 영역</b> — 분자류 식과 점성류 식 사이를 보간(Knudsen 보정). 기계식 펌프에서 터보/확산 펌프로 넘어가는 크로스오버 압력이 보통 이 근처.` :
+    `<b>점성류</b> — Poiseuille: <i>C</i> = π<i>d</i>⁴<i>P̄</i>/(128η<i>l</i>) ∝ <i>d</i>⁴·<i>P̄</i>. 평균 압력에 비례하고 지름의 4제곱. 배기관 지름을 2배로 하면 컨덕턴스 16배. 러핑 초기에는 Re > 2200이면 난류.`;
+  const s=[];
+  if(gi===0 && Math.abs(Math.log10(P)+4)<0.02) s.push('10⁻⁴ torr 공기: λ ≈ 50 cm. 손바닥 크기 챔버(수십 cm)와 같은 크기 → 여기서부터 분자류로 넘어간다(p.67, 2.10.1).');
+  if(Kn>1) s.push(`분자는 벽에서 벽으로 곧게 날아가며 다른 분자를 거의 만나지 않는다. 지름 ${fmtL(d)} 관을 가로지르는 동안 분자 간 충돌은 평균 ${(1/Kn).toPrecision(2)}회. "기체 흐름"이라기보다 개별 분자의 무작위 행진이다.`);
+  else if(Kn<0.01) s.push(`벽에 닿기 전에 평균 ${Math.round(1/Kn).toLocaleString()}번 다른 분자와 부딪힌다. 개별 분자 대신 연속체(압력·점성)로 기술하는 것이 맞다. 온도도 국소적으로 잘 정의된다(2.9.4).`);
+  else s.push('분자 간 충돌과 벽 충돌이 비슷한 빈도. 두 그림 어느 쪽도 완전히 맞지 않는 영역이다.');
+  s.push(`같은 압력이라도 지름이 다르면 영역이 바뀐다: 1 mm 게이지 튜브 안(<i>K<sub>n</sub></i> = ${fmtKn(lam/1e-3)})과 50 cm 챔버 안(<i>K<sub>n</sub></i> = ${fmtKn(lam/0.5)})은 같은 기체인데도 다른 흐름이다 — 열천이(thermal transpiration)가 게이지 배관에서 문제되는 이유.`);
+  $('story').innerHTML=s.join('<br>');
+  resetParts(); drawMap();
+}
+
+// ---------- particle animation ----------
+const pipe=$('pipe'), pctx=pipe.getContext('2d'), PW=pipe.width, PH=pipe.height, wallTop=40, wallBot=PH-40, Hpx=wallBot-wallTop;
+let parts=[], running=true, lastTs=0, evW=[], evM=[], flashes=[];
+function gauss(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function newSpeed(){ // display speed ~ MB magnitude in px/s (2D), mean ~ 120 px/s
+  const s=60; return Math.hypot(gauss()*s,gauss()*s); }
+function freePath(){ const {Kn}=state(); const lamPx=Math.max(0.6, Kn*Hpx); return -lamPx*Math.log(1-Math.random()); }
+function resetParts(){ parts=[]; for(let i=0;i<160;i++){ const th=Math.random()*2*Math.PI, sp=newSpeed(); parts.push({x:Math.random()*PW, y:wallTop+2+Math.random()*(Hpx-4), vx:sp*Math.cos(th), vy:sp*Math.sin(th), left:freePath()}); } evW=[]; evM=[]; flashes=[]; }
+function step(dt){
+  const now=performance.now()/1000;
+  for(const p of parts){
+    let remaining=Math.hypot(p.vx,p.vy)*dt;
+    while(remaining>0){
+      const sp=Math.hypot(p.vx,p.vy)||1e-9;
+      const seg=Math.min(remaining, p.left);
+      p.x+=p.vx/sp*seg; p.y+=p.vy/sp*seg; remaining-=seg; p.left-=seg;
+      if(p.x<0) p.x+=PW; if(p.x>PW) p.x-=PW;              // periodic along the pipe
+      if(p.y<=wallTop+1||p.y>=wallBot-1){                   // diffuse wall reflection
+        const s=60, vn=s*Math.sqrt(-2*Math.log(1-Math.random())), vt=gauss()*s;
+        if(p.y<=wallTop+1){ p.y=wallTop+1; p.vy=vn; } else { p.y=wallBot-1; p.vy=-vn; }
+        p.vx=vt; evW.push(now); flashes.push({x:p.x,y:p.y,t:now,c:'#6aa6f2'}); p.left=freePath();
+      }
+      if(p.left<=0){                                        // intermolecular collision: new random direction & speed
+        const th=Math.random()*2*Math.PI, ns=newSpeed(); p.vx=ns*Math.cos(th); p.vy=ns*Math.sin(th); p.left=freePath(); evM.push(now);
+        if(Math.random()<0.25*Math.min(1,p.left/60)) flashes.push({x:p.x,y:p.y,t:now,c:'#f28b62'});
+      }
+    }
+  }
+  const cutoff=now-3; while(evW.length&&evW[0]<cutoff) evW.shift(); while(evM.length&&evM[0]<cutoff) evM.shift();
+  flashes=flashes.filter(f=>now-f.t<0.25);
+  if(evM.length>4000) evM.splice(0,evM.length-4000);
+}
+function drawPipe(){
+  pctx.clearRect(0,0,PW,PH);
+  const {d,lam,Kn}=state();
+  pctx.fillStyle='#3a403c'; pctx.fillRect(0,wallTop-10,PW,10); pctx.fillRect(0,wallBot,PW,10);
+  pctx.fillStyle='#1a1d1b'; pctx.fillRect(0,wallTop,PW,Hpx);
+  // lambda scale bar
+  const lamPx=Kn*Hpx; pctx.strokeStyle='#f28b62'; pctx.lineWidth=2;
+  const bx=16, by=PH-16; const L=Math.min(lamPx, PW-40);
+  pctx.beginPath(); pctx.moveTo(bx,by); pctx.lineTo(bx+L,by); pctx.stroke(); pctx.beginPath(); pctx.moveTo(bx,by-4); pctx.lineTo(bx,by+4); pctx.moveTo(bx+L,by-4); pctx.lineTo(bx+L,by+4); pctx.stroke();
+  pctx.fillStyle='#f28b62'; pctx.font='12px system-ui'; pctx.textAlign='left'; pctx.fillText('λ = '+fmtL(lam)+(lamPx>PW-40?' (화면 밖까지)':lamPx<1?' (1 px 미만)':''), bx, by-8);
+  // d scale
+  pctx.strokeStyle='#6aa6f2'; pctx.beginPath(); pctx.moveTo(PW-16,wallTop); pctx.lineTo(PW-16,wallBot); pctx.stroke(); pctx.beginPath(); pctx.moveTo(PW-20,wallTop); pctx.lineTo(PW-12,wallTop); pctx.moveTo(PW-20,wallBot); pctx.lineTo(PW-12,wallBot); pctx.stroke();
+  pctx.fillStyle='#6aa6f2'; pctx.textAlign='right'; pctx.fillText('d = '+fmtL(d), PW-22, (wallTop+wallBot)/2+4);
+  for(const f of flashes){ const a=1-(performance.now()/1000-f.t)/0.25; pctx.fillStyle=f.c; pctx.globalAlpha=a*0.7; pctx.beginPath(); pctx.arc(f.x,f.y,9,0,7); pctx.fill(); pctx.globalAlpha=1; }
+  pctx.fillStyle='#e8ece9'; for(const p of parts){ pctx.beginPath(); pctx.arc(p.x,p.y,2.4,0,7); pctx.fill(); }
+  const w=evW.length, m=evM.length, tot=w+m||1;
+  $('barW').style.width=(100*w/tot)+'%'; $('barM').style.width=(100*m/tot)+'%';
+  $('ratio').textContent=`벽 ${(100*w/tot).toFixed(0)}% · 분자 간 ${(100*m/tot).toFixed(0)}%`;
+}
+function loop(ts){ if(!lastTs) lastTs=ts; let dt=(ts-lastTs)/1000; lastTs=ts; if(dt>0.05) dt=0.05; if(running) step(dt); drawPipe(); requestAnimationFrame(loop); }
+
+// ---------- regime map ----------
+const map=$('map'), mctx=map.getContext('2d'), MW=map.width, MH=map.height, ML=66, MR=14, MT=16, MB=44;
+const Pmin=1e-9, Pmax=1e3, Dmin=1e-4, Dmax=1;
+const MX=P=>ML+(Math.log10(P)-Math.log10(Pmin))/(Math.log10(Pmax)-Math.log10(Pmin))*(MW-ML-MR);
+const MY=d=>MH-MB-(Math.log10(d)-Math.log10(Dmin))/(Math.log10(Dmax)-Math.log10(Dmin))*(MH-MT-MB);
+function drawMap(){
+  const {P,d,T,g}=state(); mctx.clearRect(0,0,MW,MH);
+  const dOfKn=(Pv,Kn)=>lambda(Pv,T,g)/Kn;   // d where Kn holds at pressure Pv
+  // regions
+  function region(KnHi,KnLo,col){ mctx.fillStyle=col; mctx.beginPath(); const pts=[]; for(let i=0;i<=60;i++){ const Pv=Pmin*(Pmax/Pmin)**(i/60); pts.push([MX(Pv), MY(Math.min(Dmax,Math.max(Dmin, KnHi? dOfKn(Pv,KnHi):Dmin)))]); } for(let i=60;i>=0;i--){ const Pv=Pmin*(Pmax/Pmin)**(i/60); pts.push([MX(Pv), MY(Math.min(Dmax,Math.max(Dmin, KnLo? dOfKn(Pv,KnLo):Dmax)))]); } pts.forEach((p,i)=>i?mctx.lineTo(...p):mctx.moveTo(...p)); mctx.closePath(); mctx.fill(); }
+  mctx.save(); mctx.beginPath(); mctx.rect(ML,MT,MW-ML-MR,MH-MT-MB); mctx.clip();
+  region(null,1,'#1f2a3a');      // molecular: d < λ  (below Kn=1 line? careful)
+  region(1,0.01,'#2e2a1e');      // transition
+  region(0.01,null,'#262926');   // viscous
+  // lines
+  [[1,'#6aa6f2','Kn = 1'],[0.01,'#a8b0aa','Kn = 0.01']].forEach(([Kn,col,lab])=>{ mctx.strokeStyle=col; mctx.lineWidth=1.5; mctx.setLineDash([5,4]); mctx.beginPath(); for(let i=0;i<=60;i++){ const Pv=Pmin*(Pmax/Pmin)**(i/60); const x=MX(Pv), y=MY(dOfKn(Pv,Kn)); i?mctx.lineTo(x,y):mctx.moveTo(x,y);} mctx.stroke(); mctx.setLineDash([]); });
+  mctx.restore();
+  // axes
+  mctx.font='11.5px system-ui'; mctx.fillStyle='#6f7772'; mctx.textAlign='center';
+  for(let e=-9;e<=3;e+=3){ const x=MX(10**e); mctx.strokeStyle='#2c302d'; mctx.beginPath(); mctx.moveTo(x,MT); mctx.lineTo(x,MH-MB); mctx.stroke(); mctx.fillText('10'+String(e).replace(/-/g,'⁻').replace(/\d/g,c=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[c]), x, MH-MB+16); }
+  mctx.fillText('압력 P (torr)', (ML+MW-MR)/2, MH-6);
+  mctx.textAlign='right'; [1e-4,1e-3,1e-2,1e-1,1].forEach(dv=>{ const y=MY(dv); mctx.strokeStyle='#2c302d'; mctx.beginPath(); mctx.moveTo(ML,y); mctx.lineTo(MW-MR,y); mctx.stroke(); mctx.fillStyle='#6f7772'; mctx.fillText(fmtL(dv), ML-6, y+4); });
+  mctx.save(); mctx.translate(12,(MT+MH-MB)/2); mctx.rotate(-Math.PI/2); mctx.textAlign='center'; mctx.fillText('관 지름 d', 0,0); mctx.restore();
+  mctx.textAlign='left'; mctx.fillStyle='#6aa6f2'; mctx.fillText('분자류 (Kn > 1)', ML+8, MH-MB-10);
+  mctx.fillStyle='#a8b0aa'; mctx.textAlign='right'; mctx.fillText('점성류 (Kn < 0.01)', MW-MR-8, MT+16);
+  mctx.fillStyle='#f3bb45'; mctx.textAlign='center'; mctx.fillText('과도', MX(1e-2), MY(0.1));
+  // reference points
+  [[1e-4,0.5,'10⁻⁴ torr 챔버','left'],[760,0.04,'대기압 KF40','right']].forEach(([Pv,dv,lab,al])=>{ mctx.fillStyle='#6f7772'; mctx.beginPath(); mctx.arc(MX(Pv),MY(dv),3,0,7); mctx.fill(); mctx.textAlign=al; mctx.font='11px system-ui'; mctx.fillText(lab, MX(Pv)+(al==='left'?6:-6), MY(dv)+4); });
+  // current point
+  const x=MX(P), y=MY(d); mctx.fillStyle='#1a1d1b'; mctx.beginPath(); mctx.arc(x,y,8,0,7); mctx.fill(); mctx.fillStyle='#f28b62'; mctx.beginPath(); mctx.arc(x,y,5.5,0,7); mctx.fill();
+}
+map.addEventListener('click',e=>{ const r=map.getBoundingClientRect(); const px=(e.clientX-r.left)*MW/r.width, py=(e.clientY-r.top)*MH/r.height; if(px<ML||px>MW-MR||py<MT||py>MH-MB) return; const lp=Math.log10(Pmin)+(px-ML)/(MW-ML-MR)*(Math.log10(Pmax)-Math.log10(Pmin)); const ld=Math.log10(Dmin)+(MH-MB-py)/(MH-MT-MB)*(Math.log10(Dmax)-Math.log10(Dmin)); $('pSl').value=Math.min(2.881,Math.max(-9,lp)); $('dSl').value=Math.min(0,Math.max(-4,ld)); update(); });
+
+GASES.forEach((g,i)=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=g.n; b.onclick=()=>{gi=i; update();}; $('gasChips').appendChild(b); });
+document.querySelectorAll('#pChips .chip').forEach(c=>c.onclick=()=>{$('pSl').value=Math.log10(parseFloat(c.dataset.p)); update();});
+document.querySelectorAll('#dChips .chip').forEach(c=>c.onclick=()=>{$('dSl').value=Math.log10(parseFloat(c.dataset.d)); update();});
+['pSl','dSl','tSl'].forEach(id=>$(id).addEventListener('input',update));
+$('play').onclick=()=>{running=!running; $('play').textContent=running?'일시정지':'재생';};
+update(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>
