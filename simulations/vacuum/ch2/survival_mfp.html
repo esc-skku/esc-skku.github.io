@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>생존방정식 시뮬레이션 — 기체 분자 사이를 지나는 Ar · Ar⁺ · 전자</title>
+<style>
+  :root{
+    --bg:#101211; --card:#1a1d1b; --border:#2c302d; --text:#e8ece9; --muted:#a8b0aa;
+    --accent:#e8ece9; --ar:#6aa6f2; --ion:#f28b62; --el:#3fcf98; --gas:#6f7772;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 24px 6px}
+  h1{margin:0 0 4px;font-size:22px;color:var(--accent)}
+  .sub{margin:0;color:var(--muted);font-size:14px}
+  .wrap{padding:10px 24px 28px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .controls{display:flex;flex-wrap:wrap;gap:18px 28px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:4px;min-width:220px}
+  .ctl label{font-size:13px;color:var(--muted)}
+  .ctl .val{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:240px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{padding:7px 14px;border:1px solid var(--border);background:#222623;color:var(--text);border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+  button:hover{background:#2c302d}
+  button.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+  button.primary:hover{background:#cfd5d1}
+  select{padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;background:#222623;color:var(--text)}
+  .grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px}
+  @media (max-width:980px){.grid{grid-template-columns:1fr}}
+  canvas{display:block;width:100%;height:auto}
+  .cap{font-size:13px;color:var(--muted);margin:8px 2px 0}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  th{font-weight:600;color:var(--muted);font-size:13px}
+  td:first-child,th:first-child{text-align:left}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+  .note{font-size:14px;color:var(--text)}
+  .note b{color:var(--accent)}
+  .note .eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:15px}
+  .msg{margin-top:6px;font-size:14px;color:#f28b62;min-height:20px}
+  .hl{background:#2e2a1e}
+  nav.crumb{font-size:12.5px;color:var(--muted);margin-bottom:10px;}
+  nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid #3a403c;}
+  nav.crumb a:hover{color:var(--ar);border-bottom-color:var(--ar);}
+  nav.crumb span{margin:0 7px;color:#3a403c;}
+  footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted);}
+</style>
+</head>
+<body>
+<header>
+<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 2</a><span>/</span>생존방정식</nav>
+  <h1>2.7 생존방정식 시뮬레이션: 기체 분자 사이를 지나는 Ar · Ar⁺ · 전자</h1>
+  <p class="sub">같은 압력의 Ar 기체 속으로 세 종류의 입자를 쏩니다. 충돌 없이 거리 x까지 살아남는 비율 N/N₀ = exp(−x/λ)를 애니메이션과 곡선으로 비교합니다.</p>
+</header>
+
+<div class="wrap">
+  <div class="card controls">
+    <div class="ctl">
+      <label for="pSl">압력 P (torr) — 로그 눈금</label>
+      <input id="pSl" type="range" min="-8" max="-2" step="0.01" value="-3.7">
+      <div class="val" id="pVal"></div>
+    </div>
+    <div class="ctl">
+      <label for="lSl">비행 거리 L (cm) — 전자총 → 스크린</label>
+      <input id="lSl" type="range" min="1" max="100" step="1" value="50">
+      <div class="val" id="lVal"></div>
+    </div>
+    <div class="ctl" style="min-width:140px">
+      <label for="spd">애니메이션 속도</label>
+      <select id="spd"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+    </div>
+    <div class="ctl" style="min-width:auto">
+      <label>&nbsp;</label>
+      <div class="btns">
+        <button id="runBtn" class="primary">일시정지</button>
+        <button id="resetBtn">통계 초기화</button>
+        <button id="preCmp">프리셋: 비교하기 좋은 조건</button>
+        <button id="preCrt">프리셋: 브라운관 50 cm · 99.9% 도달</button>
+      </div>
+    </div>
+    <div class="msg" id="msg" style="flex-basis:100%"></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <canvas id="sim" width="760" height="420"></canvas>
+      <p class="cap">배경 점은 정지(또는 열운동)한 Ar 기체 분자를 개략적으로 나타낸 것이고, 점의 개수는 압력에 따라 늘어납니다. 각 입자의 충돌 위치는 평균 자유거리 λ의 지수분포에서 추출되며, 충돌 순간 유효 충돌 단면(분자·이온: 지름 d, 전자: d/2)을 표시합니다. 오른쪽 끝의 띠는 스크린(형광면)입니다.</p>
+    </div>
+    <div class="card">
+      <canvas id="plot" width="560" height="420"></canvas>
+      <p class="cap">점선: 이론 exp(−x/λ). 실선: 발사된 입자로부터 측정한 생존 비율(계단). 세로 점선은 x = λ 위치로, 이때 N/N₀ = 1/e ≈ 0.37.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th>입자</th><th>자유거리 공식</th><th>λ (cm)</th><th>이론 도달 확률<br>exp(−L/λ)</th><th>측정<br>도달 / 발사</th><th>L에서 99.9% 도달에<br>필요한 압력 (torr 이하)</th>
+      </tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+
+  <div class="card note">
+    <b>왜 세 입자의 λ가 다른가?</b> 강체구(hard-sphere) 모형에서 충돌 단면적 σ = πd², 기체 분자 수밀도 n일 때
+    <span class="eq">λ = 1/(√2 nσ)</span> 는 표적 분자도 같은 속도로 <u>움직이는</u> 경우(열운동 Ar–Ar)의 값입니다. 입사 입자가 기체 분자보다 훨씬 빨라 표적을 <u>정지</u>한 것으로 볼 수 있으면 √2가 사라져
+    <span class="eq">λ = 1/(nσ) = √2 λ</span> (빠른 Ar⁺). 전자는 크기가 무시할 만해 충돌 반지름이 d 대신 d/2가 되므로 단면적이 σ/4 로 줄고,
+    <span class="eq">λₑ = 4/(nσ) = 4√2 λ</span> 가 됩니다. 따라서 전자의 자유거리는 열운동 분자의 4√2 ≈ 5.7배, 빠른 Ar⁺ 이온의 4배입니다.
+    <br><br>
+    <b>x ≪ λ 근사.</b> exp(−x/λ) ≈ 1 − x/λ 이므로 짧은 거리 x 동안 충돌할 확률은 x/λ 입니다. 브라운관 문제에서 99.9% 도달 ↔ 충돌 확률 0.001 ↔ L/λ = 0.001 ↔ λ = 1000 L. L = 50 cm이면 λ = 50,000 cm가 필요하고, 실온 공기의 λ ≈ 5×10⁻³/P (cm)를 쓰면 분자 기준 P ≤ 1×10⁻⁷ torr, 전자 기준으로는 4√2배 여유가 있어 P ≤ 5.7×10⁻⁷ ≈ 6×10⁻⁷ torr 입니다.
+    <br><br>
+    <span style="color:var(--muted);font-size:13px">주의: 실제 전자–Ar 충돌 단면은 전자 에너지에 따라 크게 달라지고(Ramsauer–Townsend 극소 등), Ar⁺–Ar은 전하교환 충돌이 지배적이라 강체구 모형과는 차이가 있습니다. 여기서는 교재의 기하학적 모형만을 따릅니다.</span>
+  </div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  // ---------- 물리 상수 / 종 정의 ----------
+  var K_LAMBDA = 5e-3;               // λ_Ar [cm] = K / P[torr]  (실온 공기, 교재값)
+  var SQ2 = Math.SQRT2;
+  var SPECIES = [
+    {key:'ar',  name:'Ar (열운동 분자)', formula:'1/(√2 nσ) = λ',        factor:1,     color:'#6aa6f2', r:6.5, speed:110, jitter:true},
+    {key:'ion', name:'Ar⁺ (빠른 이온)',  formula:'1/(nσ) = √2 λ',        factor:SQ2,   color:'#f28b62', r:6.5, speed:210, jitter:false},
+    {key:'e',   name:'e⁻ (전자)',        formula:'4/(nσ) = 4√2 λ',       factor:4*SQ2, color:'#3fcf98', r:2.2, speed:330, jitter:false}
+  ];
+  var GAS_R = 6.5;      // 배경 기체 분자 반지름 (px)
+  var NB = 50;          // 생존 히스토그램 구간 수
+  var LAUNCH_RATE = 14; // 입자/초/레인 (1× 기준)
+
+  // ---------- 상태 ----------
+  var P = Math.pow(10, -3.7), L = 50, running = true, speedMul = 1;
+  var lanes = SPECIES.map(function(s){
+    return {sp:s, particles:[], bursts:[], hits:[], pending:[], gas:[], done:0, lost:new Array(NB).fill(0), acc:0};
+  });
+
+  function lambdaAr(){ return K_LAMBDA / P; }
+  function lambdaOf(sp){ return sp.factor * lambdaAr(); }
+
+  // ---------- 서식 ----------
+  var SUP = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  function sup(n){ return String(n).split('').map(function(c){return SUP[c]||c;}).join(''); }
+  function sci(x, d){
+    if (!isFinite(x)) return '∞';
+    if (x === 0) return '0';
+    var e = Math.floor(Math.log10(x)); var m = x / Math.pow(10, e);
+    if (d === undefined) d = 2;
+    var ms = m.toFixed(d);
+    if (parseFloat(ms) >= 10) { m /= 10; e += 1; ms = m.toFixed(d); }
+    return ms + '×10' + sup(e);
+  }
+  function fmtLen(cm){
+    if (cm >= 1e5) return sci(cm,1) + ' cm';
+    if (cm >= 100) return Math.round(cm).toLocaleString() + ' cm';
+    if (cm >= 1) return cm.toFixed(1) + ' cm';
+    if (cm >= 0.1) return (cm*10).toFixed(2) + ' mm';
+    return sci(cm,1) + ' cm';
+  }
+  function fmtProb(p){
+    if (p > 0.9995) return (p*100).toFixed(3) + ' %';
+    if (p > 0.99) return (p*100).toFixed(2) + ' %';
+    if (p >= 0.01) return (p*100).toFixed(1) + ' %';
+    return sci(p,1);
+  }
+
+  // ---------- 컨트롤 ----------
+  var pSl = document.getElementById('pSl'), lSl = document.getElementById('lSl');
+  var pVal = document.getElementById('pVal'), lVal = document.getElementById('lVal');
+  var msg = document.getElementById('msg');
+  function readControls(){
+    P = Math.pow(10, parseFloat(pSl.value)); L = parseFloat(lSl.value);
+    pVal.textContent = sci(P) + ' torr   (λ_Ar = ' + fmtLen(lambdaAr()) + ')';
+    lVal.textContent = L + ' cm';
+    syncGas(); updateTable();
+  }
+  pSl.addEventListener('input', function(){ readControls(); resetStats(false); msg.textContent=''; });
+  lSl.addEventListener('input', function(){ readControls(); resetStats(false); msg.textContent=''; });
+  document.getElementById('spd').addEventListener('change', function(e){ speedMul = parseFloat(e.target.value); });
+  document.getElementById('runBtn').addEventListener('click', function(){
+    running = !running; this.textContent = running ? '일시정지' : '재생';
+  });
+  document.getElementById('resetBtn').addEventListener('click', function(){ resetStats(true); });
+  document.getElementById('preCmp').addEventListener('click', function(){
+    pSl.value = Math.log10(2e-4); lSl.value = 50; readControls(); resetStats(true);
+    msg.textContent = 'P = 2×10⁻⁴ torr, L = 50 cm: λ_Ar = 25 cm 이므로 Ar은 e⁻² ≈ 13.5 %, Ar⁺는 e^(−1.41) ≈ 24 %, 전자는 e^(−0.35) ≈ 70 %가 스크린에 도달합니다.';
+  });
+  document.getElementById('preCrt').addEventListener('click', function(){
+    pSl.value = -7; lSl.value = 50; readControls(); resetStats(true);
+    var need = L / Math.log(1/0.999);
+    msg.textContent = '99.9 % 도달 ↔ λ ≥ ' + Math.round(need).toLocaleString() + ' cm. 분자 기준 P ≤ ' + sci(K_LAMBDA/need,1) +
+      ' torr, 전자는 4√2배 긴 λ를 가지므로 P ≤ ' + sci(4*SQ2*K_LAMBDA/need,1) + ' torr (≈ 6×10⁻⁷) 이면 충분합니다. 이 압력에서는 충돌이 거의 보이지 않습니다 — 압력을 올려 보세요.';
+  });
+
+  function resetStats(clearParticles){
+    lanes.forEach(function(ln){
+      ln.done = 0; ln.lost.fill(0); ln.pending = [];
+      if (clearParticles){ ln.particles = []; ln.bursts = []; ln.hits = []; }
+    });
+  }
+
+  // ---------- 캔버스 ----------
+  var sim = document.getElementById('sim'), sctx = sim.getContext('2d');
+  var plot = document.getElementById('plot'), pctx = plot.getContext('2d');
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  function fit(c){
+    var w = c.clientWidth || parseInt(c.getAttribute('width')); var ratio = c.getAttribute('height')/c.getAttribute('width');
+    var h = Math.round(w*ratio);
+    if (c.width !== Math.round(w*dpr)) { c.width = Math.round(w*dpr); c.height = Math.round(h*dpr); }
+    return {w:w, h:h};
+  }
+  window.addEventListener('resize', function(){ layoutGas(); });
+
+  // 시뮬 영역 레이아웃
+  var PAD_L = 118, PAD_R = 26, PAD_T = 12, LANE_GAP = 10;
+  var geo = {w:760, h:420, laneH:0, x0:0, x1:0};
+  function computeGeo(){
+    var d = fit(sim); geo.w = d.w; geo.h = d.h;
+    geo.x0 = PAD_L; geo.x1 = d.w - PAD_R;
+    geo.laneH = (d.h - PAD_T*2 - LANE_GAP*(lanes.length-1)) / lanes.length;
+  }
+  function laneTop(i){ return PAD_T + i*(geo.laneH + LANE_GAP); }
+
+  // 배경 기체 분자: 개수 ∝ (L/λ_Ar)^0.5 (개략)
+  function gasCount(){
+    var ratio = L / lambdaAr();
+    return Math.max(4, Math.min(420, Math.round(40*Math.sqrt(ratio))));
+  }
+  function syncGas(){
+    var n = gasCount();
+    lanes.forEach(function(ln){
+      while (ln.gas.length < n) ln.gas.push({u:Math.random(), v:Math.random(), ph:Math.random()*6.283, w:1.5+Math.random()*2});
+      if (ln.gas.length > n) ln.gas.length = n;
+    });
+  }
+  function layoutGas(){ computeGeo(); }
+
+  // ---------- 시뮬레이션 갱신 ----------
+  var last = performance.now();
+  function step(now){
+    var dt = Math.min(0.05, (now-last)/1000); last = now;
+    computeGeo();
+    if (running) update(dt*speedMul, now/1000);
+    draw(now/1000);
+    drawPlot();
+    requestAnimationFrame(step);
+  }
+
+  function update(dt, t){
+    var W = geo.x1 - geo.x0;
+    lanes.forEach(function(ln, i){
+      var sp = ln.sp;
+      var lamPx = lambdaOf(sp) / L * W;
+      // 발사
+      ln.acc += LAUNCH_RATE * dt;
+      var top = laneTop(i), m = Math.max(sp.r, GAS_R) + 6;
+      while (ln.acc >= 1 && ln.particles.length < 400){
+        ln.acc -= 1;
+        var ell = -lamPx * Math.log(1 - Math.random());
+        ln.particles.push({x:-sp.r, y: top + m + Math.random()*(geo.laneH - 2*m), ell:ell, vx:sp.speed, vy:0, dead:false, a:1});
+      }
+      // 이동
+      for (var k = ln.particles.length-1; k >= 0; k--){
+        var p = ln.particles[k];
+        if (!p.dead){
+          p.x += p.vx*dt;
+          if (p.x >= W){                      // 스크린 도달 = 생존
+            ln.done++; ln.hits.push({y:p.y, t:t}); ln.particles.splice(k,1); continue;
+          }
+          if (p.x >= p.ell){                  // 충돌
+            var b = Math.min(NB-1, Math.floor(p.ell / W * NB));
+            // 통계는 이 입자가 스크린에 '도달했을' 시점에 반영 (생존자보다 먼저 집계되는 편향 방지)
+            ln.pending.push({bin:b, wait:(W - p.ell)/sp.speed});
+            var reff = (sp.key === 'e') ? GAS_R : 2*GAS_R;
+            // 표적 분자를 충돌 위치 바로 앞에 배치(개략도)
+            var ang = (Math.random()-0.5)*1.2;
+            var tx = p.ell + reff*Math.cos(ang), ty = p.y + reff*Math.sin(ang);
+            ln.bursts.push({x:p.ell, y:p.y, tx:tx, ty:ty, reff:reff, t:t, jitter:sp.jitter});
+            p.dead = true; p.x = p.ell;
+            var th = Math.PI/2 + (Math.random()-0.5)*2.2 + (Math.random()<0.5?Math.PI:0);
+            var vs = sp.speed*0.55;
+            p.vx = vs*Math.cos(th); p.vy = vs*Math.sin(th);
+          }
+        } else {
+          p.x += p.vx*dt; p.y += p.vy*dt; p.a -= dt*1.8;
+          if (p.a <= 0) ln.particles.splice(k,1);
+        }
+      }
+      // 충돌한 입자의 통계 반영(가상 도달 시각)
+      for (var q = ln.pending.length-1; q >= 0; q--){
+        ln.pending[q].wait -= dt;
+        if (ln.pending[q].wait <= 0){ ln.lost[ln.pending[q].bin]++; ln.done++; ln.pending.splice(q,1); }
+      }
+      // 오래된 효과 제거
+      ln.bursts = ln.bursts.filter(function(b){ return t - b.t < 0.7; });
+      ln.hits = ln.hits.filter(function(h){ return t - h.t < 1.2; });
+    });
+  }
+
+  // ---------- 그리기 ----------
+  function draw(t){
+    var c = sctx, W = geo.x1 - geo.x0;
+    c.setTransform(dpr,0,0,dpr,0,0);
+    c.clearRect(0,0,geo.w,geo.h);
+    lanes.forEach(function(ln, i){
+      var sp = ln.sp, top = laneTop(i), H = geo.laneH;
+      // 레인 배경
+      c.fillStyle = '#222623'; c.strokeStyle = '#3a403c'; c.lineWidth = 1;
+      roundRect(c, geo.x0, top, W, H, 8); c.fill(); c.stroke();
+      // 라벨
+      c.fillStyle = sp.color; c.font = '600 14px sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+      c.fillText(sp.name.split(' ')[0], 12, top + H/2 - 22);
+      c.fillStyle = '#a8b0aa'; c.font = '12px sans-serif';
+      c.fillText(sp.name.replace(/^[^ ]+ /,''), 12, top + H/2 - 4);
+      c.fillText('λ = ' + fmtLen(lambdaOf(sp)), 12, top + H/2 + 14);
+      c.fillStyle = '#6f7772'; c.font = '11px sans-serif';
+      c.fillText(sp.factor === 1 ? '표적 분자 움직임' : (sp.key==='e' ? '표적 정지 · σ/4' : '표적 정지'), 12, top + H/2 + 30);
+
+      // 클리핑
+      c.save(); roundRect(c, geo.x0, top, W, H, 8); c.clip();
+      // 배경 기체 분자
+      c.fillStyle = '#3a403c'; c.strokeStyle = '#6f7772'; c.lineWidth = 1;
+      ln.gas.forEach(function(g){
+        var gx = geo.x0 + 8 + g.u*(W-16), gy = top + 8 + g.v*(H-16);
+        if (sp.jitter){ gx += 3.5*Math.sin(g.w*t + g.ph); gy += 3.5*Math.cos(g.w*1.3*t + g.ph); }
+        c.beginPath(); c.arc(gx, gy, GAS_R, 0, 6.283); c.fill(); c.stroke();
+      });
+      // 스크린(형광면)
+      c.fillStyle = '#6f7772'; c.fillRect(geo.x1-7, top, 7, H);
+      ln.hits.forEach(function(h){
+        var a = 1 - (t-h.t)/1.2;
+        c.fillStyle = 'rgba(120,255,170,' + (0.9*a) + ')';
+        c.fillRect(geo.x1-7, h.y-4, 7, 8);
+      });
+      // 충돌 효과
+      ln.bursts.forEach(function(b){
+        var f = (t-b.t)/0.7, a = 1-f;
+        // 표적 분자(진하게)
+        c.fillStyle = 'rgba(168,176,170,' + a + ')'; c.strokeStyle = 'rgba(232,236,233,' + a + ')';
+        c.beginPath(); c.arc(geo.x0+b.tx, b.ty, GAS_R, 0, 6.283); c.fill(); c.stroke();
+        // 유효 충돌 단면(반지름 d 또는 d/2)
+        c.strokeStyle = 'rgba(242,139,98,' + a + ')'; c.lineWidth = 1.5; c.setLineDash([3,3]);
+        c.beginPath(); c.arc(geo.x0+b.tx, b.ty, b.reff, 0, 6.283); c.stroke(); c.setLineDash([]);
+        // 파열 링
+        c.strokeStyle = 'rgba(242,139,98,' + (a*0.8) + ')'; c.lineWidth = 2;
+        c.beginPath(); c.arc(geo.x0+b.x, b.y, 4 + 16*f, 0, 6.283); c.stroke();
+      });
+      // 입자
+      ln.particles.forEach(function(p){
+        var px = geo.x0 + p.x;
+        if (!p.dead){
+          // 꼬리
+          var tail = sp.key==='e' ? 26 : 14;
+          var g = c.createLinearGradient(px-tail, 0, px, 0);
+          g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, hexA(sp.color, 0.55));
+          c.strokeStyle = g; c.lineWidth = sp.key==='e' ? 1.5 : 3;
+          c.beginPath(); c.moveTo(px-tail, p.y); c.lineTo(px, p.y); c.stroke();
+          c.fillStyle = sp.color;
+        } else {
+          c.fillStyle = hexA('#6f7772', Math.max(0,p.a));
+        }
+        c.beginPath(); c.arc(px, p.y, sp.r, 0, 6.283); c.fill();
+      });
+      c.restore();
+      // 거리 눈금
+      c.fillStyle = '#6f7772'; c.font = '11px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'top';
+      if (i === lanes.length-1){
+        for (var k = 0; k <= 5; k++){
+          var xx = geo.x0 + W*k/5;
+          c.fillRect(xx-0.5, top+H, 1, 4);
+          c.fillText((L*k/5).toFixed(0) + (k===5?' cm':''), xx, top+H+5);
+        }
+      }
+      // 생존 비율 표시
+      var surv = ln.done ? (ln.done - sum(ln.lost))/ln.done : NaN;
+      c.textAlign = 'right'; c.textBaseline = 'top'; c.font = '600 12px sans-serif'; c.fillStyle = sp.color;
+      c.fillText(ln.done ? '도달 ' + (surv*100).toFixed(1) + ' %  (' + ln.done + '개 중)' : '', geo.x1-12, top+6);
+    });
+  }
+  function sum(a){ var s=0; for (var i=0;i<a.length;i++) s+=a[i]; return s; }
+  function hexA(hex, a){
+    var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+  function roundRect(c,x,y,w,h,r){
+    c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+  }
+
+  // ---------- 생존 곡선 그래프 ----------
+  function drawPlot(){
+    var d = fit(plot), c = pctx, Wc = d.w, Hc = d.h;
+    c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,Wc,Hc);
+    var ml = 52, mr = 18, mt = 34, mb = 44;
+    var pw = Wc - ml - mr, ph = Hc - mt - mb;
+    var X = function(x){ return ml + x/L*pw; }, Y = function(y){ return mt + (1-y)*ph; };
+    // 제목
+    c.fillStyle = '#e8ece9'; c.font = '600 14px sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+    c.fillText('생존 비율  N/N₀ = exp(−x/λ)', ml, 14);
+    // 격자/축
+    c.strokeStyle = '#2c302d'; c.lineWidth = 1; c.fillStyle = '#a8b0aa'; c.font = '11px sans-serif';
+    for (var k = 0; k <= 5; k++){
+      var yv = k/5; c.beginPath(); c.moveTo(ml, Y(yv)); c.lineTo(ml+pw, Y(yv)); c.stroke();
+      c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillText(yv.toFixed(1), ml-8, Y(yv));
+      var xv = L*k/5; c.beginPath(); c.moveTo(X(xv), mt); c.lineTo(X(xv), mt+ph); c.stroke();
+      c.textAlign = 'center'; c.textBaseline = 'top'; c.fillText(xv.toFixed(0), X(xv), mt+ph+6);
+    }
+    c.fillText('x (cm)', ml+pw/2, mt+ph+22);
+    c.strokeStyle = '#6f7772'; c.beginPath(); c.moveTo(ml, mt); c.lineTo(ml, mt+ph); c.lineTo(ml+pw, mt+ph); c.stroke();
+    // 0.37 안내선
+    c.strokeStyle = '#3a403c'; c.setLineDash([2,4]); c.beginPath(); c.moveTo(ml, Y(Math.exp(-1))); c.lineTo(ml+pw, Y(Math.exp(-1))); c.stroke(); c.setLineDash([]);
+    c.fillStyle = '#6f7772'; c.textAlign = 'left'; c.textBaseline = 'bottom'; c.fillText('1/e = 0.37', ml+4, Y(Math.exp(-1))-2);
+
+    lanes.forEach(function(ln){
+      var sp = ln.sp, lam = lambdaOf(sp);
+      // 이론 곡선(점선)
+      c.strokeStyle = sp.color; c.lineWidth = 1.5; c.setLineDash([6,4]); c.beginPath();
+      for (var i = 0; i <= 120; i++){ var x = L*i/120; var y = Math.exp(-x/lam); if (i===0) c.moveTo(X(x),Y(y)); else c.lineTo(X(x),Y(y)); }
+      c.stroke(); c.setLineDash([]);
+      // x = λ 마커
+      if (lam < L){
+        c.strokeStyle = hexA(sp.color, 0.5); c.setLineDash([2,3]); c.beginPath(); c.moveTo(X(lam), Y(0)); c.lineTo(X(lam), Y(Math.exp(-1))); c.stroke(); c.setLineDash([]);
+        c.fillStyle = sp.color; c.font = '10px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'bottom';
+        c.fillText('λ', X(lam), Y(0)-2);
+      }
+      // 측정 계단(실선)
+      if (ln.done > 0){
+        c.strokeStyle = sp.color; c.lineWidth = 2.5; c.beginPath();
+        var cum = 0, S = 1; c.moveTo(X(0), Y(1));
+        for (var b = 0; b < NB; b++){
+          var xb = L*(b+1)/NB;
+          c.lineTo(X(xb), Y(S));           // 구간 내 수평
+          cum += ln.lost[b]; S = 1 - cum/ln.done;
+          c.lineTo(X(xb), Y(S));           // 구간 끝에서 하강
+        }
+        c.stroke();
+      }
+    });
+    // 범례
+    var lx = ml + pw - 8, ly = mt + 10;
+    c.font = '12px sans-serif'; c.textAlign = 'right'; c.textBaseline = 'middle';
+    lanes.forEach(function(ln, i){
+      var yy = ly + i*18;
+      c.fillStyle = ln.sp.color; c.fillText(ln.sp.name, lx-24, yy);
+      c.strokeStyle = ln.sp.color; c.lineWidth = 2.5; c.beginPath(); c.moveTo(lx-18, yy); c.lineTo(lx, yy); c.stroke();
+    });
+  }
+
+  // ---------- 표 ----------
+  var tb = document.getElementById('tb');
+  var rows = lanes.map(function(ln){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><span class="sw" style="background:' + ln.sp.color + '"></span>' + ln.sp.name + '</td><td>' + ln.sp.formula + '</td><td></td><td></td><td></td><td></td>';
+    tb.appendChild(tr); return tr;
+  });
+  function updateTable(){
+    var need = L / Math.log(1/0.999);   // 99.9 % 도달에 필요한 λ
+    lanes.forEach(function(ln, i){
+      var lam = lambdaOf(ln.sp), td = rows[i].children;
+      td[2].textContent = fmtLen(lam);
+      td[3].textContent = fmtProb(Math.exp(-L/lam));
+      var pmax = ln.sp.factor * K_LAMBDA / need;
+      td[5].textContent = sci(pmax, 1);
+      rows[i].className = (Math.abs(P - 1e-7) < 1e-9 && L === 50) ? 'hl' : '';
+    });
+  }
+  function updateMeasured(){
+    lanes.forEach(function(ln, i){
+      var td = rows[i].children;
+      td[4].textContent = ln.done ? (ln.done - sum(ln.lost)) + ' / ' + ln.done + '  (' + ((ln.done-sum(ln.lost))/ln.done*100).toFixed(1) + ' %)' : '—';
+    });
+  }
+  setInterval(updateMeasured, 250);
+
+  // ---------- 시작 ----------
+  readControls();
+  computeGeo();
+  requestAnimationFrame(step);
+})();
+</script>
+</body>
+</html>
