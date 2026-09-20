@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>수송 과정 시뮬레이션 — 확산 · 점성 · 열전도로 평형을 찾아가기</title>
+<style>
+  :root{--bg:#101211;--card:#1a1d1b;--border:#2c302d;--text:#e8ece9;--muted:#a8b0aa;--accent:#e8ece9;--on:#f28b62;--off:#3fcf98}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 24px 6px}
+  h1{margin:0 0 4px;font-size:22px;color:var(--accent)}
+  .sub{margin:0;color:var(--muted);font-size:14px}
+  .wrap{padding:10px 24px 28px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+  button{padding:7px 14px;border:1px solid var(--border);background:#222623;color:var(--text);border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+  button:hover{background:#2c302d}
+  button.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+  select{padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;background:#222623;color:var(--text)}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  @media (max-width:1100px){.grid{grid-template-columns:1fr}}
+  .panel h2{margin:0 0 2px;font-size:17px;color:var(--accent)}
+  .panel .chain{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .panel .chain b{color:var(--text)}
+  canvas{display:block;width:100%;height:auto;border-radius:6px}
+  .lbl{font-size:12px;color:var(--muted);margin:8px 0 2px}
+  .sw{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px;border-radius:10px;border:1px solid var(--border);background:#222623}
+  .toggle{position:relative;width:64px;height:30px;border-radius:15px;background:var(--off);cursor:pointer;flex:none;transition:background .2s}
+  .toggle.on{background:var(--on)}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .toggle.on::after{left:37px}
+  .sw .st{font-size:14px;line-height:1.45}
+  .sw .st b{display:block;font-size:13px}
+  .sw.on .st b{color:var(--on)} .sw:not(.on) .st b{color:var(--off)}
+  .note{font-size:14px}
+  .note b{color:var(--accent)}
+  .val{font-variant-numeric:tabular-nums}
+  .coef{margin:0 0 8px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px;background:#222623;font-size:13px}
+  .coef .eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:17px;color:var(--text);margin-bottom:4px}
+  .coef label{display:flex;align-items:center;gap:8px;color:var(--text)}
+  .coef input[type=range]{flex:1;min-width:80px}
+  .coef .cfv{color:var(--accent);min-width:48px;text-align:right;font-variant-numeric:tabular-nums}
+  .coef .cv{color:var(--muted);font-size:12px;margin-top:2px}
+  nav.crumb{font-size:12.5px;color:var(--muted);margin-bottom:10px;}
+  nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid #3a403c;}
+  nav.crumb a:hover{color:#6aa6f2;border-bottom-color:#6aa6f2;}
+  nav.crumb span{margin:0 7px;color:#3a403c;}
+  footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted);}
+</style>
+</head>
+<body>
+<header>
+<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 2</a><span>/</span>수송 과정</nav>
+  <h1>2.9 수송 과정: 기울기를 켜고(ON) 놓아주면(OFF) 어떻게 평형을 찾아가는가</h1>
+  <p class="sub">세 상자에는 똑같은 강체구 기체가 들어 있습니다. 스위치 ON은 농도·속도·온도 <b>기울기를 만들어 붙잡아 두는</b> 상태, OFF는 <b>놓아주는</b> 상태입니다. 놓아주면 분자 충돌만으로 입자·운동량·에너지가 운반되어 기울기가 스스로 사라지고(비가역), 거꾸로는 절대 일어나지 않습니다.</p>
+</header>
+
+<div class="wrap">
+  <div class="card bar">
+    <button id="allOn">모두 ON (기울기 만들기)</button>
+    <button id="allOff" class="primary">모두 OFF (놓아주기)</button>
+    <button id="pause">일시정지</button>
+    <label style="font-size:14px;color:var(--muted)">속도
+      <select id="spd"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+    </label>
+    <span style="font-size:13px;color:var(--muted)">상자당 입자 320개 · 완전탄성 충돌 · 벽은 OFF일 때 모두 거울 반사(고립계)</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="card note">
+    <b>같은 미시 과정, 다른 거시 현상.</b> 세 상자에서 일어나는 일은 모두 "분자끼리 부딪혀 무언가를 주고받는다"는 한 가지입니다. 주고받는 양이 <b>입자 수</b>이면 확산(농도 물매 ↔ 입자 흐름, Fick), <b>운동량</b>이면 속 쓸림·점성(속도 물매 ↔ 운동량 흐름, Newton), <b>에너지</b>이면 열전도(온도 물매 ↔ 열 흐름, Fourier)로 보입니다. 각 흐름은 물매에 비례하고, 비례계수 D, η, κ 는 모두 평균 자유거리 λ와 평균 속력 v̄의 곱(≈ ⅓ n v̄ λ × 운반량)으로 같은 꼴을 갖습니다.<br><br><b>계수 슬라이더.</b> 시뮬레이션에서 D, η, κ 는 따로 정해 주는 값이 아니라 분자 충돌에서 <u>저절로 나오는</u> 양이므로, 슬라이더는 분자의 충돌 단면(지름 d)을 바꿔 λ ∝ 1/(n d) 를 조절합니다. 분자가 크면 자주 부딪혀 λ가 짧아지고 세 계수가 모두 작아져 평형에 늦게 도달합니다(불균일도 감쇠가 느려짐). D ∝ v̄ λ ∝ v̄/(n d) 는 밀도에 반비례하지만, η ∝ n m v̄ λ 와 κ ∝ n c<sub>v</sub> v̄ λ 는 n이 상쇄되어 밀도(압력)에 무관합니다 — 점성도·열전도율이 압력에 따라 변하지 않는 이유입니다(λ가 용기 크기보다 작을 때). 분자가 커질수록 상자에 넣을 수 있는 개수가 줄어들어 개수도 함께 조정됩니다.
+    <br><br>
+    <b>비가역성.</b> 아래 '불균일도' 그래프에서 OFF 직후의 감쇠는 지수함수 꼴(완화 시간 τ ~ L²/D)이고, 한 번 평평해진 뒤 스스로 다시 기울어지는 일은 없습니다. 기울기를 되살리려면 외부에서 일을 해 주어야(칸막이, 움직이는 벽, 뜨거운/찬 벽 = ON) 합니다. 파란 추적선에서 ON 구간(주황 배경)에서만 값이 올라가는 것을 확인해 보세요.
+    <br><br>
+    <span style="font-size:13px;color:var(--muted)">개략도입니다: 2차원 상자, 입자 320개, 완전탄성 강체구. 점성 상자의 ON은 위·아래 벽이 반대 방향으로 움직이는 Couette 흐름, 열전도 상자의 ON은 왼쪽 뜨거운 벽·오른쪽 찬 벽(열적 재방출)입니다. 확산 상자의 ON은 칸막이를 넣고 두 종류로 다시 칠하는 것(상호확산) 또는 기체를 왼쪽 절반에 모두 가두는 것(진공 팽창)입니다. 진공 팽창에서는 입자가 벽·서로와 탄성 충돌만 하므로 속력 분포(온도)는 변하지 않습니다 — 이상기체의 Joule 팽창 ΔT = 0. 그래도 되돌아가지는 않습니다(엔트로피 Nk ln 2 증가).</span>
+  </div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+var W=360, H=250, R0=4, N=320, PACK=0.5, V0=60, VT=V0/Math.SQRT2, U=75, HOT=1.8, COLD=0.45, NB=12, TS=3;
+function gauss(){ var u=1-Math.random(), v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+function flux(vt){ return vt*Math.sqrt(-2*Math.log(1-Math.random())); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function mix(c1,c2,t){ t=Math.max(0,Math.min(1,t)); return 'rgb('+Math.round(lerp(c1[0],c2[0],t))+','+Math.round(lerp(c1[1],c2[1],t))+','+Math.round(lerp(c1[2],c2[2],t))+')'; }
+var BLUE=[106,166,242], RED=[242,139,98], GRAY=[168,176,170];
+function divColor(t){ return t<0.5 ? mix(BLUE,GRAY,t*2) : mix(GRAY,RED,(t-0.5)*2); }
+
+var KINDS=[
+ {key:'diff', title:'① 확산 — 농도 물매', chain:'<b>농도 차이</b> → <b>입자</b>가 운반 → 골고루 섞임',
+  onTxt:'칸막이로 두 기체를 분리해 농도 차이를 유지', offTxt:'칸막이 제거 → 입자가 운반되어 섞임 (확산)',
+  prof:'위치별 A(주황) 분율', order:'불균일도 = 2·|왼쪽 A 분율 − ½|', eq:'J<sub>N</sub> = −D · dn₁/dx', cname:'확산계수 D', cform:'D = ⅓ v̄ λ'},
+ {key:'visc', title:'② 속 쓸림(점성) — 속도 물매', chain:'<b>속도 차이</b> → <b>운동량</b> 교환 → 같은 속도로',
+  onTxt:'위 벽 →, 아래 벽 ← 로 움직여 속도 차이를 유지 (Couette)', offTxt:'벽 정지 → 충돌로 운동량이 섞여 흐름이 사라짐 (점성 감쇠)',
+  prof:'층별(위→아래) 평균 흐름속도 vₓ', order:'불균일도 = (⟨vₓ⟩위 − ⟨vₓ⟩아래)/U', eq:'J<sub>p</sub> = τ = η · ∂u/∂z', cname:'점성도 η', cform:'η = ⅓ n m v̄ λ'},
+ {key:'heat', title:'③ 열 전도 — 온도 물매', chain:'<b>온도 차이</b> → <b>에너지</b> 교환 → 같은 온도로',
+  onTxt:'왼쪽 뜨거운 벽·오른쪽 찬 벽으로 온도 차이를 유지', offTxt:'벽 단열 → 충돌로 에너지가 섞여 온도가 균일해짐 (열전도)',
+  prof:'위치별 온도 (평균 운동에너지)', order:'불균일도 = (T왼 − T오)/(T뜨 − T찬)', eq:'J<sub>Q</sub> = Q/A = −κ · ∂T/∂x', cname:'열전도율 κ', cform:'κ = ⅓ n c<sub>v</sub> v̄ λ'}
+];
+
+var dpr=Math.min(2,window.devicePixelRatio||1);
+function setup(c,w,h){ c.width=w*dpr; c.height=h*dpr; c.style.aspectRatio=w+'/'+h; var g=c.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); return g; }
+
+function Sim(kind, root){
+  this.k=kind; this.on=true; this.t=0; this.hist=[]; this.lastRec=0;
+  root.className='card panel';
+  root.innerHTML='<h2>'+kind.title+'</h2><div class="chain">'+kind.chain+'</div>'
+   +(kind.key==='diff'?'<div class="lbl" style="margin:0 0 6px">상황 <select class="mode"><option value="mix">두 기체 A·B가 섞임 (상호확산)</option><option value="vac">오른쪽이 진공 (자유 팽창)</option></select></div>':'')
+   +'<div class="coef"><div class="eq">'+kind.eq+'</div><label>'+kind.cname+' <input type="range" class="cf" min="'+(kind.key==='diff'?'0.6':'0.5')+'" max="2" step="0.05" value="1"> <b class="cfv">1.00×</b></label><div class="cv"></div></div>'
+   +'<canvas class="box"></canvas><div class="lbl">'+kind.prof+'</div><canvas class="prof"></canvas>'
+   +'<div class="lbl">'+kind.order+' — 시간에 따른 변화 (주황 배경: ON)</div><canvas class="trace"></canvas>'
+   +'<div class="sw on"><div class="toggle on"></div><div class="st"><b></b><span></span></div></div>';
+  this.gb=setup(root.querySelector('.box'),W,H);
+  this.gp=setup(root.querySelector('.prof'),W,80);
+  this.gt=setup(root.querySelector('.trace'),W,70);
+  this.sw=root.querySelector('.sw'); this.tg=root.querySelector('.toggle');
+  this.stB=root.querySelector('.st b'); this.stS=root.querySelector('.st span');
+  var self=this; this.tg.addEventListener('click',function(){ self.set(!self.on); });
+  this.mode='mix'; this.lblProf=root.querySelectorAll('.lbl')[kind.key==='diff'?1:0]; this.lblOrd=root.querySelectorAll('.lbl')[kind.key==='diff'?2:1];
+  var ms=root.querySelector('.mode'); if(ms) ms.addEventListener('change',function(){ self.mode=ms.value; self.fitN(); self.set(true); });
+  this.R=R0; this.f=1; this.cf=root.querySelector('.cf'); this.cfv=root.querySelector('.cfv'); this.cv=root.querySelector('.cv');
+  this.cf.addEventListener('input',function(){ self.f=parseFloat(self.cf.value); self.R=R0/self.f; self.fitN(); if(self.on) self.impose(); self.updateCoef(); });
+  this.initParticles(); this.impose(); this.updateSwitch(); this.updateCoef();
+}
+Sim.prototype.initParticles=function(){
+  var R=this.R; this.p=[]; var cols=Math.ceil(Math.sqrt(N*W/H)), rows=Math.ceil(N/cols), dx=(W-2*R)/cols, dy=(H-2*R)/rows;
+  for(var i=0;i<N;i++){ var c=i%cols, r=Math.floor(i/cols);
+    this.p.push({x:R+dx*(c+0.5)+(Math.random()-0.5)*(dx-2*R-1), y:R+dy*(r+0.5)+(Math.random()-0.5)*(dy-2*R-1), vx:VT*gauss(), vy:VT*gauss(), c:0}); }
+};
+Sim.prototype.maxN=function(){ var area=W*H*((this.k.key==='diff'&&this.mode==='vac')?0.5:1); return Math.min(N, Math.floor(PACK*area/(Math.PI*this.R*this.R))); };
+Sim.prototype.fitN=function(){   // 분자가 커지면 상자에 들어갈 수 있는 개수를 줄임 (밀집 방지)
+  var R=this.R, m=this.maxN();
+  if(this.p.length>m) this.p.length=m;
+  while(this.p.length<m) this.p.push({x:R+Math.random()*(W-2*R), y:R+Math.random()*(H-2*R), vx:VT*gauss(), vy:VT*gauss(), c:0});
+};
+Sim.prototype.updateCoef=function(){
+  var n=this.p.length/(W*H), n0=N/(W*H), lam=1/(Math.SQRT2*n*2*this.R), lam0=1/(Math.SQRT2*n0*2*R0);
+  var ratio = this.k.key==='diff' ? lam/lam0 : (n*lam)/(n0*lam0);   // D ∝ v̄λ,  η·κ ∝ n v̄ λ
+  this.cfv.textContent=ratio.toFixed(2)+'×';
+  this.cv.innerHTML=this.k.cform+' <span style="opacity:.7">(2차원 화면에서는 ½)</span> &nbsp;·&nbsp; 분자 지름 d = '+(2*this.R).toFixed(1)+' px, 개수 '+this.p.length+(this.p.length<N?' (밀집 제한)':'')+', λ ≈ '+lam.toFixed(0)+' px';
+};
+Sim.prototype.impose=function(){   // 기울기를 즉시 만들어 줌
+  var k=this.k.key, self=this, R=this.R;
+  this.p.forEach(function(q){
+    if(k==='diff'){ if(self.mode==='vac'){ q.c=1; q.x=R+1+(q.x/W)*(W/2-2*R-2); } else { q.c = q.x<W/2 ? 1 : 0; if(Math.abs(q.x-W/2)<R+0.5) q.x += q.x<W/2 ? -(R+1) : (R+1); } }
+    else if(k==='visc'){ q.vx = U*(1-2*q.y/H) + VT*gauss(); q.vy = VT*gauss(); }
+    else { var vt=VT*lerp(HOT,COLD,q.x/W); q.vx=vt*gauss(); q.vy=vt*gauss(); }
+  });
+};
+Sim.prototype.set=function(on){ this.on=on; if(on) this.impose(); this.updateSwitch(); };
+Sim.prototype.updateSwitch=function(){
+  this.sw.className='sw'+(this.on?' on':''); this.tg.className='toggle'+(this.on?' on':'');
+  this.stB.textContent=this.on?'ON — 기울기 유지 중':'OFF — 놓아둠 (고립계)'; var vac=(this.k.key==='diff'&&this.mode==='vac');
+  this.stS.textContent=this.on?(vac?'칸막이로 기체를 왼쪽 절반에 가둠 (오른쪽은 진공)':this.k.onTxt):(vac?'칸막이 제거 → 진공으로 자유 팽창(Joule 팽창) → 밀도가 균일해짐':this.k.offTxt);
+  if(this.lblProf){ this.lblProf.textContent= vac?'위치별 상대 밀도 (평균 = 1)':this.k.prof; this.lblOrd.textContent=(vac?'불균일도 = 2·|왼쪽 입자 비율 − ½|':this.k.order)+' — 시간에 따른 변화 (주황 배경: ON)'; }
+};
+Sim.prototype.step=function(dt){
+  var k=this.k.key, on=this.on, p=this.p, n=p.length, i, q, R=this.R;
+  for(i=0;i<n;i++){ q=p[i]; q.x+=q.vx*dt; q.y+=q.vy*dt;
+    // 벽
+    if(q.y<R){ q.y=R; if(k==='visc'&&on){ q.vy=flux(VT); q.vx=U+VT*gauss(); } else q.vy=Math.abs(q.vy); }
+    else if(q.y>H-R){ q.y=H-R; if(k==='visc'&&on){ q.vy=-flux(VT); q.vx=-U+VT*gauss(); } else q.vy=-Math.abs(q.vy); }
+    if(q.x<R){ q.x=R; if(k==='heat'&&on){ q.vx=flux(VT*HOT); q.vy=VT*HOT*gauss(); } else q.vx=Math.abs(q.vx); }
+    else if(q.x>W-R){ q.x=W-R; if(k==='heat'&&on){ q.vx=-flux(VT*COLD); q.vy=VT*COLD*gauss(); } else q.vx=-Math.abs(q.vx); }
+    // 칸막이
+    if(k==='diff'&&on){ if(q.c===1&&q.x>W/2-R){ q.x=W/2-R; q.vx=-Math.abs(q.vx); } else if(q.c===0&&q.x<W/2+R){ q.x=W/2+R; q.vx=Math.abs(q.vx); } }
+  }
+  // 입자 충돌 (격자)
+  var cs=2*R+2, gc=Math.ceil(W/cs), gr=Math.ceil(H/cs), cells=new Array(gc*gr); for(i=0;i<cells.length;i++) cells[i]=[];
+  for(i=0;i<n;i++){ q=p[i]; var cx=Math.min(gc-1,Math.max(0,Math.floor(q.x/cs))), cy=Math.min(gr-1,Math.max(0,Math.floor(q.y/cs))); cells[cy*gc+cx].push(i); }
+  var D2=4*R*R;
+  function coll(a,b){ var dx=b.x-a.x, dy=b.y-a.y, d2=dx*dx+dy*dy; if(d2>=D2||d2===0) return;
+    var d=Math.sqrt(d2), nx=dx/d, ny=dy/d, dvn=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;
+    if(dvn>0){ a.vx-=dvn*nx; a.vy-=dvn*ny; b.vx+=dvn*nx; b.vy+=dvn*ny; }
+    var ov=(2*R-d)/2+0.01; a.x-=ov*nx; a.y-=ov*ny; b.x+=ov*nx; b.y+=ov*ny; }
+  for(var cy=0;cy<gr;cy++) for(var cx=0;cx<gc;cx++){
+    var A=cells[cy*gc+cx]; if(!A.length) continue;
+    var nb=[[0,0],[1,0],[-1,1],[0,1],[1,1]];
+    for(var m=0;m<nb.length;m++){ var ox=cx+nb[m][0], oy=cy+nb[m][1]; if(ox<0||ox>=gc||oy>=gr) continue; var B=cells[oy*gc+ox];
+      for(var a=0;a<A.length;a++){ var start=(m===0)?a+1:0; for(var b=start;b<B.length;b++) coll(p[A[a]],p[B[b]]); } }
+  }
+  this.t+=dt;
+};
+Sim.prototype.measure=function(){
+  var k=this.k.key, p=this.p, bins=new Array(NB).fill(0), cnt=new Array(NB).fill(0), i, q, b;
+  for(i=0;i<p.length;i++){ q=p[i];
+    if(k==='visc'){ b=Math.min(NB-1,Math.floor(q.y/H*NB)); bins[b]+=q.vx; }
+    else { b=Math.min(NB-1,Math.floor(q.x/W*NB)); bins[b]+= k==='diff' ? q.c : 0.5*(q.vx*q.vx+q.vy*q.vy); }
+    cnt[b]++; }
+  var vac=(k==='diff'&&this.mode==='vac');
+  for(b=0;b<NB;b++) bins[b]= vac ? cnt[b]/(p.length/NB) : (cnt[b]? bins[b]/cnt[b] : 0);
+  var lo=0, hi=0, nlo=0, nhi=0;
+  for(i=0;i<p.length;i++){ q=p[i];
+    var v= k==='diff'? q.c : (k==='visc'? q.vx : 0.5*(q.vx*q.vx+q.vy*q.vy));
+    var first= k==='visc' ? q.y<H/2 : q.x<W/2;
+    if(first){ lo+=v; nlo++; } else { hi+=v; nhi++; } }
+  lo/=Math.max(1,nlo); hi/=Math.max(1,nhi);
+  var ord = vac ? 2*Math.abs(nlo/p.length-0.5) : k==='diff' ? 2*Math.abs(lo-0.5) : (k==='visc' ? (lo-hi)/U : (lo-hi)/(VT*VT*(HOT*HOT-COLD*COLD)));
+  this.prof=bins; ord=Math.max(0,Math.min(1,ord)); this.ord = (this.ord===undefined)? ord : this.ord+(ord-this.ord)*0.08;
+  if(this.t-this.lastRec>0.08){ this.hist.push({t:this.t,v:this.ord,on:this.on}); this.lastRec=this.t; if(this.hist.length>900) this.hist.shift(); }
+};
+Sim.prototype.draw=function(){
+  var g=this.gb, k=this.k.key, on=this.on, i, q, R=this.R;
+  g.clearRect(0,0,W,H); g.fillStyle='#222623'; g.fillRect(0,0,W,H);
+  // ON 벽 표시
+  if(on){
+    if(k==='visc'){ g.fillStyle='#f28b62'; g.fillRect(0,0,W,4); g.fillRect(0,H-4,W,4);
+      g.fillStyle='#101211'; var sh=(this.t*40)%20; for(var s=-20;s<W;s+=20){ g.fillRect(s+sh,0,6,4); g.fillRect(s-sh+20,H-4,6,4); }
+      g.fillStyle='#f28b62'; g.font='bold 12px sans-serif'; g.textAlign='center'; g.textBaseline='top'; g.fillText('→ 벽이 오른쪽으로 움직임', W/2, 8); g.textBaseline='bottom'; g.fillText('← 벽이 왼쪽으로 움직임', W/2, H-8); }
+    if(k==='heat'){ g.fillStyle='#f28b62'; g.fillRect(0,0,5,H); g.fillStyle='#6aa6f2'; g.fillRect(W-5,0,5,H);
+      g.font='bold 12px sans-serif'; g.textBaseline='top'; g.fillStyle='#f28b62'; g.textAlign='left'; g.fillText('뜨거운 벽', 10, 6); g.fillStyle='#6aa6f2'; g.textAlign='right'; g.fillText('찬 벽', W-10, 6); }
+    if(k==='diff'){ g.fillStyle='#a8b0aa'; g.fillRect(W/2-1.5,0,3,H); g.font='bold 12px sans-serif'; g.fillStyle='#a8b0aa'; g.textAlign='center'; g.textBaseline='top'; g.fillText('칸막이', W/2, 6); if(this.mode==='vac'){ g.font='13px sans-serif'; g.fillStyle='#6f7772'; g.textBaseline='middle'; g.fillText('진공', W*0.75, H/2); } }
+  } else { g.strokeStyle='#6f7772'; g.lineWidth=2; g.strokeRect(1,1,W-2,H-2); }
+  for(i=0;i<this.p.length;i++){ q=this.p[i]; var col;
+    if(k==='diff') col= q.c? '#f28b62':'#6aa6f2';
+    else if(k==='visc') col=divColor(0.5+q.vx/(2*U));
+    else col=divColor((Math.sqrt(q.vx*q.vx+q.vy*q.vy)/VT-0.3)/(2.6));
+    g.fillStyle=col; g.beginPath(); g.arc(q.x,q.y,R,0,6.2832); g.fill(); }
+  // 프로파일
+  var gp=this.gp, pw=W, ph=80; gp.clearRect(0,0,pw,ph); gp.fillStyle='#222623'; gp.fillRect(0,0,pw,ph);
+  var bw=pw/NB, b;
+  if(k==='visc'){ // 층별 vx: 가로축 = 층(위→아래), 값 = 부호 있는 막대
+    gp.strokeStyle='#3a403c'; gp.beginPath(); gp.moveTo(0,ph/2); gp.lineTo(pw,ph/2); gp.stroke();
+    for(b=0;b<NB;b++){ var v=this.prof[b]/U*(ph/2-6); gp.fillStyle=divColor(0.5+this.prof[b]/(2*U)); gp.fillRect(b*bw+2, v>0? ph/2-v: ph/2, bw-4, Math.abs(v)); }
+    gp.fillStyle='#a8b0aa'; gp.font='11px sans-serif'; gp.textAlign='left'; gp.textBaseline='top'; gp.fillText('위층', 4, 2); gp.textAlign='right'; gp.fillText('아래층', pw-4, 2);
+    gp.textAlign='left'; gp.textBaseline='bottom'; gp.fillText('+U →', 4, ph-2); gp.textAlign='right'; gp.fillText('← −U', pw-4, ph-2);
+  } else if(k==='diff'&&this.mode==='vac'){
+    var ya=ph-4-(1/2.2)*(ph-8); gp.strokeStyle='#3a403c'; gp.setLineDash([3,3]); gp.beginPath(); gp.moveTo(0,ya); gp.lineTo(pw,ya); gp.stroke(); gp.setLineDash([]);
+    for(b=0;b<NB;b++){ var dn=Math.min(2.2,this.prof[b])/2.2; gp.fillStyle='#f28b62'; gp.fillRect(b*bw+2, ph-4-dn*(ph-8), bw-4, dn*(ph-8)); }
+    gp.fillStyle='#a8b0aa'; gp.font='11px sans-serif'; gp.textAlign='left'; gp.textBaseline='bottom'; gp.fillText('점선: 균일 밀도', 4, ya-2);
+  } else if(k==='diff'){
+    gp.strokeStyle='#3a403c'; gp.setLineDash([3,3]); gp.beginPath(); gp.moveTo(0,ph/2); gp.lineTo(pw,ph/2); gp.stroke(); gp.setLineDash([]);
+    for(b=0;b<NB;b++){ var f=this.prof[b]; gp.fillStyle='#f28b62'; gp.fillRect(b*bw+2, ph-4-f*(ph-8), bw-4, f*(ph-8)); gp.fillStyle='#6aa6f2'; gp.fillRect(b*bw+2, 4, bw-4, (1-f)*(ph-8)); }
+    gp.fillStyle='#a8b0aa'; gp.font='11px sans-serif'; gp.textAlign='left'; gp.textBaseline='middle'; gp.fillText('½', 3, ph/2);
+  } else {
+    var Tmax=VT*VT*HOT*HOT*1.2, Tavg=VT*VT*(HOT*HOT+HOT*COLD+COLD*COLD)/3;
+    gp.strokeStyle='#3a403c'; gp.setLineDash([3,3]); gp.beginPath(); gp.moveTo(0,ph-4-Tavg/Tmax*(ph-8)); gp.lineTo(pw,ph-4-Tavg/Tmax*(ph-8)); gp.stroke(); gp.setLineDash([]);
+    for(b=0;b<NB;b++){ var T=this.prof[b]/Tmax; gp.fillStyle=divColor((Math.sqrt(this.prof[b]*2)/VT-0.3)/2.6); gp.fillRect(b*bw+2, ph-4-T*(ph-8), bw-4, T*(ph-8)); }
+    gp.fillStyle='#a8b0aa'; gp.font='11px sans-serif'; gp.textAlign='left'; gp.textBaseline='bottom'; gp.fillText('점선: 평형 온도', 4, ph-4-Tavg/Tmax*(ph-8)-2);
+  }
+  // 추적
+  var gt=this.gt, tw=W, th=70; gt.clearRect(0,0,tw,th); gt.fillStyle='#222623'; gt.fillRect(0,0,tw,th);
+  var span=60, t1=this.t, t0=t1-span, X=function(t){ return (t-t0)/span*tw; }, Y=function(v){ return th-4-v*(th-14); };
+  var h=this.hist; for(i=0;i<h.length;i++){ if(h[i].on){ var x0=X(h[i].t), x1= i+1<h.length? X(h[i+1].t) : tw; gt.fillStyle='rgba(242,139,98,0.13)'; gt.fillRect(Math.max(0,x0),0,Math.max(0,x1-x0)+0.5,th); } }
+  gt.strokeStyle='#3a403c'; gt.beginPath(); gt.moveTo(0,Y(0)); gt.lineTo(tw,Y(0)); gt.stroke();
+  gt.strokeStyle='#6aa6f2'; gt.lineWidth=2; gt.beginPath(); var started=false;
+  for(i=0;i<h.length;i++){ if(h[i].t<t0) continue; var x=X(h[i].t), y=Y(h[i].v); if(!started){ gt.moveTo(x,y); started=true; } else gt.lineTo(x,y); }
+  gt.stroke(); gt.lineWidth=1;
+  gt.fillStyle='#6aa6f2'; gt.font='bold 12px sans-serif'; gt.textAlign='right'; gt.textBaseline='top'; gt.fillText('현재 '+this.ord.toFixed(2), tw-6, 4);
+  gt.fillStyle='#a8b0aa'; gt.font='11px sans-serif'; gt.textAlign='left'; gt.fillText('1', 4, Y(1)-2); gt.textBaseline='bottom'; gt.fillText('0   (시간 →, 최근 구간)', 4, th-2);
+};
+
+var grid=document.getElementById('grid');
+var sims=KINDS.map(function(k){ var d=document.createElement('div'); grid.appendChild(d); return new Sim(k,d); }); window.__sims=sims;
+var running=true, spd=1, last=performance.now();
+document.getElementById('allOn').onclick=function(){ sims.forEach(function(s){ s.set(true); }); };
+document.getElementById('allOff').onclick=function(){ sims.forEach(function(s){ s.set(false); }); };
+document.getElementById('pause').onclick=function(){ running=!running; this.textContent=running?'일시정지':'재생'; };
+document.getElementById('spd').onchange=function(){ spd=parseFloat(this.value); };
+function frame(now){
+  var dt=Math.min(0.033,(now-last)/1000)*spd*TS; last=now;
+  if(running){ var sub=4, h=dt/sub; sims.forEach(function(s){ for(var i=0;i<sub;i++) s.step(h); s.measure(); }); }
+  sims.forEach(function(s){ s.draw(); });
+  requestAnimationFrame(frame);
+}
+sims.forEach(function(s){ s.measure(); });
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
