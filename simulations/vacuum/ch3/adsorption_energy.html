@@ -109,9 +109,10 @@
   <div class="card res" id="info"></div>
 
   <div class="card">
-    <b style="color:var(--accent)">평균 체류시간 τ<sub>a</sub> = τ<sub>0</sub> exp(q/kT), τ<sub>0</sub> = 10<sup>−13</sup> s (Chambers 식 4.5, Frenkel)</b>
-    <p class="cap" style="margin-top:4px">왼쪽 두 열은 Chambers Table 4.1(실온). 오른쪽 열은 현재 슬라이더 온도 T 에서 같은 식으로 계산한 값. 지수함수 때문에 q 가 두 배 되면 τ<sub>a</sub>는 수십만 배 이상 커집니다.</p>
+    <b style="color:var(--accent)">평균 체류시간 τ<sub>a</sub> = τ<sub>0</sub> exp(q/kT), τ<sub>0</sub> = 10<sup>−13</sup> s (식 4.5, Frenkel)</b>
+    <p class="cap" style="margin-top:4px">실온 체류시간은 강의 슬라이드 값입니다. 그 값에서 식 4.5로 흡착열 q를 역산하고(293 K), 같은 q로 현재 슬라이더 온도 T 에서의 τ<sub>a</sub>를 다시 계산합니다. 범위로 주어진 기체는 양 끝을 함께 보입니다.</p>
     <table id="t41"></table>
+    <p class="cap" style="margin-top:8px">수소·불활성 기체처럼 τ<sub>a</sub>가 매우 짧으면 사실상 공간에 존재하는 셈이므로 펌프로 쉽게 제거됩니다. 기름 증기처럼 τ<sub>a</sub>가 극단적으로 길어도 문제가 되지 않습니다 — 안정적으로 흡착되어 있습니다.</p>
   </div>
 
   <div class="card note">
@@ -424,10 +425,24 @@ function updateInfo(){
   var th='<tr><th>항목</th><th>값</th></tr>';
   document.getElementById('stats').innerHTML=th+rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
 }
-var T41=[[6,'1.2 × 10⁻¹² s'],[15,'5 × 10⁻¹¹ s'],[40,'1.2 × 10⁻⁶ s'],[60,'5.5 × 10⁻³ s'],[80,'15 s'],[90,'15 min'],[95,'2 h'],[100,'8 × 10⁴ s ≈ 1 d'],[120,'2 × 10⁸ s ≈ 10 yr'],[150,'7 × 10¹³ s ≈ 20,000 yr']];
+// 강의 슬라이드의 실온 체류시간 [기체, [τ_lo, τ_hi|null] (s), 꼬리말]
+var T41=[
+  ['수소 H₂',                         [1e-13, null],        ''],
+  ['질소 N₂ · 산소 O₂ · 일산화탄소 CO', [1e-12, 1e-11],       ''],
+  ['수증기 H₂O',                      [1e-2, 10],           ''],
+  ['기름 증기',                        [3*3600, 3*3.156e7],  ' 이상']
+];
+var T_SLIDE=293;                                                  // 슬라이드 값의 기준 온도 (실온)
+function qFromTau(t){ return R*T_SLIDE*Math.log(t/TAU0); }       // 식 4.5 역산, kJ/mol
 function updateT41(){
-  var h='<tr><th>q (kJ/mol)</th><th>q (eV)</th><th>Chambers Table 4.1 (실온)</th><th>식 4.5, T = '+S.T+' K</th><th>q/kT</th></tr>';
-  T41.forEach(function(r){ var q=r[0], qe=q*EV_PER_KJMOL, t=TAU0*Math.exp(q/(R*S.T)); h+='<tr><td>'+q+'</td><td>'+qe.toFixed(3)+'</td><td>'+r[1]+'</td><td>'+fmtT(t)+'</td><td>'+(q/(R*S.T)).toFixed(1)+'</td></tr>'; });
+  var h='<tr><th>기체</th><th>τ<sub>a</sub> (실온, 슬라이드)</th><th>역산 q (kJ/mol)</th><th>q/kT (실온)</th><th>식 4.5, T = '+S.T+' K</th></tr>';
+  var qs=function(q){ return q<0.5 ? '≈ 0' : q.toFixed(0); };
+  T41.forEach(function(r){
+    var lo=r[1][0], hi=r[1][1], qlo=qFromTau(lo), qhi=hi===null?null:qFromTau(hi);
+    var span=function(fn,a,b){ return b===null ? fn(a) : fn(a)+' ~ '+fn(b); };
+    var tauNow=function(q){ return fmtT(TAU0*Math.exp(q/(R*S.T))); };
+    h+='<tr><td>'+r[0]+'</td><td>'+span(fmtT,lo,hi)+r[2]+'</td><td>'+span(qs,qlo,qhi)+'</td><td>'+span(function(q){return (q/(R*T_SLIDE)).toFixed(1);},qlo,qhi)+'</td><td>'+span(tauNow,qlo,qhi)+r[2]+'</td></tr>';
+  });
   document.getElementById('t41').innerHTML=h;
 }
 
