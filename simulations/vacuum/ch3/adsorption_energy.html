@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>흡착 시뮬레이션 — 물리흡착 · 화학흡착 · 해리 화학흡착 (에너지–거리 도표)</title>
+<style>
+  :root{--bg:#101211;--card:#1a1d1b;--border:#2c302d;--text:#e8ece9;--muted:#a8b0aa;--accent:#e8ece9;--hot:#f28b62;--cold:#6aa6f2;--green:#3fcf98}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 24px 6px}
+  h1{margin:0 0 4px;font-size:22px;color:var(--accent)}
+  .sub{margin:0;color:var(--muted);font-size:14px}
+  .wrap{padding:10px 24px 28px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .bar{display:flex;flex-wrap:wrap;gap:12px 26px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:3px}
+  .ctl label{font-size:13px;color:var(--muted)}
+  .ctl .v{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:200px}
+  button{padding:7px 14px;border:1px solid var(--border);background:#222623;color:var(--text);border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+  button:hover{background:#2c302d}
+  button.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+  button.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+  .chk{display:flex;align-items:center;gap:6px;font-size:14px}
+  .grid{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:14px}
+  @media (max-width:1000px){.grid{grid-template-columns:1fr}}
+  canvas{display:block;width:100%;height:auto}
+  .cap{font-size:13px;color:var(--muted);margin:8px 2px 0}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  th{font-weight:600;color:var(--muted);font-size:13px}
+  td:first-child,th:first-child{text-align:left}
+  .note{font-size:14px}
+  .note b{color:var(--accent)}
+  .eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:16px}
+  .res{font-size:15px;line-height:1.8}
+  .res b{color:var(--hot)}
+  .res .ok{color:var(--green);font-weight:600}
+  .tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;background:#222623;color:var(--accent);margin-left:6px}
+  .hidden{display:none !important}
+  .src{font-size:12px;color:var(--muted)}
+  nav.crumb{font-size:12.5px;color:var(--muted);margin-bottom:10px;}
+  nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid #3a403c;}
+  nav.crumb a:hover{color:#6aa6f2;border-bottom-color:#6aa6f2;}
+  nav.crumb span{margin:0 7px;color:#3a403c;}
+  footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted);}
+</style>
+</head>
+<body>
+<header>
+<nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 3</a><span>/</span>흡착 에너지 도표</nav>
+  <h1>3장 흡착과 탈착: 물리흡착 · 화학흡착 · 해리 화학흡착 — 에너지–거리 도표</h1>
+  <p class="sub">분자의 퍼텐셜 에너지 <span class="eq">E</span>를 표면으로부터의 거리 <span class="eq">z</span>의 함수로 그린 도표(Chambers Fig. 4.3). 힘은 <span class="eq">F = −dE/dz</span>, 우물 깊이 <span class="eq">q</span>가 흡착열이자 탈착에 필요한 에너지입니다. 분자를 발사하면 공이 곡선 위를 굴러가며, 표면 가까이에서는 표면 원자의 열진동(온도 <span class="eq">T</span>)과 에너지를 주고받습니다.</p>
+</header>
+
+<div class="wrap">
+  <div class="card bar">
+    <div class="ctl"><label>흡착 종류</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="m-phys" class="mode on">① 물리흡착</button>
+        <button id="m-chem" class="mode">② 화학흡착 (분자 그대로, P→T→C)</button>
+        <button id="m-diss" class="mode">③ 해리 화학흡착 (X₂ → 2X)</button>
+      </div>
+    </div>
+    <div class="ctl" id="presets-wrap"><label>예시 (결합해리에너지 D: 표준값, Chambers 외)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="preset" data-p="h2">H₂ (D=4.52 eV, 비활성 해리)</button>
+        <button class="preset" data-p="o2">O₂ (D=5.12 eV)</button>
+        <button class="preset" data-p="n2a">N₂ (D=9.76 eV, 활성 장벽)</button>
+        <button class="preset" data-p="endo">흡열 (2E<sub>MX</sub> &lt; D)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card bar">
+    <div class="ctl"><label for="T">온도 T (기체 = 표면)</label><input id="T" type="range" min="77" max="1000" step="1" value="300"><div class="v" id="Tv"></div></div>
+    <div class="ctl"><label for="qp">물리흡착 우물 깊이 q<sub>p</sub> (Chambers: 6–40 kJ/mol, N₂≈15)</label><input id="qp" type="range" min="6" max="40" step="1" value="15"><div class="v" id="qpv"></div></div>
+    <div class="ctl c-chem"><label for="qc">화학흡착 우물 깊이 q<sub>c</sub> (Chambers: 40–1000 kJ/mol)</label><input id="qc" type="range" min="40" max="400" step="5" value="100"><div class="v" id="qcv"></div></div>
+    <div class="ctl c-chem"><label for="Et">장벽 꼭대기 T 의 에너지 E<sub>T</sub> (0 보다 크면 "활성화 흡착")</label><input id="Et" type="range" min="-0.15" max="0.3" step="0.01" value="-0.05"><div class="v" id="Etv"></div></div>
+    <div class="ctl c-diss"><label for="D">분자 결합해리에너지 D (X₂ → 2X, 기체 상태)</label><input id="D" type="range" min="1" max="11" step="0.01" value="4.52"><div class="v" id="Dv"></div></div>
+    <div class="ctl c-diss"><label for="Emx">표면–원자 결합에너지 E<sub>MX</sub> (원자 1개당)</label><input id="Emx" type="range" min="0.5" max="6" step="0.01" value="2.7"><div class="v" id="Emxv"></div></div>
+    <div class="ctl c-diss"><label for="za">원자 곡선의 평형 거리 z<sub>A</sub> (표면 쪽으로 당기면 교차점이 올라가 활성 장벽이 생김)</label><input id="za" type="range" min="1.2" max="2.6" step="0.05" value="1.9"><div class="v" id="zav"></div></div>
+    <div class="ctl"><label for="ymax">세로축 범위 (eV)</label><input id="ymax" type="range" min="0.3" max="12" step="0.1" value="0.6"><div class="v" id="ymaxv"></div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <canvas id="ec"></canvas>
+      <p class="cap" id="eccap"></p>
+    </div>
+    <div class="card">
+      <canvas id="rc"></canvas>
+      <p class="cap">실공간 그림. 아래 줄은 표면 원자, 공은 왼쪽 도표의 분자와 같은 높이 z. ③에서는 원자 곡선 쪽으로 넘어가면 분자가 두 원자로 갈라져 이웃 자리에 결합합니다.</p>
+      <table id="stats"></table>
+    </div>
+  </div>
+
+  <div class="card bar">
+    <div class="ctl"><label>분자 발사</label><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="launch" class="primary">분자 1개 발사</button><button id="auto">자동 발사</button><button id="pause">일시정지</button><button id="clear">통계 초기화</button></div></div>
+    <div class="ctl"><label class="chk"><input type="checkbox" id="thermal" checked> 입사 운동에너지를 온도 T 의 열분포에서 무작위로 뽑기</label><label class="chk" style="color:var(--muted);font-size:12px">(표면에 부딪히는 분자의 수직 운동에너지 분포는 플럭스 가중 → <span class="eq">f(E<sub>n</sub>) = e<sup>−E<sub>n</sub>/kT</sup>/kT</span>)</label></div>
+    <div class="ctl" id="En-wrap"><label for="En">수동 입사 운동에너지 E<sub>n</sub></label><input id="En" type="range" min="0.005" max="1.0" step="0.005" value="0.04"><div class="v" id="Env"></div></div>
+    <div class="ctl"><label for="spd">애니메이션 속도 (프레임당 fs)</label><input id="spd" type="range" min="2" max="300" step="1" value="40"><div class="v" id="spdv"></div></div>
+  </div>
+
+  <div class="card res" id="info"></div>
+
+  <div class="card">
+    <b style="color:var(--accent)">평균 체류시간 τ<sub>a</sub> = τ<sub>0</sub> exp(q/kT), τ<sub>0</sub> = 10<sup>−13</sup> s (Chambers 식 4.5, Frenkel)</b>
+    <p class="cap" style="margin-top:4px">왼쪽 두 열은 Chambers Table 4.1(실온). 오른쪽 열은 현재 슬라이더 온도 T 에서 같은 식으로 계산한 값. 지수함수 때문에 q 가 두 배 되면 τ<sub>a</sub>는 수십만 배 이상 커집니다.</p>
+    <table id="t41"></table>
+  </div>
+
+  <div class="card note">
+    <b>① 물리흡착 (Chambers Fig. 4.3a).</b> A 바깥에서는 힘이 0. 그 안쪽에서 약하지만 비교적 긴 사정거리의 반데르발스 인력이 작동해 <span class="eq">E &lt; 0</span>. 아주 가까운 D 영역에서는 전자구름이 겹쳐 강한 반발. 인력과 반발이 비기는 C(<span class="eq">z<sub>0</sub></span>)가 우물 바닥이고 그 깊이 <span class="eq">q</span>가 흡착열. 물리흡착열은 6–40 kJ/mol(N₂≈15 kJ/mol, 액화열 6 kJ/mol보다 조금 큼). <span class="eq">97 kJ/mol = 1 eV/분자</span> 이므로 전형적 우물은 ≈0.2 eV. 실온 <span class="eq">kT = 0.025 eV</span>와 비교하면 <span class="eq">q/kT ≈ 6–8</span>. 분자 구조는 거의 변하지 않습니다.
+    <br><br>
+    <b>② 화학흡착 — 분자 그대로 (Fig. 4.3b).</b> 들어오는 분자는 먼저 얕은 물리흡착 상태 P(전구체)에 잠시 머물다가, 장벽 T 를 넘어 더 가깝고 훨씬 깊은 화학흡착 상태 C로 떨어지거나 다시 탈착합니다. 전자를 주고받거나 공유하므로 화학반응에 가깝고 흡착열은 40–1000 kJ/mol. T 가 <span class="eq">E = 0</span> 아래에 있으면 열에너지만으로 넘어가지만, T 가 0 위로 올라오면 <b>활성화 흡착</b>: 입사 분자가 장벽을 넘을 운동에너지를 가져야 합니다. 화학흡착은 표면의 특정 화학적 성질을 쓰므로 대개 한 층(단분자층)에서 끝납니다(Langmuir 등온선). 예: 실온 Ni 위에서 CO는 분자 그대로 화학흡착.
+    <br><br>
+    <b>③ 해리 화학흡착 — Lennard-Jones(1932) 2곡선 그림.</b> Chambers는 해리가 일어나면 도표가 복잡해진다고만 하고 Hudson(1992)·McCash(2001)를 참조하라고 합니다. 표준적 설명은 두 개의 곡선을 함께 그리는 것입니다. <span style="color:var(--cold)">파란 점선 M</span>: 분자 X₂가 통째로 다가올 때(점근선 0, 얕은 물리흡착 우물). <span style="color:var(--hot)">빨간 점선 A</span>: 이미 해리된 두 원자 2X가 다가올 때 — 멀리서는 분자를 쪼개는 데 든 에너지 <span class="eq">D</span>만큼 높고, 표면 가까이에서 원자 하나당 <span class="eq">E<sub>MX</sub></span>씩 결합해 <span class="eq">2E<sub>MX</sub></span>만큼 내려옵니다. 실제 분자는 두 곡선 중 낮은 쪽(검은 실선)을 따라가므로, 기체 분자 기준 해리 흡착열은 <span class="eq">q<sub>diss</sub> = 2E<sub>MX</sub> − D</span>. 두 곡선의 <b>교차점</b>이 장벽이 되며, 교차점이 0 아래이면 비활성(H₂/Ni처럼 실온에서 바로 해리), 0 위이면 활성 장벽 <span class="eq">E<sub>a</sub></span>가 생깁니다. <span class="eq">2E<sub>MX</sub> &lt; D</span> 이면 해리 흡착은 흡열이라 일어나지 않습니다. 해리하면 탈착은 두 원자가 다시 만나야 하므로 <span class="eq">n<sub>a</sub><sup>2</sup></span>에 비례하는 2차 과정이 됩니다(Chambers 4.4 끝).
+    <br><br>
+    <b>활성화 장벽을 넘는 분자의 비율.</b> 표면에 부딪히는 분자의 수직 운동에너지는 플럭스 가중 분포 <span class="eq">f(E<sub>n</sub>) = (1/kT) e<sup>−E<sub>n</sub>/kT</sup></span>(2장의 <span class="eq">v<sub>z</sub> f(v<sub>z</sub>)</span> 가중을 에너지로 바꾼 것)를 따르므로, <span class="eq">E<sub>n</sub> &gt; E<sub>a</sub></span>인 비율은 정확히 <span class="eq">exp(−E<sub>a</sub>/kT)</span> 입니다. 부착계수 s 의 상한에 해당합니다.
+    <br><br>
+    <span class="src">모형 참고: 곡선은 Morse 퍼텐셜 <span class="eq">E(z) = E<sub>∞</sub> + q[(1−e<sup>−a(z−z<sub>0</sub>)</sup>)² − 1]</span>, 두 곡선은 결합 V = 0.15 eV 로 섞어(avoided crossing) 실선을 만듭니다. ②에서 장벽 E<sub>T</sub>는 화학 곡선의 우물 깊이 D<sub>c</sub>(바닥 −q<sub>c</sub> 고정, 점근선 D<sub>c</sub>−q<sub>c</sub>)를 바꿔 맞춥니다. 공의 운동은 1차원 Langevin 동역학(표면 근처에서만 마찰·열잡음). 우물 모양·진동수는 정량적 재현이 아니라 자릿수 설명용이며, 모형 우물 진동수가 10¹³ s⁻¹ 보다 작고 마찰 효과(Kramers)도 있어 측정 체류시간은 식 4.5보다 수 배~10배 길게 나올 수 있습니다. 중요한 것은 q/kT 에 대한 지수적 의존성입니다. 교과서 수치: Chambers 4.4, Table 4.1–4.2. D 값은 표준 결합해리에너지(H₂ 4.52, O₂ 5.12, N₂ 9.76 eV).</span>
+  </div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+</div>
+
+<script>
+// ---------- 상수 (단위: eV, Å, amu, fs) ----------
+var kB = 8.617e-5;            // eV/K
+var CU = 9.6485e-3;           // (eV/amu) → Å²/fs²  ( a = F/m 변환 )
+var R  = 8.314e-3;            // kJ/(mol·K)
+var EV_PER_KJMOL = 1/96.485;  // 1 kJ/mol = 0.01036 eV
+var ZFAR = 8.0, ZMIN = 0.5;
+var TAU0 = 1e-13;             // s
+
+// ---------- 상태 ----------
+var S = { mode:'phys', T:300, qp:15, qc:100, Et:-0.05, D:4.52, Emx:2.7, zA:1.8, ymax:0.6,
+          zp:3.3, ap:0.9, zc:1.9, ac:2.5, aA:0.8, V:0.15, mass:28, En:0.04, thermal:true, fsPerFrame:40 };
+var A = {};               // analyze() 결과
+var P = null;             // 날아가는 분자
+var tSim = 0;             // fs
+var paused=false, autoLaunch=false, autoTimer=0;
+var stats = {launch:0, refl:0, trap:0, chem:0, des:0, stuck:0, stay:[]};
+var Dc = 2.0;             // 모드 ② 화학 곡선(Morse)의 깊이. 우물 바닥은 −q_c 로 고정, 점근선은 Dc − q_c. E_T 슬라이더로부터 역산
+
+// ---------- 퍼텐셜 ----------
+function morse(q,z0,a,Einf,z){ var e=1-Math.exp(-a*(z-z0)); return Einf + q*(e*e-1); }
+function qpEV(){ return S.qp*EV_PER_KJMOL; }
+function qcEV(){ return S.qc*EV_PER_KJMOL; }
+function E1(z){ return morse(qpEV(), S.zp, S.ap, 0, z); }
+function E2(z){
+  if(S.mode==='chem') return morse(Dc, S.zc, S.ac, Dc-qcEV(), z);   // 바닥 = −q_c
+  if(S.mode==='diss') return morse(2*S.Emx, S.zA, S.aA, S.D, z);
+  return 1e9;
+}
+function Elow(z){
+  var a=E1(z); if(S.mode==='phys') return a;
+  var b=E2(z), h=(a-b)/2;
+  return (a+b)/2 - Math.sqrt(h*h+S.V*S.V);
+}
+function wA(z){ // 아래쪽 단열 곡선에서 2번 곡선(화학/원자) 성격의 비중 0~1
+  if(S.mode==='phys') return 0;
+  var a=E1(z), b=E2(z), h=(a-b)/2, r=Math.sqrt(h*h+S.V*S.V);
+  return 0.5*(1 + h/r);
+}
+function force(z){ var h=1e-3; return -(Elow(z+h)-Elow(z-h))/(2*h); }
+
+// 모드 ②: 장벽 꼭대기 에너지가 S.Et 가 되도록 Delta 를 이분법으로
+function barrierTopFor(dc){
+  var save=Dc; Dc=dc;
+  var r=scanWells(); Dc=save;
+  return r.barrier===null ? -Infinity : r.barrier.E;
+}
+var EtRange=[0,0];
+function solveDelta(){
+  // 장벽 꼭대기 E_T 는 Δ 에 대해 단조 증가하지만, 장벽이 존재하는 Δ 범위가 유한함 → 격자 탐색 후 가장 가까운 값
+  var best=null, bestD=0, lo=Infinity, hi=-Infinity;
+  for(var k=0;k<=220;k++){
+    var d=qcEV()+0.02*Math.pow(1.04,k);   // 0.02 … ~110 eV 로그 격자
+    var bt=barrierTopFor(d); if(!isFinite(bt)) continue;
+    if(bt<lo) lo=bt; if(bt>hi) hi=bt;
+    var err=Math.abs(bt-S.Et); if(best===null||err<best){ best=err; bestD=d; }
+  }
+  if(best===null){ bestD=qcEV()+1; lo=hi=NaN; }
+  EtRange=[lo,hi]; Dc=bestD;
+}
+function scanWells(){
+  var dz=0.005, zs=[], Es=[];
+  for(var z=ZMIN; z<=ZFAR; z+=dz){ zs.push(z); Es.push(Elow(z)); }
+  var mins=[], maxs=[];
+  for(var i=1;i<Es.length-1;i++){
+    if(Es[i]<Es[i-1] && Es[i]<=Es[i+1]) mins.push({z:zs[i],E:Es[i]});
+    if(Es[i]>Es[i-1] && Es[i]>=Es[i+1]) maxs.push({z:zs[i],E:Es[i]});
+  }
+  var inner=null, outer=null;
+  if(S.mode==='phys'){ inner=mins.length?mins[mins.length-1]:null; }
+  else {
+    for(var q=mins.length-1;q>=0;q--){ if(wA(mins[q].z)<0.5 && mins[q].E<0){ outer=mins[q]; break; } }     // 물리흡착(분자 성격) 우물
+    for(var q2=0;q2<mins.length;q2++){ if(wA(mins[q2].z)>0.5 && mins[q2].E<0){ inner=mins[q2]; break; } }  // 화학흡착(원자/결합 성격) 우물
+    if(inner && outer && inner.z>=outer.z) inner=null;
+  }
+  var barrier=null;
+  if(inner && outer){ for(var k=0;k<maxs.length;k++) if(maxs[k].z>inner.z && maxs[k].z<outer.z){ if(!barrier||maxs[k].E>barrier.E) barrier=maxs[k]; } }
+  var cross=null;
+  if(S.mode!=='phys'){ for(var j=zs.length-1;j>=1;j--){ var d0=E1(zs[j-1])-E2(zs[j-1]), d1=E1(zs[j])-E2(zs[j]); if(d0*d1<=0){ cross={z:zs[j],E:(E1(zs[j])+E2(zs[j]))/2}; break; } } }  // 바깥쪽(큰 z) 교차점
+  return {inner:inner, outer:outer, barrier:barrier, cross:cross, mins:mins};
+}
+function analyze(){
+  if(S.mode==='chem') solveDelta();
+  A=scanWells();
+  var kT=kB*S.T;
+  A.kT=kT;
+  if(S.mode==='phys'){ A.qPhys=-(A.inner?A.inner.E:0); A.qChem=null; A.Ea=0; }
+  else {
+    A.qPhys = A.outer ? -A.outer.E : 0;
+    if(!A.inner){ A.qChem=null; A.Ea=Infinity; }                 // 안정한 화학흡착 우물 없음 (흡열)
+    else { A.qChem=-A.inner.E; A.Ea = A.barrier ? Math.max(0, A.barrier.E) : 0; }
+  }
+  // 우물 바닥 곡률로 본 모형 진동수 (Chambers 는 f ≈ 10¹³ s⁻¹ 가정)
+  function fWell(w){ if(!w) return null; var h=0.01, k=(Elow(w.z+h)-2*Elow(w.z)+Elow(w.z-h))/(h*h); return Math.sqrt(Math.max(k,1e-9)*CU/S.mass)/(2*Math.PI)*1e15; }
+  A.fPhys = fWell(S.mode==='phys'?A.inner:A.outer);
+  A.stick = isFinite(A.Ea) ? Math.exp(-A.Ea/kT) : 0;
+  // 안정적인 시간 간격: 최대 곡률 → ω
+  var kmax=0;
+  for(var z=ZMIN+0.2; z<ZFAR; z+=0.02){ var h=0.01, k=(Elow(z+h)-2*Elow(z)+Elow(z-h))/(h*h); if(k>kmax) kmax=k; }
+  var omega=Math.sqrt(Math.max(kmax,1e-6)*CU/S.mass);
+  A.dt=Math.min(0.5, 0.05*2*Math.PI/omega);
+  A.f = omega/(2*Math.PI)*1e15; // 최대 곡률 기준 진동수 (Hz), 참고용
+}
+
+// ---------- 동역학 ----------
+function gauss(){ var u=1-Math.random(), v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v); }
+function launch(){
+  var kT=kB*S.T;
+  var En = S.thermal ? -kT*Math.log(1-Math.random()) : S.En;
+  var v=-Math.sqrt(2*En*CU/S.mass);
+  P={z:ZFAR-0.01, v:v, bound:false, chem:false, tBound:0, tChem:0, En:En};
+  stats.launch++;
+}
+function step(){
+  if(!P) return;
+  var dt=A.dt, m=S.mass, kT=kB*S.T;
+  var acc=force(P.z)*CU/m;
+  P.v+=0.5*acc*dt; P.z+=P.v*dt;
+  if(P.z<ZMIN){ P.z=ZMIN+(ZMIN-P.z); P.v=-P.v; }
+  acc=force(P.z)*CU/m; P.v+=0.5*acc*dt;
+  // 표면 근처에서만 열욕 (Langevin)
+  var zc=S.zp+1.2, w = P.z<zc ? 1 : Math.exp(-(P.z-zc)*(P.z-zc)/0.5);
+  if(w>1e-3){ var g=0.006*w, c=Math.exp(-g*dt); P.v = P.v*c + Math.sqrt(kT*CU/m*(1-c*c))*gauss(); }
+  tSim+=dt;
+  var Etot=Elow(P.z)+0.5*m*P.v*P.v/CU;
+  if(!P.bound && Etot<0 && P.z<S.zp+1.0){ P.bound=true; P.tBound=tSim; stats.trap++; }
+  if(!P.chem && S.mode!=='phys' && A.barrier && P.z<A.barrier.z && wA(P.z)>0.5){ P.chem=true; P.tChem=tSim; stats.chem++; }
+  if(!P.chem && S.mode!=='phys' && !A.barrier && A.inner && P.z<A.inner.z+0.3 && wA(P.z)>0.5){ P.chem=true; P.tChem=tSim; stats.chem++; }
+  if(P.z>=ZFAR && P.v>0){
+    if(P.bound){ stats.des++; stats.stay.push((tSim-P.tBound)*1e-15); } else stats.refl++;
+    P=null;
+  }
+}
+
+// ---------- 그리기 ----------
+var dpr=window.devicePixelRatio||1;
+function ctx(id,w,h){ var c=document.getElementById(id); c.width=w*dpr; c.height=h*dpr; c.style.aspectRatio=w+'/'+h; var g=c.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); return g; }
+var EW=720, EH=430, RW=330, RH=430;
+var ge, gr;
+function xE(z){ return 56+(z/ZFAR)*(EW-76); }
+function yE(E){ var top=S.ymax, bot=-(Math.max(A.qChem||0, A.qPhys||0)*1.15+0.05); if(S.mode==='phys') bot=-(qpEV()*1.3+0.05); bot=Math.min(bot,-0.1); return 14+(top-E)/(top-bot)*(EH-54); }
+function drawCurve(fn,color,dash,width){
+  ge.strokeStyle=color; ge.lineWidth=width||2; ge.setLineDash(dash||[]); ge.beginPath(); var first=true;
+  for(var z=ZMIN; z<=ZFAR; z+=0.01){ var y=yE(fn(z)); if(y<-50){ first=true; continue; } if(first){ ge.moveTo(xE(z),y); first=false;} else ge.lineTo(xE(z),y); }
+  ge.stroke(); ge.setLineDash([]);
+}
+function drawEnergy(){
+  ge.clearRect(0,0,EW,EH);
+  ge.fillStyle='#222623'; ge.fillRect(0,0,EW,EH);
+  // 표면 (z=0) 음영
+  ge.fillStyle='#2c302d'; ge.fillRect(40,14,xE(0)-40,EH-54+14-14);
+  ge.fillStyle='#3a403c'; ge.fillRect(xE(0)-4,14,4,EH-40);
+  // 축
+  ge.strokeStyle='#6f7772'; ge.lineWidth=1;
+  ge.beginPath(); ge.moveTo(xE(0),yE(0)); ge.lineTo(EW-20,yE(0)); ge.stroke();   // E=0
+  ge.beginPath(); ge.moveTo(xE(0),14); ge.lineTo(xE(0),EH-40); ge.stroke();
+  ge.fillStyle='#a8b0aa'; ge.font='12px sans-serif'; ge.textAlign='center';
+  for(var z=0; z<=ZFAR; z+=1){ ge.fillText(z+'', xE(z), EH-24); ge.beginPath(); ge.moveTo(xE(z),yE(0)-3); ge.lineTo(xE(z),yE(0)+3); ge.stroke(); }
+  ge.fillText('표면으로부터의 거리 z (Å)', xE(ZFAR/2), EH-8);
+  ge.textAlign='right';
+  var top=S.ymax; var stepE = top>4?2:top>1.5?0.5:top>0.5?0.2:0.1;
+  for(var E=-20; E<=top+1e-9; E=+(E+stepE).toFixed(3)){ var y=yE(E); if(y<14||y>EH-40) continue; ge.fillText(E.toFixed(E%1?1:0), xE(0)-6, y+4); ge.beginPath(); ge.moveTo(xE(0)-3,y); ge.lineTo(xE(0),y); ge.stroke(); }
+  ge.save(); ge.translate(14,EH/2-20); ge.rotate(-Math.PI/2); ge.textAlign='center'; ge.fillText('퍼텐셜 에너지 E (eV)', 0, 0); ge.restore();
+  ge.textAlign='left'; ge.fillStyle='#a8b0aa'; ge.fillText('E = 0 (멀리 떨어진 기체 분자)', EW-240, yE(0)-6);
+
+  // 곡선
+  if(S.mode!=='phys'){
+    drawCurve(E1,'#6aa6f2',[6,4],1.5);
+    drawCurve(E2,'#f28b62',[6,4],1.5);
+  }
+  drawCurve(Elow,'#e8ece9',[],2.4);
+
+  // 표식
+  ge.font='13px sans-serif';
+  function dot(z,E,label,dx,dy,color){ ge.fillStyle=color||'#e8ece9'; ge.beginPath(); ge.arc(xE(z),yE(E),3.5,0,6.283); ge.fill(); ge.textAlign='left'; ge.fillText(label, xE(z)+dx, yE(E)+dy); }
+  function vArrow(z,E0,E1,label,color){
+    var x=xE(z), y0=yE(E0), y1=yE(E1); ge.strokeStyle=color; ge.fillStyle=color; ge.lineWidth=1.3; ge.setLineDash([3,3]);
+    ge.beginPath(); ge.moveTo(x,y0); ge.lineTo(x,y1); ge.stroke(); ge.setLineDash([]);
+    ge.beginPath(); ge.moveTo(x,y1); ge.lineTo(x-4,y1+(y0>y1?6:-6)); ge.lineTo(x+4,y1+(y0>y1?6:-6)); ge.closePath(); ge.fill();
+    ge.textAlign='left'; ge.fillText(label, x+6, (y0+y1)/2+4);
+  }
+  if(S.mode==='phys'){
+    if(A.inner){ dot(A.inner.z,A.inner.E,'C (z₀, 평형)',8,14); vArrow(A.inner.z+0.5,0,A.inner.E,'q = '+(-A.inner.E).toFixed(2)+' eV = '+S.qp+' kJ/mol','#f28b62'); }
+    var zA_=S.zp+2.5; dot(zA_,Elow(zA_),'A (힘 ≈ 0)',8,-8,'#a8b0aa');
+    var zD=A.inner?A.inner.z-0.45:1.5; dot(zD,Math.min(Elow(zD),S.ymax*0.9),'D (반발)',8,-8,'#a8b0aa');
+  } else {
+    if(A.outer) dot(A.outer.z,A.outer.E,'P (물리흡착 전구체)',8,14,'#6aa6f2');
+    if(A.inner){ dot(A.inner.z,A.inner.E,S.mode==='diss'?'C (해리 화학흡착: 2X)':'C (화학흡착)',8,14,'#f28b62'); vArrow(A.inner.z+0.35,0,A.inner.E,'q = '+(-A.inner.E).toFixed(2)+' eV ≈ '+(-A.inner.E*96.485).toFixed(0)+' kJ/mol','#f28b62'); }
+    if(A.barrier){ dot(A.barrier.z,A.barrier.E,'T (장벽)'+(A.barrier.E>0?'  활성화 흡착!':''),8,-8,'#e8ece9'); if(A.barrier.E>0) vArrow(A.barrier.z-0.55,0,A.barrier.E,'E_a = '+A.barrier.E.toFixed(2)+' eV','#3fcf98'); }
+    if(A.cross){ ge.strokeStyle='#6f7772'; ge.setLineDash([2,3]); ge.beginPath(); ge.arc(xE(A.cross.z),yE(A.cross.E),7,0,6.283); ge.stroke(); ge.setLineDash([]); ge.fillStyle='#a8b0aa'; ge.textAlign='left'; ge.textAlign='right'; ge.fillText('교차점', xE(A.cross.z)-10, yE(A.cross.E)-8); ge.textAlign='left'; }
+    if(S.mode==='diss'){
+      ge.fillStyle='#f28b62'; ge.textAlign='right';
+      var yD=yE(S.D);
+      if(yD<14) ge.fillText('A 곡선 점근선: D = '+S.D.toFixed(2)+' eV (화면 위쪽) ↑', EW-24, 26); else ge.fillText('2X + 표면 (멀리) : D = '+S.D.toFixed(2)+' eV', EW-24, yD-6);
+      ge.fillStyle='#6aa6f2'; ge.fillText('M: X₂ 분자', EW-24, yE(0)+16);
+    } else {
+      ge.fillStyle='#f28b62'; ge.textAlign='right'; var yDl=yE(Dc-qcEV()); if(yDl>14 && yDl<EH-40) ge.fillText('C 곡선 점근선 (D_c − q_c = '+(Dc-qcEV()).toFixed(2)+' eV)', EW-24, yDl-6); else if(yDl<=14) ge.fillText('C 곡선 점근선 D_c − q_c = '+(Dc-qcEV()).toFixed(2)+' eV (화면 위쪽) ↑', EW-24, 26);
+    }
+  }
+
+  // 공 (분자)
+  if(P){
+    var Ek=0.5*S.mass*P.v*P.v/CU, Ep=Elow(P.z), Et=Ep+Ek;
+    ge.strokeStyle='#3fcf98'; ge.setLineDash([4,3]); ge.lineWidth=1; ge.beginPath(); ge.moveTo(xE(Math.max(ZMIN,P.z-1.2)),yE(Et)); ge.lineTo(xE(Math.min(ZFAR,P.z+1.2)),yE(Et)); ge.stroke(); ge.setLineDash([]);
+    ge.fillStyle='#3fcf98'; ge.textAlign='left'; ge.font='12px sans-serif'; ge.fillText('총에너지 '+Et.toFixed(2)+' eV', xE(Math.min(ZFAR-1.3,P.z+1.25)), yE(Et)+4);
+    var yb=yE(Ep); if(yb>8){
+      ge.fillStyle=P.chem?'#f28b62':'#6aa6f2'; ge.beginPath(); ge.arc(xE(P.z),yb-7,7,0,6.283); ge.fill();
+      ge.strokeStyle='#fff'; ge.lineWidth=1.5; ge.beginPath(); ge.arc(xE(P.z),yb-7,7,0,6.283); ge.stroke();
+    }
+  }
+  ge.font='12px sans-serif'; ge.fillStyle='#a8b0aa'; ge.textAlign='left'; ge.fillText('t = '+(tSim/1000).toFixed(2)+' ps   (실제 10⁻¹² s 를 수 초로 늘려 보고 있음)', 60, 26);
+}
+
+function drawReal(){
+  gr.clearRect(0,0,RW,RH); gr.fillStyle='#222623'; gr.fillRect(0,0,RW,RH);
+  var y0=RH-40, scale=(RH-80)/ZFAR, cx=RW/2;
+  // 표면 원자
+  var r=18, n=Math.ceil(RW/(2*r))+1;
+  for(var row=0; row<2; row++) for(var i=0;i<n;i++){ var x=i*2*r+(row%2?r:0), y=y0+r+row*2*r*0.87; var g=gr.createRadialGradient(x-5,y-5,2,x,y,r); g.addColorStop(0,'#a8b0aa'); g.addColorStop(1,'#3a403c'); gr.fillStyle=g; gr.beginPath(); gr.arc(x,y,r,0,6.283); gr.fill(); }
+  gr.fillStyle='#a8b0aa'; gr.font='12px sans-serif'; gr.textAlign='left'; gr.fillText('표면 원자 (M)', 8, y0-6);
+  // z 눈금
+  gr.strokeStyle='#2c302d'; for(var z=1; z<=ZFAR; z+=1){ var yy=y0-z*scale; gr.beginPath(); gr.moveTo(RW-30,yy); gr.lineTo(RW-22,yy); gr.stroke(); gr.fillText(z, RW-20, yy+4); }
+  gr.fillText('z (Å)', RW-38, 16);
+  if(!P) { gr.fillStyle='#6f7772'; gr.textAlign='center'; gr.fillText('"분자 1개 발사" 를 누르세요', cx, RH/2); return; }
+  var yz=y0-P.z*scale, zz=P.z;
+  if(S.mode==='diss'){
+    var w=wA(zz), sep=10+w*2*r*0.9;             // 원자 간 거리: 분자(10px) → 이웃 자리(2r)
+    var col1=mixc([106,166,242],[242,139,98],w);
+    var yy2=yz;
+    if(w>0.5){ yy2=y0-(S.zA*scale)*(1-(w-0.5)*0) ; }
+    if(w<1){ gr.strokeStyle=col1; gr.lineWidth=4*(1-w); if(gr.lineWidth>0.2){ gr.beginPath(); gr.moveTo(cx-sep/2,yz); gr.lineTo(cx+sep/2,yz); gr.stroke(); } }
+    [cx-sep/2,cx+sep/2].forEach(function(x){ gr.fillStyle=col1; gr.beginPath(); gr.arc(x,yz,8,0,6.283); gr.fill(); });
+    gr.fillStyle='#e8ece9'; gr.textAlign='center'; gr.fillText(w>0.5?'2X (해리, 각각 표면에 결합)':'X₂ (분자)', cx, yz-16);
+  } else if(S.mode==='chem'){
+    var w2=wA(zz), col=mixc([106,166,242],[242,139,98],w2);
+    gr.fillStyle=col; gr.beginPath(); gr.arc(cx-6,yz,8,0,6.283); gr.fill(); gr.beginPath(); gr.arc(cx+6,yz,8,0,6.283); gr.fill();
+    gr.fillStyle='#e8ece9'; gr.textAlign='center'; gr.fillText(w2>0.5?'화학흡착 (전자 공유)':'분자 (물리흡착/기체)', cx, yz-16);
+  } else {
+    gr.fillStyle='#6aa6f2'; gr.beginPath(); gr.arc(cx-6,yz,8,0,6.283); gr.fill(); gr.beginPath(); gr.arc(cx+6,yz,8,0,6.283); gr.fill();
+    gr.fillStyle='#e8ece9'; gr.textAlign='center'; gr.fillText(P.bound?'물리흡착 (반데르발스)':'기체 분자', cx, yz-16);
+  }
+  // 속도 화살표
+  var vy=-P.v*scale*12; gr.strokeStyle='#3fcf98'; gr.lineWidth=2; gr.beginPath(); gr.moveTo(cx+26,yz); gr.lineTo(cx+26,yz+vy); gr.stroke();
+}
+function lerp(a,b,t){ return a+(b-a)*t; }
+function mixc(c1,c2,t){ t=Math.max(0,Math.min(1,t)); return 'rgb('+Math.round(lerp(c1[0],c2[0],t))+','+Math.round(lerp(c1[1],c2[1],t))+','+Math.round(lerp(c1[2],c2[2],t))+')'; }
+
+// ---------- 표·정보 ----------
+var SUP={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+function sci(x,d){ if(x===0) return '0'; var e=Math.floor(Math.log10(Math.abs(x))), m=x/Math.pow(10,e); if(Math.abs(m)>=9.95){ m/=10; e++; } return m.toFixed(d===undefined?1:d)+'×10'+String(e).split('').map(function(c){return SUP[c]||c;}).join(''); }
+function p2(x){ return String(+x.toPrecision(2)); }
+function fmtT(s){
+  if(!isFinite(s)) return '∞';
+  if(s<1e-9) return p2(s*1e12)+' ps';
+  if(s<1e-6) return p2(s*1e9)+' ns';
+  if(s<1e-3) return p2(s*1e6)+' μs';
+  if(s<1) return p2(s*1e3)+' ms';
+  if(s<60) return p2(s)+' s';
+  if(s<3600) return p2(s/60)+' 분';
+  if(s<86400) return p2(s/3600)+' 시간';
+  if(s<3.156e7) return p2(s/86400)+' 일';
+  if(s<3.156e7*1e6) return p2(s/3.156e7)+' 년';
+  if(s<4e17) return sci(s/3.156e7)+' 년';
+  return sci(s)+' s (우주 나이 ≈ 4×10¹⁷ s 보다 김)';
+}
+function tauA(q_eV,T){ return TAU0*Math.exp(q_eV/(kB*T)); }
+function updateInfo(){
+  var kT=A.kT, h='';
+  h+='<b>kT</b> = '+kT.toFixed(4)+' eV (T = '+S.T+' K)';
+  h+=' &nbsp;|&nbsp; 물리흡착 우물 q<sub>p</sub> = <b>'+A.qPhys.toFixed(3)+' eV</b> = '+(A.qPhys*96.485).toFixed(0)+' kJ/mol'+(S.mode!=='phys'?' (실선 기준; 두 곡선의 결합 V 때문에 슬라이더 값보다 조금 깊음)':'')+' → q<sub>p</sub>/kT = '+(A.qPhys/kT).toFixed(1)+', 체류시간 τ<sub>a</sub>(식 4.5) = <b>'+fmtT(tauA(A.qPhys,S.T))+'</b>';
+  if(S.mode!=='phys' && A.qChem!==null){
+    h+='<br>화학흡착 우물 q = <b>'+A.qChem.toFixed(2)+' eV</b> = '+(A.qChem*96.485).toFixed(0)+' kJ/mol → q/kT = '+(A.qChem/kT).toFixed(0)+', τ<sub>a</sub> = <b>'+fmtT(tauA(A.qChem,S.T))+'</b> (10<sup>13</sup> 번/초 두드려 보는 횟수로 '+sci(tauA(A.qChem,S.T)*1e13)+' 번)';
+  }
+  if(S.mode==='diss'){
+    var qd=2*S.Emx-S.D;
+    h+='<br>해리 흡착열 (곡선 교차 전 추정) q<sub>diss</sub> = 2E<sub>MX</sub> − D = 2×'+S.Emx.toFixed(2)+' − '+S.D.toFixed(2)+' = <b>'+qd.toFixed(2)+' eV</b>'+(qd<0?' <span style="color:var(--hot)">&lt; 0 → 흡열: 해리 화학흡착 불안정</span>':'');
+  }
+  if(S.mode!=='phys'){
+    if(!isFinite(A.Ea)) h+='<br><span style="color:var(--hot)">화학흡착 우물이 E=0 위에 있어(흡열) 안정한 화학흡착 상태가 없습니다.</span>';
+    else if(A.Ea>0) h+='<br>장벽 T 가 E=0 <b>위</b>에 있음 → <b>활성화 흡착</b>, E<sub>a</sub> = <b>'+A.Ea.toFixed(2)+' eV</b>, E<sub>a</sub>/kT = '+(A.Ea/kT).toFixed(1)+'. 입사 분자 중 장벽을 넘을 수 있는 비율 exp(−E<sub>a</sub>/kT) = <b>'+(A.stick<1e-3?sci(A.stick):A.stick.toFixed(3))+'</b> (부착계수의 상한)';
+    else h+='<br>장벽 T 가 E=0 <span class="ok">아래</span> → 비활성 흡착: 열에너지만 있으면 전구체 P에서 C로 넘어갈 수 있음 (exp(−E<sub>a</sub>/kT) = 1).';
+  }
+  document.getElementById('info').innerHTML=h;
+
+  // 통계
+  var mean = stats.stay.length ? stats.stay.reduce(function(a,b){return a+b;},0)/stats.stay.length : null;
+  var rows=[['발사한 분자', stats.launch],['장벽에 막혀/표면에 튕겨 되돌아감 (포획 안 됨)', stats.refl],['물리흡착으로 포획(총에너지 &lt; 0)', stats.trap]];
+  if(S.mode!=='phys') rows.push([S.mode==='diss'?'해리 화학흡착 (원자 곡선으로 넘어감)':'화학흡착 (장벽 T 를 넘어 C로)', stats.chem]);
+  rows.push(['포획 후 탈착', stats.des]);
+  if(S.mode!=='phys') rows.push(['화학흡착 상태로 표면에 남음 (자동 발사 시 3 ps 후 제거)', stats.stuck]);
+  rows.push(['탈착한 분자의 평균 체류시간 (모형 측정)', mean===null?'—':fmtT(mean)]);
+  rows.push(['식 4.5 예측 τ<sub>a</sub> = 10⁻¹³·e<sup>q/kT</sup> (물리흡착 우물)', fmtT(tauA(A.qPhys,S.T))]);
+  if(A.fPhys) rows.push(['모형 우물 진동수 f (Chambers 가정 10¹³ s⁻¹)', sci(A.fPhys)+' s⁻¹ → (1/f)·e<sup>q/kT</sup> = '+fmtT(Math.exp(A.qPhys/A.kT)/A.fPhys)]);
+  var th='<tr><th>항목</th><th>값</th></tr>';
+  document.getElementById('stats').innerHTML=th+rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+}
+var T41=[[6,'1.2 × 10⁻¹² s'],[15,'5 × 10⁻¹¹ s'],[40,'1.2 × 10⁻⁶ s'],[60,'5.5 × 10⁻³ s'],[80,'15 s'],[90,'15 min'],[95,'2 h'],[100,'8 × 10⁴ s ≈ 1 d'],[120,'2 × 10⁸ s ≈ 10 yr'],[150,'7 × 10¹³ s ≈ 20,000 yr']];
+function updateT41(){
+  var h='<tr><th>q (kJ/mol)</th><th>q (eV)</th><th>Chambers Table 4.1 (실온)</th><th>식 4.5, T = '+S.T+' K</th><th>q/kT</th></tr>';
+  T41.forEach(function(r){ var q=r[0], qe=q*EV_PER_KJMOL, t=TAU0*Math.exp(q/(R*S.T)); h+='<tr><td>'+q+'</td><td>'+qe.toFixed(3)+'</td><td>'+r[1]+'</td><td>'+fmtT(t)+'</td><td>'+(q/(R*S.T)).toFixed(1)+'</td></tr>'; });
+  document.getElementById('t41').innerHTML=h;
+}
+
+// ---------- UI ----------
+function $(id){ return document.getElementById(id); }
+function setMode(m){
+  S.mode=m; P=null;
+  document.querySelectorAll('.mode').forEach(function(b){ b.classList.toggle('on', b.id==='m-'+m); });
+  document.querySelectorAll('.c-chem').forEach(function(e){ e.classList.toggle('hidden', m!=='chem'); });
+  document.querySelectorAll('.c-diss').forEach(function(e){ e.classList.toggle('hidden', m!=='diss'); });
+  $('presets-wrap').classList.toggle('hidden', m!=='diss');
+  if(m==='phys'){ S.mass=28; S.ymax=0.6; }
+  if(m==='chem'){ S.mass=28; S.ymax=1.5; }
+  if(m==='diss'){ S.mass=2; S.ymax=1.5; }
+  $('ymax').value=S.ymax;
+  $('eccap').innerHTML = m==='phys'
+    ? '검은 실선: 물리흡착 퍼텐셜. 표면 가까이에서 공은 표면 열진동과 에너지를 주고받으며(초록 점선 = 총에너지) 우물에 갇히거나 다시 튕겨 나갑니다. q/kT 가 작을수록(온도↑, q↓) 금방 탈착합니다.'
+    : m==='chem'
+    ? '파란 점선: 분자가 그대로 다가오는 곡선(물리흡착). 빨간 점선: 전자를 공유하는 화학흡착 곡선(바닥 −q<sub>c</sub>; 표면에서 멀어지면 결합이 끊겨 에너지가 가파르게 오름). 장벽 E<sub>T</sub> 슬라이더는 이 곡선의 기울기를 바꿉니다. 검은 실선: 실제로 따라가는 아래쪽 곡선 = Chambers Fig. 4.3(b)의 P–T–C.'
+    : '파란 점선 M: X₂ 분자 (점근선 0). 빨간 점선 A: 해리된 2X (점근선 D, 표면에서 2E<sub>MX</sub> 만큼 하강). 검은 실선: 둘 중 낮은 쪽. 교차점이 0 위에 있으면 활성 장벽 E<sub>a</sub>.';
+  stats={launch:0, refl:0, trap:0, chem:0, des:0, stuck:0, stay:[]}; tSim=0;
+  refresh();
+}
+function readCtl(){
+  S.T=+$('T').value; S.qp=+$('qp').value; S.qc=+$('qc').value; S.Et=+$('Et').value; S.D=+$('D').value; S.Emx=+$('Emx').value; S.zA=+$('za').value; S.ymax=+$('ymax').value;
+  S.En=+$('En').value; S.thermal=$('thermal').checked; S.fsPerFrame=+$('spd').value;
+  $('Tv').textContent=S.T+' K  (kT = '+(kB*S.T).toFixed(4)+' eV)';
+  $('qpv').textContent=S.qp+' kJ/mol = '+(S.qp*EV_PER_KJMOL).toFixed(3)+' eV';
+  $('qcv').textContent=S.qc+' kJ/mol = '+(S.qc*EV_PER_KJMOL).toFixed(2)+' eV';
+  $('Etv').textContent=(S.Et>=0?'+':'')+S.Et.toFixed(2)+' eV'+(S.Et>0?'  (활성화 흡착)':'  (비활성)')+(S.mode==='chem'&&isFinite(EtRange[0])&&(S.Et<EtRange[0]-0.005||S.Et>EtRange[1]+0.005)?'  — 이 q_c 로는 '+EtRange[0].toFixed(2)+' ~ '+EtRange[1].toFixed(2)+' eV 만 가능, 가장 가까운 값 사용':'');
+  $('Dv').textContent=S.D.toFixed(2)+' eV = '+(S.D*96.485).toFixed(0)+' kJ/mol';
+  $('Emxv').textContent=S.Emx.toFixed(2)+' eV  → 2E_MX = '+(2*S.Emx).toFixed(2)+' eV, q_diss = 2E_MX − D = '+(2*S.Emx-S.D).toFixed(2)+' eV';
+  $('zav').textContent=S.zA.toFixed(2)+' Å';
+  $('ymaxv').textContent='−q … +'+S.ymax.toFixed(1)+' eV';
+  $('Env').textContent=S.En.toFixed(3)+' eV = '+(S.En/(kB*S.T)).toFixed(1)+' kT';
+  $('En-wrap').classList.toggle('hidden', S.thermal);
+  $('spdv').textContent=S.fsPerFrame+' fs/프레임 ≈ '+(S.fsPerFrame*60/1000).toFixed(1)+' ps/초';
+}
+function refresh(){ readCtl(); analyze(); readCtl(); updateInfo(); updateT41(); drawEnergy(); drawReal(); }
+['T','qp','qc','Et','D','Emx','za','ymax','En','spd'].forEach(function(id){ $(id).addEventListener('input', refresh); });
+$('thermal').addEventListener('change', refresh);
+$('m-phys').onclick=function(){ setMode('phys'); };
+$('m-chem').onclick=function(){ setMode('chem'); };
+$('m-diss').onclick=function(){ setMode('diss'); };
+var PRESETS={ h2:{D:4.52,Emx:2.70,za:1.9,mass:2,ymax:1.5}, o2:{D:5.12,Emx:3.60,za:1.7,mass:32,ymax:2.5}, n2a:{D:9.76,Emx:5.05,za:1.6,mass:28,ymax:1.2}, endo:{D:4.52,Emx:2.00,za:1.9,mass:2,ymax:1.5} };
+document.querySelectorAll('.preset').forEach(function(b){ b.onclick=function(){ var p=PRESETS[b.dataset.p]; $('D').value=p.D; $('Emx').value=p.Emx; $('za').value=p.za; $('ymax').value=p.ymax; S.mass=p.mass; P=null; refresh(); }; });
+$('launch').onclick=function(){ launch(); };
+$('auto').onclick=function(){ autoLaunch=!autoLaunch; $('auto').classList.toggle('on',autoLaunch); $('auto').textContent=autoLaunch?'자동 발사 중지':'자동 발사'; };
+$('pause').onclick=function(){ paused=!paused; $('pause').textContent=paused?'계속':'일시정지'; };
+$('clear').onclick=function(){ stats={launch:0, refl:0, trap:0, chem:0, des:0, stuck:0, stay:[]}; tSim=0; P=null; updateInfo(); };
+
+ge=ctx('ec',EW,EH); gr=ctx('rc',RW,RH);
+setMode('phys');
+
+var frameCount=0;
+function frame(){
+  if(!paused){
+    var budget=S.fsPerFrame, used=0;
+    while(P && used<budget){ step(); used+=A.dt; }
+    if(autoLaunch && P && P.chem && tSim-P.tChem>3000){ P=null; stats.stuck++; }   // 화학흡착 → 사실상 영구히 남음. 자동 발사 때는 3 ps 뒤 다음 분자
+    if(autoLaunch && !P){ autoTimer++; if(autoTimer>25){ autoTimer=0; launch(); } }
+    frameCount++;
+    if(frameCount%6===0) updateInfo();
+    drawEnergy(); drawReal();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
