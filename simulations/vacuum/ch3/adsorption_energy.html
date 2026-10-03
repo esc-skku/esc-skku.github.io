@@ -26,6 +26,8 @@
   .grid{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:14px}
   @media (max-width:1000px){.grid{grid-template-columns:1fr}}
   canvas{display:block;width:100%;height:auto}
+  #ec{width:min(100%, calc(52vh * 720 / 430));margin:0 auto}
+  #rc{width:min(100%, calc(52vh * 330 / 430));margin:0 auto}
   .cap{font-size:13px;color:var(--muted);margin:8px 2px 0}
   table{width:100%;border-collapse:collapse;font-size:14px}
   th,td{padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -84,6 +86,13 @@
     <div class="ctl"><label for="ymax">세로축 범위 (eV)</label><input id="ymax" type="range" min="0.3" max="12" step="0.1" value="0.6"><div class="v" id="ymaxv"></div></div>
   </div>
 
+  <div class="card bar">
+    <div class="ctl"><label>분자 발사</label><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="launch" class="primary">분자 1개 발사</button><button id="auto">자동 발사</button><button id="pause">일시정지</button><button id="clear">통계 초기화</button></div></div>
+    <div class="ctl"><label class="chk"><input type="checkbox" id="thermal" checked> 입사 운동에너지를 온도 T 의 열분포에서 무작위로 뽑기</label><label class="chk" style="color:var(--muted);font-size:12px">(표면에 부딪히는 분자의 수직 운동에너지 분포는 플럭스 가중 → <span class="eq">f(E<sub>n</sub>) = e<sup>−E<sub>n</sub>/kT</sup>/kT</span>)</label></div>
+    <div class="ctl" id="En-wrap"><label for="En">수동 입사 운동에너지 E<sub>n</sub></label><input id="En" type="range" min="0.005" max="1.0" step="0.005" value="0.04"><div class="v" id="Env"></div></div>
+    <div class="ctl"><label for="spd">애니메이션 속도 (프레임당 fs)</label><input id="spd" type="range" min="2" max="300" step="1" value="40"><div class="v" id="spdv"></div></div>
+  </div>
+
   <div class="grid">
     <div class="card">
       <canvas id="ec"></canvas>
@@ -96,12 +105,6 @@
     </div>
   </div>
 
-  <div class="card bar">
-    <div class="ctl"><label>분자 발사</label><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="launch" class="primary">분자 1개 발사</button><button id="auto">자동 발사</button><button id="pause">일시정지</button><button id="clear">통계 초기화</button></div></div>
-    <div class="ctl"><label class="chk"><input type="checkbox" id="thermal" checked> 입사 운동에너지를 온도 T 의 열분포에서 무작위로 뽑기</label><label class="chk" style="color:var(--muted);font-size:12px">(표면에 부딪히는 분자의 수직 운동에너지 분포는 플럭스 가중 → <span class="eq">f(E<sub>n</sub>) = e<sup>−E<sub>n</sub>/kT</sup>/kT</span>)</label></div>
-    <div class="ctl" id="En-wrap"><label for="En">수동 입사 운동에너지 E<sub>n</sub></label><input id="En" type="range" min="0.005" max="1.0" step="0.005" value="0.04"><div class="v" id="Env"></div></div>
-    <div class="ctl"><label for="spd">애니메이션 속도 (프레임당 fs)</label><input id="spd" type="range" min="2" max="300" step="1" value="40"><div class="v" id="spdv"></div></div>
-  </div>
 
   <div class="card res" id="info"></div>
 
