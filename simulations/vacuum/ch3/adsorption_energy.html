@@ -108,24 +108,6 @@
 
   <div class="card res" id="info"></div>
 
-  <div class="card">
-    <b style="color:var(--accent)">평균 체류시간 τ<sub>a</sub> = τ<sub>0</sub> exp(q/kT), τ<sub>0</sub> = 10<sup>−13</sup> s (식 4.5, Frenkel)</b>
-    <p class="cap" style="margin-top:4px">실온 체류시간은 강의 슬라이드 값입니다. 그 값에서 식 4.5로 흡착열 q를 역산하고(293 K), 같은 q로 현재 슬라이더 온도 T 에서의 τ<sub>a</sub>를 다시 계산합니다. 범위로 주어진 기체는 양 끝을 함께 보입니다.</p>
-    <table id="t41"></table>
-    <p class="cap" style="margin-top:8px">수소·불활성 기체처럼 τ<sub>a</sub>가 매우 짧으면 사실상 공간에 존재하는 셈이므로 펌프로 쉽게 제거됩니다. 기름 증기처럼 τ<sub>a</sub>가 극단적으로 길어도 문제가 되지 않습니다 — 안정적으로 흡착되어 있습니다.</p>
-  </div>
-
-  <div class="card note">
-    <b>① 물리흡착 (Chambers Fig. 4.3a).</b> A 바깥에서는 힘이 0. 그 안쪽에서 약하지만 비교적 긴 사정거리의 반데르발스 인력이 작동해 <span class="eq">E &lt; 0</span>. 아주 가까운 D 영역에서는 전자구름이 겹쳐 강한 반발. 인력과 반발이 비기는 C(<span class="eq">z<sub>0</sub></span>)가 우물 바닥이고 그 깊이 <span class="eq">q</span>가 흡착열. 물리흡착열은 1.4–9.6 kcal/mol(N₂≈3.6 kcal/mol, 액화열 1.4 kcal/mol보다 조금 큼). <span class="eq">23 kcal/mol = 1 eV/분자</span> 이므로 전형적 우물은 ≈0.2 eV. 실온 <span class="eq">kT = 0.025 eV</span>와 비교하면 <span class="eq">q/kT ≈ 6–8</span>. 분자 구조는 거의 변하지 않습니다.
-    <br><br>
-    <b>② 화학흡착 — 분자 그대로 (Fig. 4.3b).</b> 들어오는 분자는 먼저 얕은 물리흡착 상태 P(전구체)에 잠시 머물다가, 장벽 T 를 넘어 더 가깝고 훨씬 깊은 화학흡착 상태 C로 떨어지거나 다시 탈착합니다. 전자를 주고받거나 공유하므로 화학반응에 가깝고 흡착열은 10–240 kcal/mol. T 가 <span class="eq">E = 0</span> 아래에 있으면 열에너지만으로 넘어가지만, T 가 0 위로 올라오면 <b>활성화 흡착</b>: 입사 분자가 장벽을 넘을 운동에너지를 가져야 합니다. 화학흡착은 표면의 특정 화학적 성질을 쓰므로 대개 한 층(단분자층)에서 끝납니다(Langmuir 등온선). 예: 실온 Ni 위에서 CO는 분자 그대로 화학흡착.
-    <br><br>
-    <b>③ 해리 화학흡착 — Lennard-Jones(1932) 2곡선 그림.</b> Chambers는 해리가 일어나면 도표가 복잡해진다고만 하고 Hudson(1992)·McCash(2001)를 참조하라고 합니다. 표준적 설명은 두 개의 곡선을 함께 그리는 것입니다. <span style="color:var(--cold)">파란 점선 M</span>: 분자 X₂가 통째로 다가올 때(점근선 0, 얕은 물리흡착 우물). <span style="color:var(--hot)">빨간 점선 A</span>: 이미 해리된 두 원자 2X가 다가올 때 — 멀리서는 분자를 쪼개는 데 든 에너지 <span class="eq">D</span>만큼 높고, 표면 가까이에서 원자 하나당 <span class="eq">E<sub>MX</sub></span>씩 결합해 <span class="eq">2E<sub>MX</sub></span>만큼 내려옵니다. 실제 분자는 두 곡선 중 낮은 쪽(검은 실선)을 따라가므로, 기체 분자 기준 해리 흡착열은 <span class="eq">q<sub>diss</sub> = 2E<sub>MX</sub> − D</span>. 두 곡선의 <b>교차점</b>이 장벽이 되며, 교차점이 0 아래이면 비활성(H₂/Ni처럼 실온에서 바로 해리), 0 위이면 활성 장벽 <span class="eq">E<sub>a</sub></span>가 생깁니다. <span class="eq">2E<sub>MX</sub> &lt; D</span> 이면 해리 흡착은 흡열이라 일어나지 않습니다. 해리하면 탈착은 두 원자가 다시 만나야 하므로 <span class="eq">n<sub>a</sub><sup>2</sup></span>에 비례하는 2차 과정이 됩니다(Chambers 4.4 끝).
-    <br><br>
-    <b>활성화 장벽을 넘는 분자의 비율.</b> 표면에 부딪히는 분자의 수직 운동에너지는 플럭스 가중 분포 <span class="eq">f(E<sub>n</sub>) = (1/kT) e<sup>−E<sub>n</sub>/kT</sup></span>(2장의 <span class="eq">v<sub>z</sub> f(v<sub>z</sub>)</span> 가중을 에너지로 바꾼 것)를 따르므로, <span class="eq">E<sub>n</sub> &gt; E<sub>a</sub></span>인 비율은 정확히 <span class="eq">exp(−E<sub>a</sub>/kT)</span> 입니다. 부착계수 s 의 상한에 해당합니다.
-    <br><br>
-    <span class="src">모형 참고: 곡선은 Morse 퍼텐셜 <span class="eq">E(z) = E<sub>∞</sub> + q[(1−e<sup>−a(z−z<sub>0</sub>)</sup>)² − 1]</span>, 두 곡선은 결합 V = 0.15 eV 로 섞어(avoided crossing) 실선을 만듭니다. ②에서 장벽 E<sub>T</sub>는 화학 곡선의 우물 깊이 D<sub>c</sub>(바닥 −q<sub>c</sub> 고정, 점근선 D<sub>c</sub>−q<sub>c</sub>)를 바꿔 맞춥니다. 공의 운동은 1차원 Langevin 동역학(표면 근처에서만 마찰·열잡음). 우물 모양·진동수는 정량적 재현이 아니라 자릿수 설명용이며, 모형 우물 진동수가 10¹³ s⁻¹ 보다 작고 마찰 효과(Kramers)도 있어 측정 체류시간은 식 4.5보다 수 배~10배 길게 나올 수 있습니다. 중요한 것은 q/kT 에 대한 지수적 의존성입니다. 교과서 수치: Chambers 4.4, Table 4.1–4.2. D 값은 표준 결합해리에너지(H₂ 4.52, O₂ 5.12, N₂ 9.76 eV).</span>
-  </div>
 <footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
 </div>
 
@@ -425,26 +407,6 @@ function updateInfo(){
   var th='<tr><th>항목</th><th>값</th></tr>';
   document.getElementById('stats').innerHTML=th+rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
 }
-// 강의 슬라이드의 실온 체류시간 [기체, [τ_lo, τ_hi|null] (s), 꼬리말]
-var T41=[
-  ['수소 H₂',                         [1e-13, null],        ''],
-  ['질소 N₂ · 산소 O₂ · 일산화탄소 CO', [1e-12, 1e-11],       ''],
-  ['수증기 H₂O',                      [1e-2, 10],           ''],
-  ['기름 증기',                        [3*3600, 3*3.156e7],  ' 이상']
-];
-var T_SLIDE=293;                                                  // 슬라이드 값의 기준 온도 (실온)
-function qFromTau(t){ return R*T_SLIDE*Math.log(t/TAU0); }       // 식 4.5 역산, kcal/mol
-function updateT41(){
-  var h='<tr><th>기체</th><th>τ<sub>a</sub> (실온, 슬라이드)</th><th>역산 q (kcal/mol)</th><th>q/kT (실온)</th><th>식 4.5, T = '+S.T+' K</th></tr>';
-  var qs=function(q){ return q<0.5 ? '≈ 0' : q.toFixed(0); };
-  T41.forEach(function(r){
-    var lo=r[1][0], hi=r[1][1], qlo=qFromTau(lo), qhi=hi===null?null:qFromTau(hi);
-    var span=function(fn,a,b){ return b===null ? fn(a) : fn(a)+' ~ '+fn(b); };
-    var tauNow=function(q){ return fmtT(TAU0*Math.exp(q/(R*S.T))); };
-    h+='<tr><td>'+r[0]+'</td><td>'+span(fmtT,lo,hi)+r[2]+'</td><td>'+span(qs,qlo,qhi)+'</td><td>'+span(function(q){return (q/(R*T_SLIDE)).toFixed(1);},qlo,qhi)+'</td><td>'+span(tauNow,qlo,qhi)+r[2]+'</td></tr>';
-  });
-  document.getElementById('t41').innerHTML=h;
-}
 
 // ---------- UI ----------
 function $(id){ return document.getElementById(id); }
@@ -481,7 +443,7 @@ function readCtl(){
   $('En-wrap').classList.toggle('hidden', S.thermal);
   $('spdv').textContent=S.fsPerFrame+' fs/프레임 ≈ '+(S.fsPerFrame*60/1000).toFixed(1)+' ps/초';
 }
-function refresh(){ readCtl(); analyze(); readCtl(); updateInfo(); updateT41(); drawEnergy(); drawReal(); }
+function refresh(){ readCtl(); analyze(); readCtl(); updateInfo(); drawEnergy(); drawReal(); }
 ['T','qp','qc','Et','D','Emx','za','ymax','En','spd'].forEach(function(id){ $(id).addEventListener('input', refresh); });
 $('thermal').addEventListener('change', refresh);
 $('m-phys').onclick=function(){ setMode('phys'); };
