@@ -226,7 +226,7 @@
                   </sc-if>
                   <sc-if value="{{ news.hasMeta }}" hint-placeholder-val="{{ false }}">
                     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 10px;">
-                      <sc-if value="{{ news.hasLogo }}" hint-placeholder-val="{{ false }}"><img src="{{ news.logo }}" alt="{{ news.logoAlt }}" style="height: {{ news.logoH }}; width: auto; display: block;"></sc-if>
+                      <sc-if value="{{ news.hasLogo }}" hint-placeholder-val="{{ false }}"><img src="{{ news.logo }}" alt="{{ news.logoAlt }}" style="height: {{ news.logoH }}; width: auto; display: block;"></sc-if><sc-if value="{{ news.hasLogo2 }}" hint-placeholder-val="{{ false }}"><img src="{{ news.logo2 }}" alt="{{ news.logo2Alt }}" style="height: 26px; width: auto; display: block;"></sc-if>
                       <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8b948e;">{{ news.period }}</span>
                     </div>
                   </sc-if>
@@ -1418,6 +1418,7 @@ class Component extends DCLogic {
     { date: 'Mar 4, 2025', cat: 'WELCOME', text: 'Mr. Jeong Hwan Oh joined the ESC group as an MS-PhD integrated course student. Welcome!' },
     { date: 'Mar 1, 2025', cat: 'GRANT', text: 'Funded by the National Research Foundation of Korea (Outstanding Young Scientist Grants, 우수신진연구)', project: '이차원 산화물 계면에서 나타나는 희귀 양자 현상의 제어', period: '2025.03 – 2030.02', logo: 'assets/news/nrf.png', logoAlt: 'National Research Foundation of Korea' },
     { date: 'Mar 1, 2025', cat: 'GRANT', text: 'Funded by KBSI-NFEC (신진연구자 인프라지원)', project: '차원성 제어 연구를 위한 산화물 분자선 결정 성장 시스템', period: '2025.03 – 2026.02', logo: 'assets/news/kbsi-wide.png', logoAlt: 'Korea Basic Science Institute' },
+    { date: 'Sep 1, 2024', cat: 'GRANT', text: 'Funded by the National Research Foundation of Korea (한계도전 R&D 프로젝트)', project: '결정 디자인 제어 및 인공지능을 활용한 고기능성 교자성 소재 개발', period: '2024.09 – 2026.06', logo: 'assets/news/nrf.png', logoAlt: 'National Research Foundation of Korea', logo2: 'assets/news/astra.png', logo2Alt: '한계도전 R&D 프로젝트 ASTRA' },
     { date: 'Sep 1, 2024', cat: 'WELCOME', text: 'Mr. HyeonHui Na joined the ESC group as an MS-PhD integrated course student. Welcome!' },
     { date: 'Mar 16, 2024', cat: 'PUBLICATION', anchor: 'pub-prb2024', text: '"Observation of orbital selective charge transfer in a Fe/BaTiO₃ interfacial two-dimensional electron gas" published in', venue: 'Physical Review B' },
     { date: 'Mar 5, 2024', cat: 'PUBLICATION', anchor: 'pub-apss', text: '"Strain tunable electronic ground states in two-dimensional iridate thin films" published in', venue: 'Applied Surface Science' },
@@ -1483,7 +1484,7 @@ class Component extends DCLogic {
       go: n.anchor ? () => this.goPub(n.anchor) : undefined,
       project: n.project || '', hasProject: !!n.project,
       period: n.period || '', hasMeta: !!(n.period || n.logo),
-      logo: n.logo || '', logoAlt: n.logoAlt || '', hasLogo: !!n.logo, logoH: n.logoH || '24px',
+      logo: n.logo || '', logoAlt: n.logoAlt || '', hasLogo: !!n.logo, logoH: n.logoH || '24px', logo2: n.logo2 || '', logo2Alt: n.logo2Alt || '', hasLogo2: !!n.logo2,
     }));
     const newsFilter = this.state.newsFilter;
     const newsShown = newsFilter === 'ALL' ? newsAll : newsAll.filter((n) => n.cat === newsFilter);
