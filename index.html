@@ -190,16 +190,31 @@
           </div>
         </div>
         <div>
-          <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px;">
+          <div data-row="wrap" style="display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; margin-bottom: 24px;">
             <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 600; margin: 0; color: #124633;">News</h2>
-            <div style="font-size: 13px; color: #8b948e;">2023 – present</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <sc-for list="{{ newsTabs }}" as="nt" hint-placeholder-count="4">
+                <div onClick="{{ nt.go }}" style="padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; background: {{ nt.bg }}; color: {{ nt.color }}; border: 1px solid #d7dbd3; transition: transform 0.18s ease, box-shadow 0.18s ease;" style-hover="transform: translateY(-2px); box-shadow: 0 4px 12px rgba(18,70,51,0.14);">{{ nt.label }}</div>
+              </sc-for>
+            </div>
           </div>
           <div style="display: grid; gap: 14px;">
             <sc-for list="{{ visibleNews }}" as="news" hint-placeholder-count="4">
               <div data-grid="newsrow" style="background: #ffffff; border: 1px solid #e4e4dd; border-radius: 10px; padding: 22px 26px; display: grid; grid-template-columns: 130px 110px 1fr; gap: 20px; align-items: baseline; transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;" style-hover="border-color: #124633; box-shadow: 0 8px 20px rgba(18,70,51,0.16); transform: translateY(-2px);">
                 <div style="font-size: 14px; color: #8b948e;">{{ news.date }}</div>
                 <div style="font-size: 12px; font-weight: 600; color: {{ news.catColor }}; letter-spacing: 0.06em;">{{ news.cat }}</div>
-                <div onClick="{{ news.go }}" style="font-size: 16px; line-height: 1.55; cursor: {{ news.cursor }}; color: {{ news.textColor }};">{{ news.text }} <strong style="color: #124633;">{{ news.venue }}</strong></div>
+                <div>
+                  <div onClick="{{ news.go }}" style="font-size: 16px; line-height: 1.55; cursor: {{ news.cursor }}; color: {{ news.textColor }};">{{ news.text }} <strong style="color: #124633;">{{ news.venue }}</strong></div>
+                  <sc-if value="{{ news.hasProject }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size: 14px; line-height: 1.6; color: #3d4742; margin-top: 6px;">{{ news.project }}</div>
+                  </sc-if>
+                  <sc-if value="{{ news.hasMeta }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 10px;">
+                      <sc-if value="{{ news.hasLogo }}" hint-placeholder-val="{{ false }}"><img src="{{ news.logo }}" alt="{{ news.logoAlt }}" style="height: 24px; width: auto; display: block;"></sc-if>
+                      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8b948e;">{{ news.period }}</span>
+                    </div>
+                  </sc-if>
+                </div>
               </div>
             </sc-for>
             <sc-if value="{{ hasMoreNews }}" hint-placeholder-val="{{ true }}">
@@ -1245,7 +1260,7 @@ class Component extends DCLogic {
       const h = (window.location.hash || '').replace('#', '');
       return ['home','people','research','publications','opening','photo','presentations','contact'].indexOf(h) >= 0 ? h : 'home';
     })(),
-    peopleTab: 'pi', photoTab: 'photos', hearts: 0, menuOpen: false, newsExpanded: false, lightbox: null,
+    peopleTab: 'pi', photoTab: 'photos', hearts: 0, menuOpen: false, newsExpanded: false, newsFilter: 'ALL', lightbox: null,
   };
 
   setTitle(page) {
@@ -1325,13 +1340,14 @@ class Component extends DCLogic {
   }
 
   NEWS = [
+    { date: 'Oct 1, 2026', cat: 'GRANT', text: 'Funded by Samsung Electronics (성균관대-삼성전자 신진산학)', project: '유전체 및 산화물 반도체 박막의 결함 화학 상태와 전자구조 규명을 통한 유전율 및 누설 특성 제어 인자 도출', period: '2026.10 –', logo: 'assets/news/samsung.png', logoAlt: 'Samsung Electronics' },
     { date: 'Mar 16, 2026', cat: 'PUBLICATION', anchor: 'pub-ybcr', text: '"Coexisting kagome and heavy fermion flat bands in YbCr₆Ge₆" published in', venue: 'Nature Communications' },
     { date: 'Jan 1, 2026', cat: 'PUBLICATION', anchor: 'pub-nanolett', text: '"Low-Dimensionality-Induced Tunable Ferromagnetism in SrRuO₃ Ultrathin Films" published in', venue: 'Nano Letters' },
     { date: 'Sep 24, 2025', cat: 'PUBLICATION', anchor: 'pub-prr', text: '"Layer-controlled orbital selective Mott transition in monolayer nickelate" published in', venue: 'Physical Review Research' },
     { date: 'Sep 1, 2025', cat: 'WELCOME', text: 'Ms. Jinju Lee joined the ESC group as an MS-PhD integrated course student. Welcome!' },
     { date: 'Mar 4, 2025', cat: 'WELCOME', text: 'Mr. Jeong Hwan Oh joined the ESC group as an MS-PhD integrated course student. Welcome!' },
-    { date: 'Mar 1, 2025', cat: 'GRANT', text: 'Funded by the National Research Foundation of Korea (Outstanding Young Scientist Grants, 우수신진연구)' },
-    { date: 'Mar 1, 2025', cat: 'GRANT', text: 'Funded by KBSI-NFEC (신진연구자 인프라지원)' },
+    { date: 'Mar 1, 2025', cat: 'GRANT', text: 'Funded by the National Research Foundation of Korea (Outstanding Young Scientist Grants, 우수신진연구)', period: '2025.03 – 2030.02', logo: 'assets/news/nrf.png', logoAlt: 'National Research Foundation of Korea' },
+    { date: 'Mar 1, 2025', cat: 'GRANT', text: 'Funded by KBSI-NFEC (신진연구자 인프라지원)', period: '2025.03 – 2026.02' },
     { date: 'Sep 1, 2024', cat: 'WELCOME', text: 'Mr. HyeonHui Na joined the ESC group as an MS-PhD integrated course student. Welcome!' },
     { date: 'Mar 16, 2024', cat: 'PUBLICATION', anchor: 'pub-prb2024', text: '"Observation of orbital selective charge transfer in a Fe/BaTiO₃ interfacial two-dimensional electron gas" published in', venue: 'Physical Review B' },
     { date: 'Mar 5, 2024', cat: 'PUBLICATION', anchor: 'pub-apss', text: '"Strain tunable electronic ground states in two-dimensional iridate thin films" published in', venue: 'Applied Surface Science' },
@@ -1395,7 +1411,12 @@ class Component extends DCLogic {
       textColor: n.anchor ? '#072b61' : '#1c2521',
       venue: n.venue || '',
       go: n.anchor ? () => this.goPub(n.anchor) : undefined,
+      project: n.project || '', hasProject: !!n.project,
+      period: n.period || '', hasMeta: !!(n.period || n.logo),
+      logo: n.logo || '', logoAlt: n.logoAlt || '', hasLogo: !!n.logo,
     }));
+    const newsFilter = this.state.newsFilter;
+    const newsShown = newsFilter === 'ALL' ? newsAll : newsAll.filter((n) => n.cat === newsFilter);
     const mk = (id, label) => ({ label, active: page === id, go: () => this.go(id) });
     const tabBg = (id) => (tab === id ? '#124633' : '#ffffff');
     const tabColor = (id) => (tab === id ? '#fafaf7' : '#3d4742');
@@ -1411,10 +1432,14 @@ class Component extends DCLogic {
       ],
       menuOpenAttr: String(this.state.menuOpen),
       toggleMenu: () => this.setState((s) => ({ menuOpen: !s.menuOpen })),
-      visibleNews: this.state.newsExpanded ? newsAll : newsAll.slice(0, 4),
-      hasMoreNews: newsAll.length > 4,
+      visibleNews: this.state.newsExpanded ? newsShown : newsShown.slice(0, 4),
+      hasMoreNews: newsShown.length > 4,
+      newsTabs: [['ALL', 'All'], ['PUBLICATION', 'Publication'], ['WELCOME', 'Welcome'], ['GRANT', 'Grant']].map(([id, label]) => ({
+        label, bg: newsFilter === id ? '#124633' : '#ffffff', color: newsFilter === id ? '#fafaf7' : '#3d4742',
+        go: () => this.setState({ newsFilter: id, newsExpanded: false }),
+      })),
       toggleNews: () => this.setState((s) => ({ newsExpanded: !s.newsExpanded })),
-      newsToggleLabel: this.state.newsExpanded ? '최근 소식만 보기 ↑' : 'View all ' + newsAll.length + ' →',
+      newsToggleLabel: this.state.newsExpanded ? '최근 소식만 보기 ↑' : 'View all ' + newsShown.length + ' →',
       heroRef: (el) => { if (el) { this._heroEl = el; this.startTyping(); } },
       hearts: this.state.hearts,
       likeHeart: () => {
