@@ -1553,6 +1553,12 @@ class Component extends DCLogic {
       isContact: page === 'contact',
       showBanner: this.props.showRecruitBanner ?? true,
       photoYearGroups: this.groupByYear(this.withGallery([
+        { id: 'p-iwoe32-sep26', file: 'p-iwoe32-sep26.jpg', title: 'iWOE32', date: 'Sendai · Sep 2026', note: '32nd International Workshop on Oxide Electronics에서 학생 네 명이 포스터 발표를 했습니다.' },
+        { id: 'p-aps-aug26-1', file: 'p-aps-aug26-1.webp', title: '응용물리 심포지움', date: '춘천 · Aug 2026', note: '제17회 응용물리심포지움, 강원대학교' },
+        { id: 'p-aps-aug26-2', file: 'p-aps-aug26-2.webp', title: '응용물리 심포지움', date: '춘천 · Aug 2026', note: '심한준 학생 포스터 발표 (P-19)' },
+        { id: 'p-aps-aug26-3', file: 'p-aps-aug26-3.webp', title: '응용물리 심포지움', date: '춘천 · Aug 2026', note: '나현희 학생 포스터 발표 (P-16)' },
+        { id: 'p-aps-aug26-4', file: 'p-aps-aug26-4.webp', title: '응용물리 심포지움', date: '춘천 · Aug 2026', note: '오정환 학생 포스터 발표 (P-14) · 🎉 포스터상 수상' },
+        { id: 'p-secuf-jul26', file: 'p-secuf-jul26.png', title: 'SECUF 2026', date: 'Beijing · Jul 2026', note: '초청 강연: Coexisting kagome and heavy fermion flat bands in YbCr₆Ge₆' },
         { id: 'p-dinner-may25', title: '미팅 후 저녁 & 회식', date: '수원 · May 2025', note: '' },
         { id: 'p-kps-apr25-1', title: '한국물리학회', date: '대전 · Apr 2025', note: '' },
         { id: 'p-kps-apr25-2', title: '한국물리학회', date: '대전 · Apr 2025', note: '' },
@@ -1577,10 +1583,15 @@ class Component extends DCLogic {
         { id: 'p-pohang-apr24-1', title: '포항 가속기 실험', date: '포항 · 2024.04.12', note: '우리 연구실에서 처음으로 함께 간 포항 가속기 실험입니다.' },
         { id: 'p-pohang-apr24-2', title: '포항 가속기 실험', date: '포항 · 2024.04.12', note: '우리 연구실에서 처음으로 함께 간 포항 가속기 실험입니다.' },
       ].map((p) => {
+        if (p.file) return Object.assign({}, p, { src: 'assets/photos/' + p.file });
         const jpg = ['p-shanghai-1','p-newterm-mar25','p-birthday-mar25','p-setup-dec24','p-inaug-sep24','p-snu-aug24','p-dinner-aug24','p-lunch-may24','p-pohang-apr24-1','p-pohang-apr24-2'];
         return Object.assign({}, p, { src: 'assets/photos/' + p.id + (jpg.indexOf(p.id) >= 0 ? '.jpg' : '.png') });
       }))),
       homelabPhotos: this.withGallery([
+        { id: 'hl-lab-oct26', title: 'ARPES lab', date: 'Oct 1, 2026', note: '' },
+        { id: 'hl-inchamber-oct26', title: 'Inside the chamber', date: 'Oct 1, 2026', note: '챔버 내부 카메라 화면' },
+        { id: 'hl-gauges-oct26', title: 'UHV gauges', date: 'Oct 1, 2026', note: 'Main chamber 3.4 × 10⁻¹¹ Torr' },
+        { id: 'hl-sample-oct26', title: 'Sample on manipulator', date: 'Oct 1, 2026', note: '' },
         { id: 'hl-fermimap', title: 'First Fermi map', date: 'Jan 2026', note: '' },
         { id: 'hl-pes', title: 'PES spectrum', date: 'Jan 2026', note: '' },
         { id: 'hl-evk', title: 'E vs k cut', date: 'Jan 2026', note: '' },
