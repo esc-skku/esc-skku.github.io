@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -23,18 +23,21 @@
     }, 150);
   });
 </script>
-<title>ESC Lab — Quantum Materials, SKKU</title>
-<meta name="description" content="MBE growth and ARPES of correlated quantum materials at SKKU. PI: Byungmin Sohn.">
+<title>ESC Lab — 전자 구조 제어 연구실, SKKU</title>
+<meta name="description" content="성균관대학교 물리학과 전자 구조 제어 연구실(ESC Lab, 손병민 교수). 산화물 MBE 박막 성장과 in-situ ARPES로 양자 물질의 전자 구조를 연구합니다. 대학원생·학부연구생 모집 중. Oxide MBE and ARPES of correlated quantum materials at SKKU.">
 <link rel="icon" type="image/png" href="assets/esc-logo.png">
 <link rel="canonical" href="https://bsohn.net/">
 <meta name="naver-site-verification" content="00fa92d10ae5ccf0375808da5191d6e5f803b15c" />
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ESC Lab">
-<meta property="og:title" content="ESC Lab — Quantum Materials, SKKU">
-<meta property="og:description" content="Correlated quantum materials, MBE growth, and ARPES at SKKU.">
+<meta property="og:title" content="ESC Lab · 전자 구조 제어 연구실 (성균관대학교 물리학과)">
+<meta property="og:description" content="성균관대학교 물리학과 전자 구조 제어 연구실 · 산화물 MBE와 in-situ ARPES로 양자 물질을 연구합니다. 대학원생·학부연구생 모집 중.">
 <meta property="og:url" content="https://bsohn.net/">
-<meta property="og:image" content="https://bsohn.net/assets/esc-logo.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://bsohn.net/assets/group-photo.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="591">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
 <script src="./support.js"></script>
 </head>
 <body>
@@ -1335,7 +1338,7 @@ class Component extends DCLogic {
 
   setTitle(page) {
     const names = { home: '', people: 'People', research: 'Research', publications: 'Publications', opening: 'Opening', photo: 'Photo', video: 'Video', presentations: 'Presentations', contact: 'Contact' };
-    document.title = (names[page] ? names[page] + ' — ' : '') + 'ESC Lab — Quantum Materials, SKKU';
+    document.title = (names[page] ? names[page] + ' — ' : '') + 'ESC Lab — 전자 구조 제어 연구실, SKKU';
   }
 
   componentDidMount() {
@@ -1411,6 +1414,13 @@ class Component extends DCLogic {
 
   NEWS = [
     { date: 'Oct 1, 2026', cat: 'GRANT', text: 'Funded by Samsung Electronics (성균관대-삼성전자 신진산학)', project: '유전체 및 산화물 반도체 박막의 결함 화학 상태와 전자구조 규명을 통한 유전율 및 누설 특성 제어 인자 도출', period: '2026.10 –', logo: 'assets/news/samsung.png', logoAlt: 'Samsung Electronics' },
+    { date: 'Sep 27, 2026', cat: 'CONFERENCE', text: 'Hanjoon Shim, Jeonghwan Oh, Hyeonhui Na, and Jinju Lee presented posters at', venue: 'iWOE32 (Sendai, Japan)' },
+    { date: 'Sep 12, 2026', cat: 'PUBLICATION', anchor: 'pub-arxiv-losmt', text: '"Layer- and orbital-selective Mott physics driving dimensional crossover in nickelate superlattices" posted on', venue: 'arXiv' },
+    { date: 'Sep 2, 2026', cat: 'CONFERENCE', text: 'Prof. Byungmin Sohn gave an invited talk at', venue: 'QFM-2026 (Academia Sinica, Taipei)' },
+    { date: 'Aug 28, 2026', cat: 'AWARD', text: 'Mr. Jeonghwan Oh received a Poster Award at', venue: '제17회 응용물리심포지움' },
+    { date: 'Aug 1, 2026', cat: 'WELCOME', text: 'Jeongku Kang joined the ESC group as an undergraduate researcher. Welcome!' },
+    { date: 'Jul 15, 2026', cat: 'CONFERENCE', text: 'Prof. Byungmin Sohn gave an invited talk at', venue: 'SECUF 2026 (Beijing, China)' },
+    { date: 'Jun 1, 2026', cat: 'WELCOME', text: 'Jimin Son (Materials Science and Engineering) joined the ESC group as an undergraduate researcher. Welcome!' },
     { date: 'Mar 16, 2026', cat: 'PUBLICATION', anchor: 'pub-ybcr', text: '"Coexisting kagome and heavy fermion flat bands in YbCr₆Ge₆" published in', venue: 'Nature Communications' },
     { date: 'Jan 1, 2026', cat: 'PUBLICATION', anchor: 'pub-nanolett', text: '"Low-Dimensionality-Induced Tunable Ferromagnetism in SrRuO₃ Ultrathin Films" published in', venue: 'Nano Letters' },
     { date: 'Sep 24, 2025', cat: 'PUBLICATION', anchor: 'pub-prr', text: '"Layer-controlled orbital selective Mott transition in monolayer nickelate" published in', venue: 'Physical Review Research' },
@@ -1477,7 +1487,7 @@ class Component extends DCLogic {
     const lb = this.state.lightbox;
     const lbItem = lb ? lb.list[lb.index] : null;
     const newsAll = this.NEWS.map((n) => Object.assign({}, n, {
-      catColor: n.cat === 'PUBLICATION' ? '#124633' : (n.cat === 'GRANT' ? '#072b61' : '#8a6d1f'),
+      catColor: ({ PUBLICATION: '#124633', GRANT: '#072b61', AWARD: '#b4533c', CONFERENCE: '#5a4e8c' })[n.cat] || '#8a6d1f',
       cursor: n.anchor ? 'pointer' : 'default',
       textColor: n.anchor ? '#072b61' : '#1c2521',
       venue: n.venue || '',
@@ -1506,7 +1516,7 @@ class Component extends DCLogic {
       toggleMenu: () => this.setState((s) => ({ menuOpen: !s.menuOpen })),
       visibleNews: this.state.newsExpanded ? newsShown : newsShown.slice(0, 4),
       hasMoreNews: newsShown.length > 4,
-      newsTabs: [['ALL', 'All'], ['PUBLICATION', 'Publication'], ['WELCOME', 'Welcome'], ['GRANT', 'Grant']].map(([id, label]) => ({
+      newsTabs: [['ALL', 'All'], ['PUBLICATION', 'Publication'], ['WELCOME', 'Welcome'], ['GRANT', 'Grant'], ['AWARD', 'Award'], ['CONFERENCE', 'Conference']].map(([id, label]) => ({
         label, bg: newsFilter === id ? '#124633' : '#ffffff', color: newsFilter === id ? '#fafaf7' : '#3d4742',
         go: () => this.setState({ newsFilter: id, newsExpanded: false }),
       })),
