@@ -1186,6 +1186,37 @@
     </div>
   </sc-if>
 
+  <!-- ======= VIDEO ======= -->
+  <sc-if value="{{ isVideo }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Video" style="padding: 64px; max-width: 1200px; margin: 0 auto; box-sizing: border-box;">
+      <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 44px; font-weight: 700; color: #124633; margin: 0 0 32px;">Video</h1>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 48px; align-items: center;">
+        <div onClick="{{ videoTabPromo }}" style="padding: 10px 22px; border-radius: 999px; font-size: 15px; font-weight: 600; cursor: pointer; background: {{ videoPromoBg }}; color: {{ videoPromoColor }}; border: 1px solid #d7dbd3; transition: transform 0.18s ease, box-shadow 0.18s ease;" style-hover="transform: translateY(-3px); box-shadow: 0 6px 16px rgba(18,70,51,0.14);">연구실 홍보 영상</div>
+      </div>
+
+      <sc-if value="{{ isVideoPromo }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <p style="font-size: 17px; line-height: 1.7; color: #3d4742; margin: 0 0 40px;">ESC Lab의 연구와 실험 장비를 영상으로 소개합니다.</p>
+          <div data-grid="two" style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+            <div style="display: flex; flex-direction: column;">
+              <video controls preload="metadata" playsinline src="assets/video/esc-lab-promo.mp4#t=0.1" style="width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 12px; background: #0f2a20;"></video>
+              <div style="margin-top: 12px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; color: #1c2521;">ESC Lab 홍보 영상</div>
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #8b948e; margin-top: 2px;">2026</div>
+              <div style="font-size: 13px; color: #6b756f; margin-top: 4px; line-height: 1.5;">전자 구조 제어 연구실(ESC Lab)을 소개하는 홍보 영상입니다.</div>
+            </div>
+            <div style="display: flex; flex-direction: column;">
+              <video controls preload="metadata" playsinline src="assets/video/leed-cu001.mp4#t=0.1" style="width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 12px; background: #0f2a20;"></video>
+              <div style="margin-top: 12px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; color: #1c2521;">LEED — Cu(001)</div>
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #8b948e; margin-top: 2px;">2026</div>
+              <div style="font-size: 13px; color: #6b756f; margin-top: 4px; line-height: 1.5;">Cu(001) 표면의 저에너지 전자 회절(LEED) 패턴 영상입니다.</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
   <!-- ======= CONTACT ======= -->
   <sc-if value="{{ isContact }}" hint-placeholder-val="{{ false }}">
     <div data-screen-label="Contact" style="padding: 64px; max-width: 1200px; margin: 0 auto; box-sizing: border-box;">
@@ -1263,13 +1294,13 @@ class Component extends DCLogic {
   state = {
     page: (() => {
       const h = (window.location.hash || '').replace('#', '');
-      return ['home','people','research','publications','opening','photo','presentations','contact'].indexOf(h) >= 0 ? h : 'home';
+      return ['home','people','research','publications','opening','photo','video','presentations','contact'].indexOf(h) >= 0 ? h : 'home';
     })(),
-    peopleTab: 'pi', photoTab: 'photos', hearts: 0, menuOpen: false, newsExpanded: false, newsFilter: 'ALL', lightbox: null,
+    peopleTab: 'pi', photoTab: 'photos', videoTab: 'promo', hearts: 0, menuOpen: false, newsExpanded: false, newsFilter: 'ALL', lightbox: null,
   };
 
   setTitle(page) {
-    const names = { home: '', people: 'People', research: 'Research', publications: 'Publications', opening: 'Opening', photo: 'Photo', presentations: 'Presentations', contact: 'Contact' };
+    const names = { home: '', people: 'People', research: 'Research', publications: 'Publications', opening: 'Opening', photo: 'Photo', video: 'Video', presentations: 'Presentations', contact: 'Contact' };
     document.title = (names[page] ? names[page] + ' — ' : '') + 'ESC Lab — Quantum Materials, SKKU';
   }
 
@@ -1280,7 +1311,7 @@ class Component extends DCLogic {
     this.setState({ hearts: parseInt(localStorage.getItem('esc-hero-hearts') || '0', 10) || 0 });
     this._onHash = () => {
       const h = (window.location.hash || '').replace('#', '');
-      const page = ['home','people','research','publications','opening','photo','presentations','contact'].indexOf(h) >= 0 ? h : 'home';
+      const page = ['home','people','research','publications','opening','photo','video','presentations','contact'].indexOf(h) >= 0 ? h : 'home';
       if (page !== this.state.page) {
         if (this._heroEl) this._heroEl._typingRan = false;
         this.setState({ page, menuOpen: false });
@@ -1432,6 +1463,7 @@ class Component extends DCLogic {
         mk('research', 'Research'),
         mk('publications', 'Publications'),
         mk('photo', 'Photo'),
+        mk('video', 'Video'),
         mk('presentations', 'Presentations'),
         mk('contact', 'Contact'),
       ],
@@ -1495,6 +1527,11 @@ class Component extends DCLogic {
       isPubs: page === 'publications',
       isOpening: page === 'opening',
       isPhoto: page === 'photo',
+      isVideo: page === 'video',
+      isVideoPromo: this.state.videoTab === 'promo',
+      videoTabPromo: () => this.setState({ videoTab: 'promo' }),
+      videoPromoBg: this.state.videoTab === 'promo' ? '#124633' : '#ffffff',
+      videoPromoColor: this.state.videoTab === 'promo' ? '#fafaf7' : '#3d4742',
       isPresentations: page === 'presentations',
       isContact: page === 'contact',
       showBanner: this.props.showRecruitBanner ?? true,
