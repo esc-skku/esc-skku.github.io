@@ -201,7 +201,7 @@
           <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 18px 24px; margin-top: 20px;">
             <img src="assets/news/nrf.png" alt="National Research Foundation of Korea" style="height: 42px; width: auto; display: block;">
             <img src="assets/news/samsung.png" alt="Samsung Electronics" style="height: 38px; width: auto; display: block;">
-            <img src="assets/news/kbsi.png" alt="Korea Basic Science Institute" style="height: 34px; width: auto; display: block;">
+            <img src="assets/news/kbsi.png" alt="Korea Basic Science Institute" style="height: 52px; width: auto; display: block;">
           </div>
           </div>
         </div>
@@ -226,7 +226,7 @@
                   </sc-if>
                   <sc-if value="{{ news.hasMeta }}" hint-placeholder-val="{{ false }}">
                     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 10px;">
-                      <sc-if value="{{ news.hasLogo }}" hint-placeholder-val="{{ false }}"><img src="{{ news.logo }}" alt="{{ news.logoAlt }}" style="height: 24px; width: auto; display: block;"></sc-if>
+                      <sc-if value="{{ news.hasLogo }}" hint-placeholder-val="{{ false }}"><img src="{{ news.logo }}" alt="{{ news.logoAlt }}" style="height: {{ news.logoH }}; width: auto; display: block;"></sc-if>
                       <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8b948e;">{{ news.period }}</span>
                     </div>
                   </sc-if>
@@ -1223,10 +1223,10 @@
               <div style="font-size: 13px; color: #6b756f; margin-top: 4px; line-height: 1.5;">초고진공에서 준비한 Cu(001) 표면의 원자 배열이 저에너지 전자 회절(LEED) 패턴으로 나타나는 과정을 보여 줍니다.</div>
             </div>
             <div style="display: flex; flex-direction: column;">
-              <video controls="controls" preload="metadata" playsInline="playsinline" src="assets/video/esc-lab-cute.mp4" data-poster-time="5" style="width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 12px; background: #0f2a20;"></video>
+              <video controls="controls" preload="metadata" playsInline="playsinline" src="assets/video/esc-lab-cute.mp4" data-poster-time="12" style="width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 12px; background: #0f2a20;"></video>
               <div style="margin-top: 12px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; color: #1c2521;">ESC Lab 소개 영상</div>
               <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #8b948e; margin-top: 2px;">2026</div>
-              <div style="font-size: 13px; color: #6b756f; margin-top: 4px; line-height: 1.5;">ESC Lab을 소개하는 영상입니다.</div>
+              <div style="font-size: 13px; color: #6b756f; margin-top: 4px; line-height: 1.5;">ESC Lab의 실험 장비와 연구실 모습을 소개하는 영상입니다.</div>
             </div>
           </div>
         </div>
@@ -1400,7 +1400,7 @@ class Component extends DCLogic {
     { date: 'Sep 1, 2025', cat: 'WELCOME', text: 'Ms. Jinju Lee joined the ESC group as an MS-PhD integrated course student. Welcome!' },
     { date: 'Mar 4, 2025', cat: 'WELCOME', text: 'Mr. Jeong Hwan Oh joined the ESC group as an MS-PhD integrated course student. Welcome!' },
     { date: 'Mar 1, 2025', cat: 'GRANT', text: 'Funded by the National Research Foundation of Korea (Outstanding Young Scientist Grants, 우수신진연구)', project: '이차원 산화물 계면에서 나타나는 희귀 양자 현상의 제어', period: '2025.03 – 2030.02', logo: 'assets/news/nrf.png', logoAlt: 'National Research Foundation of Korea' },
-    { date: 'Mar 1, 2025', cat: 'GRANT', text: 'Funded by KBSI-NFEC (신진연구자 인프라지원)', project: '차원성 제어 연구를 위한 산화물 분자선 결정 성장 시스템', period: '2025.03 – 2026.02', logo: 'assets/news/kbsi.png', logoAlt: 'Korea Basic Science Institute' },
+    { date: 'Mar 1, 2025', cat: 'GRANT', text: 'Funded by KBSI-NFEC (신진연구자 인프라지원)', project: '차원성 제어 연구를 위한 산화물 분자선 결정 성장 시스템', period: '2025.03 – 2026.02', logo: 'assets/news/kbsi.png', logoAlt: 'Korea Basic Science Institute', logoH: '40px' },
     { date: 'Sep 1, 2024', cat: 'WELCOME', text: 'Mr. HyeonHui Na joined the ESC group as an MS-PhD integrated course student. Welcome!' },
     { date: 'Mar 16, 2024', cat: 'PUBLICATION', anchor: 'pub-prb2024', text: '"Observation of orbital selective charge transfer in a Fe/BaTiO₃ interfacial two-dimensional electron gas" published in', venue: 'Physical Review B' },
     { date: 'Mar 5, 2024', cat: 'PUBLICATION', anchor: 'pub-apss', text: '"Strain tunable electronic ground states in two-dimensional iridate thin films" published in', venue: 'Applied Surface Science' },
@@ -1466,7 +1466,7 @@ class Component extends DCLogic {
       go: n.anchor ? () => this.goPub(n.anchor) : undefined,
       project: n.project || '', hasProject: !!n.project,
       period: n.period || '', hasMeta: !!(n.period || n.logo),
-      logo: n.logo || '', logoAlt: n.logoAlt || '', hasLogo: !!n.logo,
+      logo: n.logo || '', logoAlt: n.logoAlt || '', hasLogo: !!n.logo, logoH: n.logoH || '24px',
     }));
     const newsFilter = this.state.newsFilter;
     const newsShown = newsFilter === 'ALL' ? newsAll : newsAll.filter((n) => n.cat === newsFilter);
