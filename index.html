@@ -82,7 +82,11 @@
     a:hover { text-decoration: underline; }
 
     [data-hamburger] { display: none; }
-    @media (max-width: 960px) {
+    @media (max-width: 1180px) {
+      nav[style] { padding: 18px 32px !important; }
+      [data-nav-links] { gap: 18px !important; }
+    }
+    @media (max-width: 1000px) {
       nav[style] { padding: 14px 20px !important; }
       [data-hamburger] { display: flex !important; }
       [data-nav-links] { display: none !important; }
@@ -125,7 +129,7 @@
 
   <!-- ======= NAV ======= -->
   <nav data-screen-label="Navigation" style="display: flex; align-items: center; justify-content: space-between; padding: 20px 64px; border-bottom: 1px solid #e4e4dd; position: sticky; top: 0; background: rgba(250,250,247,0.95); backdrop-filter: blur(8px); z-index: 10;">
-    <div onClick="{{ goHome }}" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+    <div onClick="{{ goHome }}" style="display: flex; align-items: center; gap: 12px; cursor: pointer; flex-shrink: 0; white-space: nowrap;">
       <img src="assets/esc-logo.png" alt="ESC Lab" style="width: 36px; height: 42px; object-fit: contain;">
       <div>
         <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; color: #124633;">ESC Lab</div>
