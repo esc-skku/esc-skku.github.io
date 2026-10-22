@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ESC Lab 장비 도면 — 7개의 레이어</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+  --bg:#101211; --paper:#1a1d1b; --ink:#e8ece9; --muted:#a8b0aa; --line:#2c302d;
+  --grid:rgba(232,236,233,.06);
+  --steel:#3E4850; --steel-ink:#A3ADB5;
+  --c-water:#6A9BF2; --c-elec:#F0B33E; --c-signal:#D9B36A; --c-lock:#F06A6A;
+  --c-vac:#B094E6; --c-gas:#62C78A; --c-air:#F2925E; --c-cryo:#5FD1E2;
+  --btn:#e8ece9; --btn-ink:#101211;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Pretendard","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 40px}
+header h1{font-size:1.35rem;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+header p{margin:0 0 20px;color:var(--muted);max-width:60ch}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;align-items:start}
+.board{background:var(--paper);border:1px solid var(--line);border-radius:6px;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:20px 20px;overflow:hidden}
+.board svg{display:block;width:100%;height:auto;max-width:100%}
+.panel{display:flex;flex-direction:column;gap:14px}
+.layers{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--paper);overflow:hidden}
+.layers li{border-top:1px solid var(--line)}
+.layers li:first-child{border-top:0}
+.layers button{all:unset;display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;cursor:pointer;color:var(--ink);font:inherit}
+.layers button:hover{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.layers button:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.layers li[aria-current="true"] button{background:color-mix(in srgb,var(--ink) 9%,transparent);font-weight:600}
+.sw{width:14px;height:14px;border-radius:3px;background:var(--sw,var(--steel));flex:none;opacity:.35;transition:opacity .25s}
+li.lit .sw{opacity:1}
+.idx{color:var(--muted);font-variant-numeric:tabular-nums;width:1.2em;font-size:.9em}
+.subs{display:none;gap:6px;padding:0 12px 10px 36px;flex-wrap:wrap}
+li[aria-current="true"] .subs{display:flex}
+.chip{all:unset;cursor:pointer;font-size:.85em;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.chip i{width:9px;height:9px;border-radius:50%;background:var(--sw);opacity:.3}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--sw)}
+.chip[aria-pressed="true"] i{opacity:1}
+.chip:focus-visible{outline:2px solid var(--ink)}
+.desc{min-height:7.5em;padding:2px 2px 0}
+.desc h2{font-size:1.05rem;margin:0 0 6px;font-weight:600}
+.desc p{margin:0;color:var(--muted)}
+.nav{display:flex;gap:8px;align-items:center}
+.nav button{all:unset;cursor:pointer;padding:8px 16px;border-radius:5px;border:1px solid var(--line);font:inherit;color:var(--ink)}
+.nav button.next{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.nav button:disabled{opacity:.4;cursor:default}
+.nav button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.nav .sp{flex:1}
+.mode{display:flex;align-items:center;gap:16px;color:var(--muted);font-size:.9em;flex-wrap:wrap}
+.mode label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.hint{color:var(--muted);font-size:.85em;margin:0}
+@media (max-width:860px){.stage{grid-template-columns:1fr}.desc{min-height:0}}
+
+/* ---- SVG ---- */
+text{font-family:inherit;fill:var(--ink);font-size:12px}
+text.small{font-size:10.5px;fill:var(--muted)}
+text.tag{font-size:10.5px;font-weight:500}
+.eq{fill:var(--steel);stroke:var(--steel-ink);stroke-width:1.2}
+.arm{stroke:var(--steel-ink);stroke-width:4;stroke-linecap:round}
+.stub{stroke:var(--steel-ink);stroke-width:5}
+.gv{fill:var(--steel-ink)}
+.base-only .dim{opacity:.55}
+
+.layer{opacity:0;transition:opacity .35s}
+.layer.on{opacity:1}
+.layer path,.layer line,.layer polyline{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.layer circle.ln{fill:none}
+.layer .ln{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .9s ease}
+.layer.on .ln{stroke-dashoffset:0}
+.layer .dot{transition:transform .3s ease .5s;transform-box:fill-box;transform-origin:center;transform:scale(0)}
+.layer.on .dot{transform:scale(1)}
+.layer .lbl{opacity:0;transition:opacity .3s ease .55s}
+.layer.on .lbl{opacity:1}
+#l-water{--c:var(--c-water)} #l-power{--c:var(--c-elec)} #l-signal{--c:var(--c-signal)}
+#l-lock{--c:var(--c-lock)} #l-vac{--c:var(--c-vac)} #l-gas{--c:var(--c-gas)}
+#l-air{--c:var(--c-air)} #l-cryo{--c:var(--c-cryo)}
+.layer .ln{stroke:var(--c)}
+.layer .dot,.layer .fill{fill:var(--c)}
+.layer .hl{fill:color-mix(in srgb,var(--c) 22%,transparent);stroke:var(--c);stroke-width:1.6}
+.layer .vf{fill:color-mix(in srgb,var(--c) 18%,transparent);stroke:none}
+.layer .vs{stroke:color-mix(in srgb,var(--c) 45%,transparent);stroke-width:5;stroke-linecap:butt}
+.layer text.tag{fill:var(--c)}
+.layer text.tmp{font-size:7.5px;font-weight:600;fill:var(--c);text-anchor:middle;letter-spacing:.02em}
+#l-signal .ln{stroke-width:1.3;stroke-dasharray:4 3}
+#l-signal.on .ln{stroke-dashoffset:0}
+#l-lock .ln{stroke-width:1.4;stroke-dasharray:2 4}
+#l-lock.on .ln{stroke-dashoffset:0}
+#l-lock .out{stroke-dasharray:none;stroke-width:2.2}
+@keyframes pulse{0%,100%{r:9}50%{r:13}}
+#l-lock.on .node{animation:pulse 1.8s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){
+  .layer,.layer .ln,.layer .dot,.layer .lbl{transition:none}
+  #l-lock.on .node{animation:none}
+}
+nav.crumb{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line)}
+nav.crumb a:hover{color:var(--ink);border-bottom-color:var(--ink)}
+nav.crumb span{margin:0 7px;color:var(--line)}
+footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="crumb"><a href="../">시뮬레이션</a><span>/</span><a href="./">연구실</a><span>/</span>장비 도면</nav>
+<header>
+  <h1>장비 도면의 7개 레이어</h1>
+  <p>우리가 보는 장비는 하나지만, 그 밑에는 서로 다른 인프라가 겹쳐 있습니다. 레이어를 하나씩 켜 보세요.</p>
+</header>
+
+<div class="stage">
+<div class="board">
+<svg viewBox="0 0 1000 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ESC Lab 초고진공 시스템 평면 개략도">
+<defs>
+  <marker id="arr-vac" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--c-vac)"/></marker>
+  <marker id="arr-gas" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--c-gas)"/></marker>
+</defs>
+
+<!-- ============ BASE ============ -->
+<g id="base">
+  <g class="dim">
+    <rect class="eq" x="40" y="30" width="110" height="46" rx="3"/>
+    <text x="95" y="57" text-anchor="middle" class="small">MBE 제어 랙</text>
+    <rect class="eq" x="70" y="230" width="110" height="46" rx="3"/>
+    <text x="125" y="257" text-anchor="middle" class="small">PREP 제어 랙</text>
+    <rect class="eq" x="860" y="30" width="110" height="46" rx="3"/>
+    <text x="915" y="57" text-anchor="middle" class="small">ARPES 제어 랙</text>
+    <rect class="eq" x="40" y="92" width="56" height="38" rx="3"/>
+    <text x="68" y="115" text-anchor="middle" class="small">MBE 칠러</text>
+    <rect class="eq" x="106" y="92" width="56" height="38" rx="3"/>
+    <text x="134" y="115" text-anchor="middle" class="small">오존 칠러</text>
+  </g>
+
+  <!-- transfer arms -->
+  <line class="arm" x1="70" y1="170" x2="183" y2="170"/><circle class="gv" cx="70" cy="170" r="6"/>
+  <line class="arm" x1="75" y1="360" x2="215" y2="360"/><circle class="gv" cx="75" cy="360" r="6"/>
+  <line class="arm" x1="280" y1="485" x2="280" y2="498"/><circle class="gv" cx="280" cy="498" r="5"/>
+  <line class="arm" x1="503" y1="383" x2="580" y2="452"/><circle class="gv" cx="580" cy="452" r="6"/>
+  <text x="594" y="458" class="small">자석 이송 암</text>
+
+  <!-- connections -->
+  <line class="stub" x1="227" y1="170" x2="260" y2="170"/>
+  <line class="stub" x1="379" y1="219" x2="457" y2="337"/>
+  <line class="stub" x1="345" y1="360" x2="448" y2="360"/>
+  <line class="stub" x1="512" y1="360" x2="665" y2="360"/>
+  <line class="stub" x1="280" y1="425" x2="280" y2="445"/>
+  <g class="gv">
+    <rect x="237" y="160" width="4" height="20"/><rect x="247" y="160" width="4" height="20"/>
+    <g transform="rotate(57 418 278)"><rect x="411" y="268" width="4" height="20"/><rect x="421" y="268" width="4" height="20"/></g>
+    <rect x="391" y="350" width="4" height="20"/><rect x="401" y="350" width="4" height="20"/>
+    <rect x="535" y="350" width="4" height="20"/><rect x="545" y="350" width="4" height="20"/>
+    <rect x="270" y="433" width="20" height="4"/><rect x="270" y="443" width="20" height="4"/>
+  </g>
+
+  <!-- load locks + turbos -->
+  <circle class="eq" cx="205" cy="170" r="22"/><text x="205" y="174" text-anchor="middle" class="small">로드락</text>
+  <line class="stub" x1="205" y1="192" x2="205" y2="205"/>
+  <rect class="eq" x="192" y="205" width="26" height="18" rx="2"/>
+  <circle class="eq" cx="280" cy="465" r="20"/><text x="280" y="469" text-anchor="middle" class="small">로드락</text>
+  <line class="stub" x1="260" y1="465" x2="248" y2="465"/>
+  <rect class="eq" x="224" y="456" width="24" height="18" rx="2"/>
+
+  <!-- MBE -->
+  <g>
+    <line class="stub" x1="265" y1="105" x2="283" y2="123"/><line class="stub" x1="291" y1="87" x2="300" y2="106"/>
+    <line class="stub" x1="322" y1="78" x2="324" y2="100"/><line class="stub" x1="354" y1="81" x2="348" y2="102"/>
+    <line class="stub" x1="383" y1="95" x2="370" y2="113"/>
+    <circle class="eq" cx="265" cy="105" r="7"/><circle class="eq" cx="291" cy="87" r="7"/><circle class="eq" cx="322" cy="78" r="7"/>
+    <circle class="eq" cx="354" cy="81" r="7"/><circle class="eq" cx="383" cy="95" r="7"/>
+    <text x="396" y="74" class="small">이퓨전 셀</text>
+  </g>
+  <circle class="eq" cx="330" cy="170" r="70"/>
+  <text x="330" y="166" text-anchor="middle" font-weight="600">Oxide MBE</text>
+  <text x="330" y="182" text-anchor="middle" class="small">성장 · 오존 어닐</text>
+  <rect class="eq" x="185" y="45" width="50" height="28" rx="6"/><text x="210" y="63" text-anchor="middle" class="small">오존</text>
+  <path d="M235,59 H268 V137" stroke="var(--steel-ink)" stroke-width="3" fill="none"/>
+  <rect class="eq" x="252" y="223" width="20" height="10" rx="2" transform="rotate(-40 262 228)"/>
+  <text x="222" y="262" class="small">RHEED 건</text>
+  <rect class="eq" x="396" y="172" width="8" height="26" rx="2"/>
+  <text x="408" y="212" class="small">RHEED 스크린</text>
+  <line class="stub" x1="318" y1="239" x2="312" y2="252"/>
+  <rect class="eq" x="297" y="252" width="26" height="20" rx="2"/>
+  <!-- MBE roughing pump -->
+  <rect class="eq" x="430" y="236" width="50" height="22" rx="3"/><text x="455" y="251" text-anchor="middle" class="small">RP · MBE</text>
+
+  <!-- PREP -->
+  <circle class="eq" cx="280" cy="360" r="65"/>
+  <text x="280" y="356" text-anchor="middle" font-weight="600">Preparation</text>
+  <text x="280" y="372" text-anchor="middle" class="small">LEED · 스퍼터</text>
+  <rect class="eq" x="212" y="283" width="22" height="12" rx="2" transform="rotate(35 223 289)"/>
+  <text x="178" y="302" class="small">LEED</text>
+  <rect class="eq" x="203" y="405" width="22" height="12" rx="2" transform="rotate(-35 214 411)"/>
+  <text x="118" y="436" class="small">Ar⁺ 스퍼터</text>
+  <line class="stub" x1="326" y1="406" x2="340" y2="420"/>
+  <rect class="eq" x="340" y="420" width="26" height="20" rx="2"/>
+  <!-- Prep roughing pump -->
+  <rect class="eq" x="320" y="500" width="44" height="22" rx="3"/><text x="342" y="515" text-anchor="middle" class="small">RP · Prep</text>
+
+  <!-- Storage -->
+  <circle class="eq" cx="480" cy="360" r="32"/>
+  <g stroke="var(--steel-ink)" stroke-width="1.5"><line x1="468" y1="352" x2="492" y2="352"/><line x1="468" y1="360" x2="492" y2="360"/><line x1="468" y1="368" x2="492" y2="368"/></g>
+  <text x="444" y="396" text-anchor="end" class="small">스토리지</text>
+  <line class="stub" x1="480" y1="392" x2="480" y2="400"/>
+  <rect class="eq" x="468" y="400" width="24" height="16" rx="2"/>
+
+  <!-- Analysis -->
+  <circle class="eq" cx="760" cy="360" r="95"/>
+  <text x="760" y="340" text-anchor="middle" font-weight="600">Analysis</text>
+  <circle class="eq" cx="760" cy="362" r="8"/>
+  <text x="760" y="394" text-anchor="middle" class="small">ARPES · XPS · UPS</text>
+  <rect class="eq" x="750" y="215" width="20" height="52" rx="2"/>
+  <path class="eq" d="M720,200 A40,40 0 0 1 800,200 L788,200 A28,28 0 0 0 732,200 Z"/>
+  <text x="760" y="152" text-anchor="middle" class="small">반구형 분석기</text>
+  <rect class="eq" x="676" y="262" width="22" height="14" rx="2" transform="rotate(50 687 269)"/>
+  <text x="655" y="252" class="small">He 램프</text>
+  <rect class="eq" x="824" y="262" width="22" height="14" rx="2" transform="rotate(-50 835 269)"/>
+  <text x="840" y="252" class="small">X선 소스</text>
+  <line class="stub" x1="760" y1="455" x2="760" y2="470"/>
+  <rect class="eq" x="747" y="470" width="26" height="20" rx="2"/>
+  <!-- Analysis roughing pump -->
+  <rect class="eq" x="810" y="470" width="60" height="22" rx="3"/><text x="840" y="485" text-anchor="middle" class="small">RP · Analysis</text>
+
+  <!-- utility zone -->
+  <g class="dim">
+    <line x1="40" y1="600" x2="980" y2="600" stroke="var(--line)" stroke-dasharray="3 5"/>
+    <text x="700" y="632" class="small">유틸리티</text>
+    <rect class="eq" x="40" y="606" width="90" height="44" rx="3"/>
+    <text x="85" y="624" text-anchor="middle" class="small">큰 칠러</text><text x="85" y="640" text-anchor="middle" class="small">Prep · Analysis</text>
+    <circle class="eq" cx="180" cy="628" r="22"/><text x="180" y="632" text-anchor="middle" class="small">LN₂</text>
+    <rect class="eq" x="230" y="606" width="70" height="44" rx="3"/><text x="265" y="632" text-anchor="middle" class="small">분전반</text>
+    <rect class="eq" x="330" y="606" width="80" height="44" rx="3"/><text x="370" y="624" text-anchor="middle" class="small">컴프레서</text><text x="370" y="640" text-anchor="middle" class="small">MBE용</text>
+    <rect class="eq" x="560" y="606" width="80" height="44" rx="3"/><text x="600" y="624" text-anchor="middle" class="small">컴프레서</text><text x="600" y="640" text-anchor="middle" class="small">나머지용</text>
+    <rect class="eq" x="440" y="606" width="85" height="44" rx="3"/><text x="482" y="632" text-anchor="middle" class="small">He 컴프레서</text>
+    <rect class="eq" x="860" y="606" width="120" height="44" rx="3"/>
+    <text x="920" y="624" text-anchor="middle" class="small">가스 캐비닛</text><text x="920" y="640" text-anchor="middle" class="small">O₂ · Ar · N₂</text>
+  </g>
+</g>
+
+<!-- ============ WATER ============ -->
+<g id="l-water" class="layer">
+  <path class="ln" pathLength="1" stroke-width="2.4" d="M85,606 V566 H920 V280 H850"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M85,566 H50 V214 H192"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M366,430 H372 V566"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M228,474 V566"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M760,490 V566"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M482,566 V606"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M96,104 H100 V84 H190 V100 H260"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M162,96 H176 V66 H185"/>
+  <circle class="dot" cx="50" cy="300" r="4"/><circle class="dot" cx="372" cy="520" r="4"/><circle class="dot" cx="228" cy="520" r="4"/>
+  <circle class="dot" cx="760" cy="520" r="4"/><circle class="dot" cx="870" cy="566" r="4"/><circle class="dot" cx="482" cy="590" r="4"/>
+  <circle class="dot" cx="190" cy="92" r="4"/><circle class="dot" cx="176" cy="80" r="4"/>
+  <text class="tag lbl" x="80" y="156">유량 스위치 ●</text>
+  <text class="tag lbl" x="198" y="112">MBE 칠러 → 셀</text>
+  <text class="tag lbl" x="540" y="562">큰 칠러 매니폴드: Prep · Analysis · 로드락 TMP · He 컴프레서</text>
+  <text class="tag lbl" x="856" y="296">X선 애노드</text>
+</g>
+
+<!-- ============ ELECTRIC: power ============ -->
+<g id="l-power" class="layer">
+  <path class="ln" pathLength="1" stroke-width="3" d="M265,606 V596 H960 V14 H62 V240 H70"/>
+  <path class="ln" pathLength="1" stroke-width="2.4" d="M265,596 H85 V606"/>
+  <path class="ln" pathLength="1" stroke-width="2.2" d="M380,596 V606"/>
+  <path class="ln" pathLength="1" stroke-width="2.2" d="M615,596 V606"/>
+  <path class="ln" pathLength="1" stroke-width="2.2" d="M500,596 V606"/>
+  <path class="ln" pathLength="1" stroke-width="2.2" d="M95,14 V30"/>
+  <path class="ln" pathLength="1" stroke-width="2.2" d="M915,14 V30"/>
+  <!-- MBE rack → cells, chillers, MBE RP -->
+  <path class="ln" pathLength="1" stroke-width="2" d="M150,53 H160 V88 H265 V98"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M68,76 V92"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M134,76 V92"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M150,46 H168 V34 H440 V236"/>
+  <!-- PREP rack → prep -->
+  <path class="ln" pathLength="1" stroke-width="2" d="M180,253 H208 V320 H228"/>
+  <!-- ARPES rack → analyzer, Prep RP, Analysis RP -->
+  <path class="ln" pathLength="1" stroke-width="2" d="M915,76 V200 H802"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M940,76 V481 H870"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M870,76 V100 H640 V511 H364"/>
+  <text class="tag lbl" x="70" y="10">전력 버스</text>
+  <text class="small lbl" x="170" y="74">셀 전원</text>
+  <text class="small lbl" x="648" y="120">ARPES 랙 → Prep · Analysis RP</text>
+  <text class="small lbl" x="300" y="612">분전반 → 랙 · 큰 칠러 · 컴프레서 2대 · He 컴프레서</text>
+</g>
+
+<!-- ============ ELECTRIC: signal ============ -->
+<g id="l-signal" class="layer">
+  <path class="ln" pathLength="1" d="M150,66 H165 V222 H251"/>
+  <path class="ln" pathLength="1" d="M880,76 V88 H500 V318 H484"/>
+  <path class="ln" pathLength="1" d="M915,76 V130 H848 V262"/>
+  <path class="ln" pathLength="1" d="M180,266 H195 V288 H216"/>
+  <path class="ln" pathLength="1" d="M180,262 H240 V300 H246"/>
+  <!-- chamber / load-lock gauges -->
+  <circle class="dot" cx="398" cy="140" r="4"/><circle class="dot" cx="480" cy="318" r="4"/><circle class="dot" cx="712" cy="282" r="4"/>
+  <circle class="dot" cx="248" cy="300" r="4"/><circle class="dot" cx="224" cy="151" r="4"/><circle class="dot" cx="297" cy="450" r="4"/>
+  <!-- added gauges: Ar sputter, He lamp, roughing pumps -->
+  <circle class="dot" cx="232" cy="418" r="4"/><circle class="dot" cx="668" cy="284" r="4"/>
+  <circle class="dot" cx="470" cy="232" r="4"/><circle class="dot" cx="356" cy="497" r="4"/><circle class="dot" cx="862" cy="467" r="4"/>
+  <!-- valve solenoids: gate valves + angle valves -->
+  <circle class="dot" cx="245" cy="170" r="3"/><circle class="dot" cx="418" cy="278" r="3"/><circle class="dot" cx="398" cy="360" r="3"/>
+  <circle class="dot" cx="542" cy="360" r="3"/><circle class="dot" cx="280" cy="440" r="3"/>
+  <circle class="dot" cx="378" cy="280" r="3"/><circle class="dot" cx="353" cy="456" r="3"/><circle class="dot" cx="300" cy="510" r="3"/>
+  <circle class="dot" cx="786" cy="480" r="3"/><circle class="dot" cx="480" cy="440" r="3"/>
+  <text class="tag lbl" x="406" y="144">게이지 ● (챔버 · 로드락 · 스퍼터 · He 램프 · RP)</text>
+  <text class="small lbl" x="560" y="104">센서 · 컨트롤러 · RGA · 밸브 솔레노이드 ●</text>
+</g>
+
+<!-- ============ ELECTRIC: interlock ============ -->
+<g id="l-lock" class="layer">
+  <path class="ln" pathLength="1" d="M190,28 H712"/>
+  <path class="ln" pathLength="1" d="M300,534 H870"/>
+  <path class="ln" pathLength="1" d="M620,28 V534"/>
+  <!-- inputs: flow switches -->
+  <path class="ln" pathLength="1" d="M190,92 V28"/>
+  <path class="ln" pathLength="1" d="M372,520 V534"/>
+  <path class="ln" pathLength="1" d="M760,520 V534"/>
+  <path class="ln" pathLength="1" d="M870,566 V534"/>
+  <!-- inputs: gauges -->
+  <path class="ln" pathLength="1" d="M398,140 V28"/>
+  <path class="ln" pathLength="1" d="M480,318 V28"/>
+  <path class="ln" pathLength="1" d="M712,282 V28"/>
+  <path class="ln" pathLength="1" d="M248,300 V28"/>
+  <!-- input: air pressure switch -->
+  <path class="ln" pathLength="1" d="M360,590 V534"/>
+  <path class="ln" pathLength="1" d="M600,590 V534"/>
+  <!-- outputs: cut cell power -->
+  <path class="ln out" pathLength="1" d="M620,50 H390 V96"/>
+  <!-- outputs: close gate valves -->
+  <path class="ln out" pathLength="1" d="M245,28 V158"/>
+  <path class="ln out" pathLength="1" d="M418,28 V266"/>
+  <path class="ln out" pathLength="1" d="M398,534 V374"/>
+  <path class="ln out" pathLength="1" d="M542,534 V374"/>
+  <path class="ln out" pathLength="1" d="M305,534 V440 H292"/>
+  <!-- outputs: close foreline angle valves -->
+  <path class="ln out" pathLength="1" d="M378,534 V284"/>
+  <path class="ln out" pathLength="1" d="M392,534 V456 H357"/>
+  <path class="ln out" pathLength="1" d="M300,534 V514"/>
+  <path class="ln out" pathLength="1" d="M786,534 V484"/>
+  <path class="ln out" pathLength="1" d="M465,534 V440 H476"/>
+  <circle class="node fill" cx="620" cy="28" r="9"/>
+  <text class="tag lbl" x="634" y="24">인터락</text>
+  <text class="small lbl" x="634" y="38">점선: 센서 입력 / 실선: 셀 전원 차단 · 게이트 밸브 · 포라인 앵글 밸브 전부 닫힘</text>
+</g>
+
+<!-- ============ VACUUM ============ -->
+<g id="l-vac" class="layer">
+  <circle class="vf" cx="330" cy="170" r="70"/><circle class="vf" cx="280" cy="360" r="65"/>
+  <circle class="vf" cx="480" cy="360" r="32"/><circle class="vf" cx="760" cy="360" r="95"/>
+  <circle class="vf" cx="205" cy="170" r="22"/><circle class="vf" cx="280" cy="465" r="20"/>
+  <line class="vs" x1="227" y1="170" x2="260" y2="170"/><line class="vs" x1="379" y1="219" x2="457" y2="337"/>
+  <line class="vs" x1="345" y1="360" x2="448" y2="360"/><line class="vs" x1="512" y1="360" x2="665" y2="360"/>
+  <line class="vs" x1="280" y1="425" x2="280" y2="445"/>
+  <!-- TMPs -->
+  <rect class="hl" x="297" y="252" width="26" height="20" rx="2"/><text class="tmp" x="310" y="265">TMP</text>
+  <rect class="hl" x="340" y="420" width="26" height="20" rx="2"/><text class="tmp" x="353" y="433">TMP</text>
+  <rect class="hl" x="747" y="470" width="26" height="20" rx="2"/><text class="tmp" x="760" y="483">TMP</text>
+  <rect class="hl" x="468" y="400" width="24" height="16" rx="2"/><text class="tmp" x="480" y="411">TMP</text>
+  <rect class="hl" x="192" y="205" width="26" height="18" rx="2"/><text class="tmp" x="205" y="217">TMP</text>
+  <rect class="hl" x="224" y="456" width="24" height="18" rx="2"/><text class="tmp" x="236" y="468">TMP</text>
+  <!-- roughing pumps -->
+  <rect class="hl" x="430" y="236" width="50" height="22" rx="3"/>
+  <rect class="hl" x="320" y="500" width="44" height="22" rx="3"/>
+  <rect class="hl" x="810" y="470" width="60" height="22" rx="3"/>
+  <!-- chamber → TMP -->
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M318,239 L312,252"/>
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M326,406 L340,420"/>
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M760,455 L760,470"/>
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M480,392 L480,400"/>
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M205,192 L205,205"/>
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M260,465 L248,465"/>
+  <!-- forelines: TMP → angle valve + convectron → RP -->
+  <path class="ln" pathLength="1" stroke-width="2" d="M310,272 V280"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M218,214 H232 V280"/>
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M232,280 H455 V260"/>
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M353,440 V498"/>
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M242,474 V510 H318"/>
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M773,480 H808"/>
+  <path class="ln" pathLength="1" stroke-width="2" marker-end="url(#arr-vac)" d="M480,416 V500 H840 V494"/>
+  <!-- angle valves -->
+  <rect class="hl" x="374" y="276" width="8" height="8"/><rect class="hl" x="349" y="452" width="8" height="8"/>
+  <rect class="hl" x="296" y="506" width="8" height="8"/><rect class="hl" x="782" y="476" width="8" height="8"/>
+  <rect class="hl" x="476" y="436" width="8" height="8"/>
+  <!-- convectron gauges -->
+  <circle class="dot" cx="358" cy="280" r="3.5"/><circle class="dot" cx="353" cy="474" r="3.5"/><circle class="dot" cx="270" cy="510" r="3.5"/>
+  <circle class="dot" cx="800" cy="480" r="3.5"/><circle class="dot" cx="480" cy="458" r="3.5"/>
+  <!-- getter pumps -->
+  <circle class="dot" cx="840" cy="400" r="5"/><circle class="dot" cx="496" cy="344" r="5"/><circle class="dot" cx="322" cy="332" r="5"/>
+  <text class="tag lbl" x="848" y="404">TSP</text>
+  <text class="tag lbl" x="504" y="340">NEG</text>
+  <text class="tag lbl" x="330" y="328">TSP</text>
+  <text class="small lbl" x="560" y="492">포라인: TMP → 앵글 밸브 ■ · 컨벡트론 ● → RP</text>
+</g>
+
+<!-- ============ GAS ============ -->
+<g id="l-gas" class="layer">
+  <path class="ln" pathLength="1" stroke-width="2" d="M920,606 V556 H36 V142 H200 V74" marker-end="url(#arr-gas)"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M235,59 H268 V137" marker-end="url(#arr-gas)"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M214,556 V419" marker-end="url(#arr-gas)"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M292,556 V483" marker-end="url(#arr-gas)"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M36,186 H188" marker-end="url(#arr-gas)"/>
+  <circle class="dot" cx="36" cy="556" r="4"/><circle class="dot" cx="214" cy="556" r="4"/><circle class="dot" cx="292" cy="556" r="4"/>
+  <text class="tag lbl" x="120" y="200">N₂ 벤트 → 로드락</text>
+  <text class="tag lbl" x="296" y="552">N₂ 벤트</text>
+  <text class="tag lbl" x="120" y="470">Ar → 스퍼터</text>
+  <text class="tag lbl" x="276" y="56">O₂ → 오존 → MBE</text>
+  <text class="small lbl" x="600" y="552">MFC ●</text>
+</g>
+
+<!-- ============ PNEUMATIC ============ -->
+<g id="l-air" class="layer">
+  <!-- gate valves -->
+  <rect class="hl" x="234" y="157" width="20" height="26" rx="2"/>
+  <rect class="hl" x="388" y="347" width="20" height="26" rx="2"/>
+  <rect class="hl" x="532" y="347" width="20" height="26" rx="2"/>
+  <rect class="hl" x="267" y="430" width="26" height="20" rx="2"/>
+  <rect class="hl" x="406" y="265" width="24" height="26" rx="2" transform="rotate(57 418 278)"/>
+  <!-- foreline angle valves -->
+  <rect class="hl" x="373" y="275" width="10" height="10"/><rect class="hl" x="348" y="451" width="10" height="10"/>
+  <rect class="hl" x="295" y="505" width="10" height="10"/><rect class="hl" x="781" y="475" width="10" height="10"/>
+  <rect class="hl" x="475" y="435" width="10" height="10"/>
+  <!-- MBE compressor: MBE-loadlock gate, MBE-storage gate, MBE foreline angle valve -->
+  <path class="ln" pathLength="1" stroke-width="2" d="M360,606 V542 H186 V200 H245 V182"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M378,542 V284"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M418,542 V292"/>
+  <!-- general compressor: everything else -->
+  <path class="ln" pathLength="1" stroke-width="2" d="M600,606 V550 H256 V440 H268"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M600,550 H786 V484"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M398,550 V373"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M542,550 V373"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M392,550 V456 H357"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M300,550 V514"/>
+  <path class="ln" pathLength="1" stroke-width="2" d="M465,550 V440 H476"/>
+  <circle class="dot" cx="360" cy="590" r="4"/><circle class="dot" cx="600" cy="590" r="4"/>
+  <text class="tag lbl" x="412" y="594">압력 스위치 ●</text>
+  <text class="tag lbl" x="200" y="538">MBE용</text>
+  <text class="tag lbl" x="650" y="546">나머지용</text>
+  <text class="tag lbl" x="556" y="338">게이트 밸브 · 포라인 앵글 밸브 (공압 + 인터락)</text>
+</g>
+
+<!-- ============ CRYO ============ -->
+<g id="l-cryo" class="layer">
+  <circle class="hl" cx="180" cy="628" r="22"/>
+  <path class="ln" pathLength="1" stroke-width="2.2" d="M180,606 V576 H24 V134 H270"/>
+  <circle class="ln" pathLength="1" cx="330" cy="170" r="56" stroke-width="2" stroke-dasharray="4 3"/>
+  <rect class="hl" x="440" y="606" width="85" height="44" rx="3"/>
+  <path class="ln" pathLength="1" stroke-width="2.2" d="M500,606 V586 H875 V362 H768"/>
+  <circle class="hl" cx="760" cy="362" r="8"/>
+  <text class="tag lbl" x="30" y="128">LN₂ 크라이오쉬라우드</text>
+  <text class="tag lbl" x="776" y="420">He 콜드헤드 → 시료 스테이지만 저온</text>
+</g>
+</svg>
+</div>
+
+<aside class="panel">
+  <ul class="layers" id="layers"></ul>
+  <div class="desc" id="desc" aria-live="polite"></div>
+  <div class="nav">
+    <button id="prev" type="button">이전</button>
+    <button id="next" type="button" class="next">다음 레이어</button>
+    <span class="sp"></span>
+    <span id="count" class="hint"></span>
+  </div>
+  <div class="mode">
+    <label><input type="checkbox" id="cum" checked> 누적해서 보기</label>
+    <label><input type="checkbox" id="snd" checked> 소리</label>
+  </div>
+  <p class="hint">← → 키로도 넘길 수 있습니다.</p>
+</aside>
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+</div>
+
+<script>
+const layers = [
+  {id:"base", name:"보이는 것", sw:"var(--steel)", note:261.6, wave:"sine",
+   desc:"눈에 보이는 장면입니다. 로드락이 달린 Oxide MBE, LEED와 스퍼터가 붙은 Preparation, 가운데 스토리지를 거쳐 Analysis(ARPES/XPS)로 이어지고, 자석 이송 암으로 시료가 오갑니다. 이것만 보면 하나의 장비 같지만, 아래 레이어들이 없으면 아무것도 동작하지 않습니다."},
+  {id:"water", name:"물", sw:"var(--c-water)", groups:["l-water"], note:293.7, wave:"sine",
+   desc:"칠러가 세 대입니다. 큰 칠러 하나가 Preparation·Analysis·로드락에 달린 터보 펌프와 He 컴프레서, X선 애노드를 식히고, 작은 칠러 두 대는 각각 Oxide MBE의 이퓨전 셀과 오존 발생기만 전담합니다. 각 분기의 유량 스위치가 인터락으로 들어갑니다."},
+  {id:"elec", name:"전기", sw:"var(--c-elec)", groups:["l-power","l-signal","l-lock"], note:329.6, wave:"triangle",
+   subs:[{id:"l-power",name:"전력",sw:"var(--c-elec)"},{id:"l-signal",name:"신호",sw:"var(--c-signal)"},{id:"l-lock",name:"인터락",sw:"var(--c-lock)"}],
+   desc:"하나의 레이어지만 성격이 다른 세 겹이 들어 있습니다. 전력은 분전반에서 세 개의 랙과 큰 칠러·컴프레서 두 대·He 컴프레서로 가고, MBE 랙이 셀·두 작은 칠러·MBE 러핑 펌프를, ARPES 랙이 분석기와 Prep·Analysis 러핑 펌프를 먹입니다. 신호는 챔버·로드락·스퍼터·He 램프·러핑 펌프의 게이지와 밸브 솔레노이드를 잇는 가는 점선, 인터락은 그 입력을 읽어 셀 전원을 끊고 게이트 밸브와 포라인 앵글 밸브를 전부 닫는 논리입니다. 위 칩을 눌러 하나씩 켜 보세요."},
+  {id:"vac", name:"진공", sw:"var(--c-vac)", groups:["l-vac"], note:392, wave:"sawtooth",
+   desc:"진공은 챔버 안쪽 공간 그 자체입니다. 색이 칠해진 영역이 초고진공이고, 그것을 만들고 지키는 펌프들이 붙어 있습니다. Analysis는 TMP+TSP, 스토리지는 TMP+NEG, Preparation은 TMP+TSP, Oxide MBE와 두 로드락은 TMP. 각 TMP 뒤에는 앵글 밸브와 컨벡트론 게이지를 지나는 포라인이 있고, 러핑 펌프는 MBE·Prep·Analysis 세 대가 나눠 받습니다."},
+  {id:"gas", name:"가스", sw:"var(--c-gas)", groups:["l-gas"], note:440, wave:"triangle",
+   desc:"진공과 반대 방향, 넣는 쪽입니다. 가스 캐비닛의 O₂는 오존 발생기를 거쳐 MBE로 들어가 성장과 오존 어닐에 쓰이고, Ar은 Preparation의 스퍼터 건으로, N₂는 두 로드락의 벤트로 갑니다. 각 라인은 MFC를 지나며 유량이 제어됩니다."},
+  {id:"air", name:"공압", sw:"var(--c-air)", groups:["l-air"], note:523.3, wave:"square",
+   desc:"컴프레서는 두 대입니다. 하나는 Oxide MBE 전용으로 MBE 쪽 게이트 밸브와 MBE 포라인 앵글 밸브를, 다른 하나는 나머지 게이트 밸브와 앵글 밸브를 움직입니다. 밸브마다 공압과 솔레노이드 전기가 함께 연결되어 있어서 인터락이 걸리면 전부 닫히고, 앵글 밸브 옆 컨벡트론 게이지가 그 판단 재료가 됩니다. 공기압이 떨어지면 밸브가 움직이지 않아 시료 이송이 멈추고, 압력 스위치가 인터락으로 들어갑니다."},
+  {id:"cryo", name:"극저온", sw:"var(--c-cryo)", groups:["l-cryo"], note:659.3, wave:"sine",
+   desc:"LN₂가 MBE의 크라이오쉬라우드로 들어가 챔버 안쪽 벽을 식혀 잔류 기체를 잡아줍니다. Analysis에서는 He 컴프레서에 연결된 콜드헤드가 챔버 중앙의 시료 스테이지만 저온으로 내리고, 챔버 자체는 상온입니다. 물과 달리 산소 결핍 같은 별도의 안전 이슈가 있습니다."},
+  {id:"all", name:"전체", sw:"var(--ink)", groups:["l-water","l-power","l-signal","l-lock","l-vac","l-gas","l-air","l-cryo"], chord:[261.6,329.6,392,523.3],
+   desc:"일곱 개 레이어를 모두 겹친 모습입니다. 우리가 보는 장비 하나는 이 모든 인프라가 동시에 조건을 만족할 때만 움직이고, 그 조건을 모으는 곳이 인터락입니다."},
+];
+
+/* ---- sound (synthesized, no files) ---- */
+let ac = null, soundOn = true;
+function tone(freq, {dur=0.22, wave="sine", gain=0.18, at=0}={}){
+  if(!soundOn) return;
+  try{
+    ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==="suspended") ac.resume();
+    const t = ac.currentTime + at;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = wave; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.connect(g).connect(ac.destination);
+    o.start(t); o.stop(t+dur+0.03);
+  }catch(e){}
+}
+function playLayer(L){
+  if(L.chord){ L.chord.forEach((f,i)=>tone(f,{dur:0.5,wave:"sine",gain:0.12,at:i*0.07})); return; }
+  const g = L.wave==="square"||L.wave==="sawtooth" ? 0.07 : 0.18;
+  tone(L.note,{wave:L.wave,gain:g});
+}
+function tick(on){ tone(on?880:600,{dur:0.07,wave:"sine",gain:0.1}); }
+
+
+/* ---- line-crossing hops: a later-drawn line arcs over an earlier one ---- */
+(function(){
+  const R = 4.5, EPS = R + 1.5;
+  const svg = document.querySelector(".board svg");
+  const parseD = d => {
+    const toks = d.match(/[MHVLA][^MHVLA]*/g); if(!toks) return null;
+    let x=0,y=0,pts=[];
+    for(const t of toks){
+      const c=t[0], n=t.slice(1).trim().split(/[\s,]+/).filter(Boolean).map(Number);
+      if(c==="M"){x=n[0];y=n[1];pts.push([x,y]);}
+      else if(c==="H"){x=n[0];pts.push([x,y]);}
+      else if(c==="V"){y=n[0];pts.push([x,y]);}
+      else if(c==="L"){x=n[0];y=n[1];pts.push([x,y]);}
+      else return null;
+    }
+    return pts;
+  };
+  const items = [];
+  svg.querySelectorAll("#base line.arm, #base line.stub").forEach(el=>{
+    items.push({el, order:-1, pts:[[+el.getAttribute("x1"),+el.getAttribute("y1")],[+el.getAttribute("x2"),+el.getAttribute("y2")]], hop:false});
+  });
+  svg.querySelectorAll("#base path").forEach(el=>{
+    const pts = parseD(el.getAttribute("d")||""); if(pts) items.push({el, order:-1, pts, hop:false});
+  });
+  let order = 0;
+  svg.querySelectorAll(".layer path.ln").forEach(el=>{
+    const pts = parseD(el.getAttribute("d")||""); if(pts) items.push({el, order:order++, pts, hop:true});
+  });
+  // segment intersection → distance along p (from p1) and along q
+  const cross = (p1,p2,q1,q2) => {
+    const rx=p2[0]-p1[0], ry=p2[1]-p1[1], sx=q2[0]-q1[0], sy=q2[1]-q1[1];
+    const den = rx*sy - ry*sx; if(Math.abs(den) < 1e-9) return null;
+    const qx=q1[0]-p1[0], qy=q1[1]-p1[1];
+    const t=(qx*sy - qy*sx)/den, u=(qx*ry - qy*rx)/den;
+    const lp=Math.hypot(rx,ry), lq=Math.hypot(sx,sy);
+    const dp=t*lp, dq=u*lq;
+    if(dp<EPS || dp>lp-EPS || dq<EPS || dq>lq-EPS) return null;
+    return dp;
+  };
+  for(const P of items){
+    if(!P.hop) continue;
+    let d = `M${P.pts[0][0]},${P.pts[0][1]}`;
+    let changed = false;
+    for(let i=0;i<P.pts.length-1;i++){
+      const a=P.pts[i], b=P.pts[i+1];
+      const len=Math.hypot(b[0]-a[0], b[1]-a[1]);
+      if(len<1e-6) continue;
+      const ux=(b[0]-a[0])/len, uy=(b[1]-a[1])/len;
+      let hops=[];
+      for(const Q of items){
+        if(Q===P || Q.order>=P.order) continue;
+        for(let j=0;j<Q.pts.length-1;j++){
+          const dp = cross(a,b,Q.pts[j],Q.pts[j+1]);
+          if(dp!==null) hops.push(dp);
+        }
+      }
+      hops.sort((x,y)=>x-y);
+      // merge hops closer than 2R into one wider arc
+      const spans=[];
+      for(const h of hops){
+        const last=spans[spans.length-1];
+        if(last && h-R <= last[1]) last[1]=h+R; else spans.push([h-R,h+R]);
+      }
+      for(const [s0,s1] of spans){
+        const x0=a[0]+ux*s0, y0=a[1]+uy*s0, x1=a[0]+ux*s1, y1=a[1]+uy*s1;
+        const rx=(s1-s0)/2;
+        d += ` L${x0.toFixed(1)},${y0.toFixed(1)} A${rx.toFixed(1)},${R} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}`;
+        changed = true;
+      }
+      d += ` L${b[0]},${b[1]}`;
+    }
+    if(changed) P.el.setAttribute("d", d);
+  }
+})();
+
+/* ---- state & render ---- */
+let idx = 0, cumulative = true;
+const subOn = {"l-power":true,"l-signal":true,"l-lock":true};
+const list = document.getElementById("layers");
+const desc = document.getElementById("desc");
+const count = document.getElementById("count");
+const prev = document.getElementById("prev"), next = document.getElementById("next");
+
+layers.forEach((L,i)=>{
+  const li = document.createElement("li");
+  const b = document.createElement("button"); b.type="button";
+  b.innerHTML = `<span class="sw" style="--sw:${L.sw}"></span><span class="idx">${i}</span><span>${L.name}</span>`;
+  b.addEventListener("click",()=>go(i));
+  li.appendChild(b);
+  if(L.subs){
+    const s = document.createElement("div"); s.className="subs";
+    L.subs.forEach(S=>{
+      const c = document.createElement("button"); c.type="button"; c.className="chip";
+      c.style.setProperty("--sw",S.sw); c.setAttribute("aria-pressed","true");
+      c.innerHTML = `<i></i>${S.name}`;
+      c.addEventListener("click",e=>{ e.stopPropagation(); subOn[S.id]=!subOn[S.id]; c.setAttribute("aria-pressed",String(subOn[S.id])); tick(subOn[S.id]); render(); });
+      s.appendChild(c);
+    });
+    li.appendChild(s);
+  }
+  list.appendChild(li);
+});
+
+function go(i){ idx=i; playLayer(layers[idx]); render(); }
+
+function activeGroups(){
+  const on = new Set();
+  layers.forEach((L,i)=>{
+    const show = cumulative ? i<=idx : i===idx;
+    if(!show || !L.groups) return;
+    L.groups.forEach(g=>{ if(subOn[g]!==false) on.add(g); });
+  });
+  return on;
+}
+function render(){
+  const on = activeGroups();
+  document.querySelectorAll(".layer").forEach(g=>g.classList.toggle("on",on.has(g.id)));
+  document.getElementById("base").classList.toggle("base-only", idx===0);
+  [...list.children].forEach((li,i)=>{
+    li.setAttribute("aria-current", i===idx ? "true":"false");
+    const lit = i===0 || (cumulative ? i<=idx : i===idx) || idx===layers.length-1;
+    li.classList.toggle("lit", lit);
+  });
+  const L = layers[idx];
+  desc.innerHTML = `<h2>${L.name}</h2><p>${L.desc}</p>`;
+  count.textContent = `${idx} / ${layers.length-1}`;
+  prev.disabled = idx===0;
+  next.textContent = idx===layers.length-1 ? "처음으로" : "다음 레이어";
+}
+
+prev.addEventListener("click",()=>{ if(idx>0) go(idx-1); });
+next.addEventListener("click",()=>go(idx===layers.length-1 ? 0 : idx+1));
+document.getElementById("cum").addEventListener("change",e=>{ cumulative=e.target.checked; tick(cumulative); render(); });
+document.getElementById("snd").addEventListener("change",e=>{ soundOn=e.target.checked; if(soundOn) tick(true); });
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT") return;
+  if(e.key==="ArrowRight"||e.key===" "){ e.preventDefault(); next.click(); }
+  if(e.key==="ArrowLeft"){ e.preventDefault(); prev.click(); }
+});
+render();
+</script>
+</body>
+</html>
