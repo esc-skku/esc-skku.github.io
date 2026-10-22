@@ -664,6 +664,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="ArrowLeft"){ e.preventDefault(); prev.click(); }
 });
 render();
+if(location.hash==="#all"){ soundOn=false; document.getElementById("snd").checked=false; idx=layers.length-1; render(); }
 </script>
 </body>
 </html>
