@@ -243,6 +243,7 @@ text.g{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-we
 .intro .pname{display:flex;align-items:center;gap:10px;color:#c4ccd2;font-size:.88rem;justify-content:center}
 .intro .pname input{flex:1;max-width:240px;background:#151a1f;border:1.5px solid #2c343c;border-radius:6px;color:#eef1f3;padding:7px 10px;font:inherit}
 .intro .pname input:focus{outline:none;border-color:#F2925E}
+.intro .pname input.need{border-color:#F06A6A;box-shadow:0 0 0 3px rgba(240,106,106,.3)}
 .intro .pickme{display:flex;align-items:center;justify-content:center;gap:10px;color:#c4ccd2;font-size:.88rem;margin-bottom:4px}
 .intro .pickme>span{margin-right:4px}
 .intro .go .gpick{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px 5px;border:1.5px solid #2c343c;border-radius:6px;color:#c4ccd2;font-size:.85rem;font-weight:500;background:#151a1f;text-align:center}
@@ -365,7 +366,7 @@ footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--line);font-si
         </div>
         <label class="pname">내 이름 <input id="pname" type="text" maxlength="20" placeholder="랩 공유 기록판에 표시될 이름" autocomplete="off"></label>
         <button id="startBtn" type="button">시작하기</button>
-        <small>소리가 납니다 · 과제는 다음 화면에서 고릅니다</small>
+        <small>소리가 납니다 · 과제는 다음 화면에서 고릅니다 · <span id="shstat">공유 서버 확인 중…</span></small>
       </div>
     </div>
   </div>
@@ -779,7 +780,7 @@ function recEnd(result,title){
   list.unshift(REC); list=list.slice(0,6);
   for(;;){ try{ localStorage.setItem(RPKEY,JSON.stringify(list)); break; }catch(e){ if(list.length<=1) break; list.pop(); } }
   LASTREC=REC; REC=null;
-  if(SH.state==="ok"&&PNAME){ const t=thinRec(LASTREC); if(t) shPost({action:"replay",name:PNAME,replay:t}).catch(()=>{}); }
+  if(SH.state==="ok"&&PNAME){ const t=thinRec(LASTREC); if(t) shPost({action:"replay",name:PNAME,replay:t}).catch(()=>{}); else log("☁ 판이 너무 길어 리플레이는 이 브라우저에만 저장했습니다","w"); }
 }
 let LASTREC=null;
 function loadReplays(){ try{ return JSON.parse(localStorage.getItem(RPKEY)||"[]"); }catch(e){ return []; } }
@@ -855,8 +856,8 @@ const SHARE={url:"https://script.google.com/macros/s/AKfycbwxj5cMB0Q1d-Co_vsRmIr
 try{ const u=localStorage.getItem("esc-share-url"); if(u) SHARE.url=u; }catch(e){}
 const SH={state:"none"}; // none | ok | fail
 async function shGet(params){ const r=await fetch(SHARE.url+"?"+new URLSearchParams({...params,code:SHARE.code}),{redirect:"follow"}); const j=await r.json(); if(j.error) throw new Error(j.error); return j; }
-async function shPost(body){ await fetch(SHARE.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({...body,code:SHARE.code})}); }
-async function shProbe(){ if(!SHARE.url){ SH.state="none"; return; } try{ await shGet({action:"ping"}); SH.state="ok"; }catch(e){ SH.state="fail"; } }
+async function shPost(body){ const r=await fetch(SHARE.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({...body,code:SHARE.code})}); let j=null; try{ j=await r.json(); }catch(e){} if(j&&j.error) throw new Error(j.error); return j; }
+async function shProbe(){ if(!SHARE.url){ SH.state="none"; } else { try{ await shGet({action:"ping"}); SH.state="ok"; }catch(e){ SH.state="fail"; } } const el=document.getElementById("shstat"); if(el) el.textContent= SH.state==="ok"?"☁ 랩 공유 기록판 연결됨": SH.state==="fail"?"☁ 공유 서버 연결 안 됨 (이 브라우저에만 저장)":"공유 서버 없음 (이 브라우저에만 저장)"; }
 shProbe();
 function thinRec(r){ const c={...r, frames:r.frames.slice()}; while(JSON.stringify(c).length>45000&&c.frames.length>20){ const last=c.frames[c.frames.length-1]; c.frames=c.frames.filter((f,i)=>i%2===0); if(c.frames[c.frames.length-1]!==last) c.frames.push(last); } return JSON.stringify(c).length>45000? null : c; }
 
@@ -874,7 +875,9 @@ let DB=null, USER=null, MYID=null, LABROWS=[], labUnsub=null;
 })();
 let labTimer=null;
 function pushLab(){
-  if(SH.state==="ok"&&PNAME){ clearTimeout(labTimer); labTimer=setTimeout(()=>{ shPost({action:"score",name:PNAME,char:ME.gender,st:ST}).catch(()=>{}); },800); return; }
+  if(SH.state==="ok"&&PNAME){ clearTimeout(labTimer); labTimer=setTimeout(()=>{ shPost({action:"score",name:PNAME,char:ME.gender,st:ST}).then(()=>log(`☁ 랩 공유 기록판에 ${PNAME} 기록을 올렸습니다`,"g")).catch(e=>log("☁ 공유 기록판 업로드 실패 ("+(e.message||"네트워크")+") — 랩 공유 기록판 > 공유 서버 설정 확인","w")); },800); return; }
+  if(SH.state==="ok"&&!PNAME){ log("☁ 이름이 비어 있어 공유 기록판에 올리지 않았습니다 — '처음 화면'에서 이름을 넣으세요","w"); return; }
+  if(SHARE.url&&SH.state==="fail"){ log("☁ 공유 서버에 연결되지 않아 이 브라우저에만 저장했습니다","w"); return; }
   if(!DB||!MYID) return;
   clearTimeout(labTimer);
   labTimer=setTimeout(()=>{ DB.collection("lab").doc(MYID).set({st:ST, char:ME.gender, at:Date.now()}).catch(()=>{}); },800);
@@ -2072,7 +2075,9 @@ function drawPicks(){
 }
 document.querySelectorAll(".gpick").forEach(b=>b.addEventListener("click",()=>{ ME.gender=b.dataset.g; try{ localStorage.setItem("esc-me-gender",ME.gender); }catch(e){} drawPicks(); tone(ME.gender==="f"?880:660,{dur:.08,gain:.06}); }));
 { const pn=document.getElementById("pname"); pn.value=PNAME; pn.addEventListener("input",()=>{ PNAME=pn.value.trim(); try{ localStorage.setItem("esc-player-name",PNAME); }catch(e){} }); }
-document.getElementById("startBtn").addEventListener("click",()=>{ ctx(); document.getElementById("intro").classList.add("hide"); init(); tone(523.3,{dur:.15,gain:.08}); tone(784,{dur:.25,gain:.08,at:.1}); });
+let nameNagged=false;
+document.getElementById("startBtn").addEventListener("click",(ev)=>{
+  if(SH.state==="ok"&&!PNAME&&!nameNagged){ nameNagged=true; const pn=document.getElementById("pname"); pn.focus(); pn.classList.add("need"); document.getElementById("shstat").textContent="☁ 이름을 넣어야 랩 공유 기록판에 올라갑니다 (이름 없이 하려면 한 번 더 누르세요)"; return; } ctx(); document.getElementById("intro").classList.add("hide"); init(); tone(523.3,{dur:.15,gain:.08}); tone(784,{dur:.25,gain:.08,at:.1}); });
 document.getElementById("labBtn").addEventListener("click",openLab);
 document.getElementById("rpBtn").addEventListener("click",()=>{ if(RP) rpStop(); openReplays(); });
 document.getElementById("homeBtn").addEventListener("click",()=>{ sirenStop(); document.getElementById("intro").classList.remove("hide"); });
