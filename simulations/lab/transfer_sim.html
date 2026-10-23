@@ -75,6 +75,7 @@ header p{margin:0;color:var(--muted)}
 .board:has(.evbar.show) .streak{top:46px}
 .me{position:absolute;right:10px;bottom:8px;z-index:2;width:144px;text-align:center;pointer-events:none}
 .me canvas{display:block;width:144px;height:108px;image-rendering:pixelated;image-rendering:crisp-edges}
+.me .cap b{color:var(--ink);font-weight:600}
 .me .cap{font-size:.72rem;color:var(--muted);margin-top:-2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .alarm .me .cap{color:var(--bad);font-weight:600}
 .streak{position:absolute;top:10px;right:10px;z-index:2;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:6px 10px;text-align:right;line-height:1.2}
@@ -139,7 +140,9 @@ button:disabled{opacity:.35;cursor:default}
 .cheer{display:flex;align-items:center;gap:16px;margin-bottom:6px}
 .cheer canvas{flex:none;width:240px;height:180px;image-rendering:pixelated;image-rendering:crisp-edges;background:color-mix(in srgb,var(--ok) 8%,transparent);border-radius:6px}
 .cheer .cheertx h2{margin-top:0}
+.cheer .who{font-size:.85rem;font-weight:600;color:var(--ok);margin-bottom:2px}
 @media (max-width:560px){.cheer{flex-direction:column;align-items:flex-start}}
+.overlay .who.bad{font-size:.85rem;font-weight:600;color:var(--bad);margin-bottom:2px}
 .overlay .fine{font-size:.78em;margin-top:6px}
 .overlay h4{margin:12px 0 4px;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .overlay .what{color:var(--ink);font-size:.92em;line-height:1.55}
@@ -328,8 +331,8 @@ footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--line);font-si
       </div>
       <div class="go">
         <div class="pickme"><span>내 캐릭터</span>
-          <button type="button" class="gpick" data-g="f"><canvas width="24" height="34"></canvas>여</button>
-          <button type="button" class="gpick" data-g="m"><canvas width="24" height="34"></canvas>남</button>
+          <button type="button" class="gpick" data-g="f"><canvas width="24" height="34"></canvas>진주</button>
+          <button type="button" class="gpick" data-g="m"><canvas width="24" height="34"></canvas>현희</button>
         </div>
         <button id="startBtn" type="button">시작하기</button>
         <small>소리가 납니다 · 과제는 다음 화면에서 고릅니다</small>
@@ -689,6 +692,7 @@ function init(){
   buildSamples();
   avCur=null; { const p=document.getElementById("avpic"); if(p){ p.innerHTML=""; document.getElementById("avst").textContent="—"; document.getElementById("avcap").textContent="장치를 누르면 여기에 그 장치의 모습이 나옵니다."; } }
   if(typeof op!=="undefined"){ op.x=op.tx=620; op.y=op.ty=400; op.trail=[]; }
+  log(`${myName()}, 장비 앞에 섰습니다.`);
   log(hard? "하드 모드: 누군가 작업하다 자리를 비운 상태입니다. 게이지·밸브·암·시료 위치를 먼저 파악하세요." : TASK[task].start);
   document.querySelectorAll("[data-task]").forEach(b=>b.classList.toggle("sel",b.dataset.task===task));
   document.getElementById("goal").textContent=TASK[task].goal;
@@ -779,7 +783,7 @@ function catastrophe(title, costKey, chambers){
   log(title,"b"); sirenStart(); whineSet(0); ST[task].dmg=(ST[task].dmg||0)+Math.round((lo+hi)/2); recordEnd("crash");
   setTimeout(()=>{
     const box=document.getElementById("obox");
-    box.innerHTML=`<h2>${title}</h2>
+    box.innerHTML=`<div class="who bad">${myName()}의 사고 보고서</div><h2>${title}</h2>
       <h4>무슨 일이 일어났나</h4><p class="what">${c.what}</p>
       <h4>피해 내역</h4>
       <table class="ctab"><tr><th>항목</th><th>구분</th><th class="r">예상 금액</th></tr>${c.items.map(i=>`<tr><td>${i[0]}</td><td class="k">${i[1]}</td><td class="r">${amt(i)}</td></tr>`).join("")}</table>
@@ -798,7 +802,7 @@ function info(msg){ log(msg); }
 function finish(){
   if(done) return; done=true; document.getElementById("app").classList.add("done"); fanfare(); log("과제 완료","g"); recordEnd("done");
   const box=document.getElementById("obox");
-  box.innerHTML=`<div class="cheer"><canvas id="cheercv" width="48" height="36"></canvas><div class="cheertx"><h2>${TASK[task].name} 과제 완료</h2><p>${TASK[task].done}</p></div></div>
+  box.innerHTML=`<div class="cheer"><canvas id="cheercv" width="48" height="36"></canvas><div class="cheertx"><div class="who">${myName()} 완주!</div><h2>${TASK[task].name} 과제 완료</h2><p>${TASK[task].done}</p></div></div>
     <p>소요 ${clock()} · 경고 ${warnings.length}건${warnings.length? "":" — 사고 없는 완주입니다."}${S.evCount?` · 돌발 이벤트 ${S.evCount}건 대응`:""}</p>
     ${guideOn()?`<p class="fine">가이드 모드 완주는 연속 무사고 기록에 들어가지 않습니다. 이제 가이드를 끄고 혼자 해 보세요.</p>`:""}
     ${warnings.length? `<ul>${warnings.map(w=>`<li>${w}</li>`).join("")}</ul>`:""}
@@ -1037,6 +1041,7 @@ function gvOpen(n){
 
 /* ================= 픽셀 나 ================= */
 const ME={pose:"idle",until:0,cap:"대기 중",f:0,gender:"f"};
+const MENAME={f:"진주",m:"현희"}; const myName=()=>MENAME[ME.gender];
 try{ const g=localStorage.getItem("esc-me-gender"); if(g==="m"||g==="f") ME.gender=g; }catch(e){}
 const PAL={hair:"#2a2320",skin:"#f2c9a0",coat:"#f4f6f7",coatS:"#c9d0d6",pants:"#33415c",shoe:"#1d1f24",glove:"#4a90d9",
   steel:"#9aa6af",steelD:"#5c6770",dark:"#2b333b",ok:"#3fbf6f",bad:"#e5484d",warn:"#f0b33e",sweat:"#7cc4ff",n2:"#d9a441"};
@@ -1165,7 +1170,7 @@ function meDraw(){
   if(pose==="worry"){ px(c,19,4,1,2,PAL.sweat); px(c,22,3,2,1,PAL.warn); px(c,23,4,1,2,PAL.warn); px(c,22,7,1,1,PAL.warn); }
   if(pose==="cheer"){ for(let i=0;i<6;i++) px(c,(i*7+f*3)%46,(i*5+f*4)%14,1,1,[PAL.ok,PAL.warn,PAL.glove,PAL.bad][i%4]); }
   if(pose==="idle"&&f&&Math.random()<.25){ px(c,14,7,1,1,PAL.skin); }
-  document.getElementById("mecap").textContent=cap;
+  document.getElementById("mecap").innerHTML=`<b>${myName()}</b> · ${cap}`;
 }
 setInterval(meDraw,280);
 
