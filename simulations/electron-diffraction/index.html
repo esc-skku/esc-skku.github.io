@@ -22,34 +22,49 @@ footer{margin-top:44px;font-size:12.5px;color:var(--text-muted);border-top:1px s
 <nav style="font-size:13px;margin-bottom:18px"><a href="../" style="color:var(--accent)">← 시뮬레이션 홈</a></nav><h1>전자회절 인터랙티브<br>RHEED &amp; LEED</h1>
 <p class="lede">Ewald 작도부터 실제 패턴 판독까지, 표면 전자회절의 개념 사슬을 다섯 단계로 나눈 시뮬레이션입니다. 순서대로 보는 것을 권장합니다: 교점이 스팟이 되는 원리 → Laue zone이 원호인 이유 → rod가 존재하는 이유 → 형상·재구성·방위각에 따른 패턴 변화.</p>
 
-<a class="card" href="01_ewald_mapping.html">
+<a class="card pv" href="01_ewald_mapping.html">
+  <div>
   <div class="num">01</div>
   <h2>Ewald 작도 ↔ 스크린 스팟 대응</h2>
   <p>구가 rod를 자르는 교점 하나하나가 스크린 스팟 하나하나와 1:1로 대응합니다. LEED는 구가 rod를 옆에서 가로지르고, RHEED는 원점을 지나 rod를 타고 스치듯 올라갑니다. 같은 색 = 같은 회절빔.</p>
+  </div>
+  <div class="preview" style="--oy:-50px"><iframe src="01_ewald_mapping.html" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div>
 </a>
 
-<a class="card" href="02_laue_zones.html">
+<a class="card pv" href="02_laue_zones.html">
+  <div>
   <div class="num">02</div>
   <h2>Laue zone이 원호인 이유 — front view</h2>
   <p>같은 zone의 rod들은 전방 운동량이 같아 k<sub>out</sub>이 원뿔을 이룹니다. 빔 방향에서 보면 거대한 구가 zone당 원 하나로 줄고, rod가 그 원을 뚫는 자리가 스팟. front view와 스크린이 거의 같은 그림임을 확인하세요. top view에서 rod 클릭 가능.</p>
+  </div>
+  <div class="preview" style="--oy:-59px"><iframe src="02_laue_zones.html" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div>
 </a>
 
-<a class="card" href="03_rod_origin.html">
+<a class="card pv" href="03_rod_origin.html">
+  <div>
   <div class="num">03</div>
   <h2>Rod의 기원 — 층수와 푸리에 상반성</h2>
   <p>z로 N층만 산란하면 q<sub>z</sub>로 rod가 퍼집니다. N = 1의 균일한 rod에서 N → ∞의 Bragg점까지, Laue 함수의 연속 전이. rocking curve와 LEED I-V가 무엇을 재는지가 이 프로파일에 들어있습니다.</p>
+  </div>
+  <div class="preview" style="--oy:-63px"><iframe src="03_rod_origin.html" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div>
 </a>
 
-<a class="card" href="04_explorer.html">
+<a class="card pv" href="04_explorer.html">
+  <div>
   <div class="num">04</div>
   <h2>RHEED / LEED Explorer</h2>
   <p>표면 형상 7종 × 재구성 5종(√2×√2 R45 포함) × 방위각 회전. RHEED와 LEED 패턴을 픽셀 단위 운동학적 계산으로 나란히 비교하고, 같은 축척의 Ewald 작도로 두 기법의 기하 차이를 봅니다.</p>
+  </div>
+  <div class="preview" style="--oy:-75px"><iframe src="04_explorer.html" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div>
 </a>
 
-<a class="card" href="05_reconstruction_intensity.html">
+<a class="card pv" href="05_reconstruction_intensity.html">
+  <div>
   <div class="num">05</div>
   <h2>재구성 스팟의 밝기 — 팔면체 회전각과 θ² 법칙</h2>
   <p>산소 팔면체 회전각 θ에 따라 fractional 스팟이 f<sub>O</sub>²|G·u|² ∝ θ²로 켜지고, ARPES folded band도 같은 θ²로 켜집니다. 회전(√2×√2)과 tilt(2×2)의 스팟 기하 지문, glide 소멸, RHEED 방위각 가시성까지. [Sohn &amp; Kim, JKPS 81, 1250 (2022)]</p>
+  </div>
+  <div class="preview" style="--oy:-64px"><iframe src="05_reconstruction_intensity.html" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div>
 </a>
 
 <div class="note">모든 시뮬레이션은 운동학적(kinematic) 근사입니다. 스팟의 위치와 형태는 정확하지만, 세기·Kikuchi line·surface wave resonance·굴절 효과는 dynamical 이론이 필요하며 여기 포함되지 않습니다.</div>

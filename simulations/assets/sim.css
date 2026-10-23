@@ -43,11 +43,14 @@ footer{margin-top:48px;font-size:12.5px;color:var(--text-muted);border-top:1px s
    Neutrals must match the tokens above: bg #101211, surface-1 #1a1d1b, surface-2 #222623,
    text #e8ece9 / #a8b0aa / #6f7772, border #2c302d / #3a403c.  Change here -> change there. */
 
-/* hub section cards: live, non-interactive preview of one representative page */
-.card.section{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:22px;align-items:center}
-.card.section .preview{position:relative;width:320px;height:200px;overflow:hidden;border-radius:8px;
+/* live, non-interactive previews: hub section cards (320x200, scale .2667) and list cards (240x150, scale .2).
+   The iframe is 1200x1100 so the embedded page lays out at desktop width; --oy on .preview crops the header away. */
+.card.section,.card.pv{display:grid;grid-template-columns:minmax(0,1fr) var(--pw,320px);gap:20px;align-items:center}
+.card.pv{--pw:240px;gap:18px}
+.card .preview{position:relative;width:var(--pw,320px);height:calc(var(--pw,320px) * 0.625);overflow:hidden;border-radius:8px;
   border:1px solid var(--border);background:var(--surface-2);transition:border-color .15s}
-.card.section .preview iframe{position:absolute;left:var(--ox,0);top:var(--oy,0);width:1200px;height:1100px;border:0;
+.card .preview iframe{position:absolute;left:var(--ox,0);top:var(--oy,0);width:1200px;height:1100px;border:0;
   transform:scale(.2667);transform-origin:0 0;pointer-events:none;background:var(--bg)}
-.card.section:hover .preview{border-color:var(--accent)}
-@media(max-width:720px){.card.section{grid-template-columns:1fr}.card.section .preview{display:none}}
+.card:hover .preview{border-color:var(--accent)}
+@media(max-width:720px){.card.section,.card.pv{grid-template-columns:1fr}.card .preview{display:none}}
+.card.pv .preview iframe{transform:scale(.2)}
