@@ -2300,9 +2300,9 @@ init(); animate(); drawPicks();
    ===================================================================== */
 const W3={on:false, ready:false, loading:false};
 // three 0.170 본체 + 쓰는 애드온을 한 객체(전역 THREE)로 모은다. 기존 코드는 THREE.X / T.X 형태 그대로 쓴다.
-const W3_ADDONS=["loaders/GLTFLoader.js","environments/RoomEnvironment.js","lights/RectAreaLightUniformsLib.js",
+const W3_ADDONS=["loaders/GLTFLoader.js","environments/RoomEnvironment.js","utils/BufferGeometryUtils.js",
   "postprocessing/EffectComposer.js","postprocessing/RenderPass.js","postprocessing/GTAOPass.js",
-  "postprocessing/ShaderPass.js","postprocessing/OutputPass.js","postprocessing/SMAAPass.js"];
+  "postprocessing/ShaderPass.js","postprocessing/OutputPass.js"];
 function w3Load(cb){
   if(window.THREE) return cb();
   if(W3.loading) return; W3.loading=true;
@@ -2337,7 +2337,7 @@ const W3K=1.45; // 장비·방 전체 배율 (사람 대비 크게 보이도록)
 function w3Build(){
   const T=THREE;
   const host=document.getElementById("w3c");
-  const R=new T.WebGLRenderer({antialias:true}); R.setPixelRatio(Math.min(2,devicePixelRatio)); R.shadowMap.enabled=true;
+  const R=new T.WebGLRenderer({antialias:true,powerPreference:"high-performance"}); R.setPixelRatio(Math.min(1.5,devicePixelRatio)); R.shadowMap.enabled=true;
   host.appendChild(R.domElement);
   const SC=new T.Scene(); SC.background=new T.Color(0x1b2027); SC.fog=new T.Fog(0x1b2027,9,22);
   const CAM=new T.PerspectiveCamera(55,1,0.03,60);
@@ -2497,6 +2497,7 @@ function w3Build(){
   // 분자
   W3.mol={}; for(const k of ["ll","prep","sto","ana"]){ const g=new T.BufferGeometry(); g.setAttribute("position",new T.BufferAttribute(new Float32Array(70*3),3)); const p=new T.Points(g,new T.PointsMaterial({color:0xb094e6,size:0.02})); ROOT.add(p); W3.mol[k]={p,n:0,v:[]}; }
   w3BuildHero(); w3BuildProf(); w3BuildCat();
+  w3MergeChildren(W3.hero.g,new Set([...W3.hair,W3.pin])); w3MergeChildren(W3.prof.g,new Set()); w3MergeChildren(W3.cat.g,new Set());
   w3Input(); addEventListener("resize",w3Resize);
   W3.cam={yaw:0.15,pitch:0.42,dist:3.6};
   try{ w3Quality(); }catch(e){ console.error("quality pass",e); }
@@ -2784,6 +2785,10 @@ let RECTS=RECTS0.map(r=>r.map(v=>v*W3K)); // GLB가 로드되면 w3GlbAttach에�
 function w3Loop(now){
   if(!W3.on) return;
   const dt=Math.min(0.05,(now-W3.last)/1000); W3.last=now;
+  // 처음 몇 초 프레임 속도를 재서 28fps가 안 나오면 '보통' 그래픽으로 자동 전환 (한 번만, G로 되돌릴 수 있음)
+  if(W3.hi&&W3.glb&&!W3.autoQ){ W3.fpsW=(W3.fpsW||0)+dt;
+    if(W3.fpsW>1){ W3.fpsT=(W3.fpsT||0)+dt; W3.fpsN=(W3.fpsN||0)+1;
+      if(W3.fpsT>4){ W3.autoQ=true; if(W3.fpsT/W3.fpsN>1/28){ w3SetQuality(false); w3Toast("화면이 느려서 그래픽을 '보통'으로 낮췄어요 — G 키로 다시 '높음'"); } } } }
   const T=W3.T, h=W3.hero;
   if(W3.heroStyled!==ME.gender) w3HeroStyle();
   // 이동
@@ -2822,7 +2827,8 @@ function w3Loop(now){
   W3.CAM.lookAt(tx,ty,tz);
   w3Sync(dt,now); w3ProfTick(dt,now); w3CatTick(dt,now);
   // 호버
-  const hv=w3Ray(); if(W3.hover!==hv){ if(W3.hover&&W3.hover.material.emissive) W3.hover.material.emissive.setHex(W3.hover.userData.e0||0); W3.hover=hv; if(hv&&hv.material.emissive){ hv.userData.e0=hv.material.emissive.getHex(); hv.material.emissive.setHex(0x664400); } }
+  W3.rayN=(W3.rayN||0)+1; const hv=W3.rayN%3===0? w3Ray() : W3.hover;   // 호버 판정은 3프레임에 한 번 (레이캐스트가 무거움)
+  if(W3.hover!==hv){ if(W3.hover&&W3.hover.material.emissive) W3.hover.material.emissive.setHex(W3.hover.userData.e0||0); W3.hover=hv; if(hv&&hv.material.emissive){ hv.userData.e0=hv.material.emissive.getHex(); hv.material.emissive.setHex(0x664400); } }
   const tip=document.getElementById("w3tip");
   if(hv){ tip.textContent=w3Label(hv)+(w3Near(hv)?"  [클릭 / E]":"  (가까이 가세요)"); tip.style.left=(W3.mx+14)+"px"; tip.style.top=(W3.my+12)+"px"; tip.classList.add("show"); tip.classList.toggle("far",!w3Near(hv)); }
   else tip.classList.remove("show");
@@ -3156,6 +3162,7 @@ function w3GlbAttach(scene){
   if(shells.length){ W3.shellMeshes=shells; W3.shellOuter=shells[0].material; if(W3.foilMode) shells.forEach(m=>m.material=W3.foil); }
   // 걷기 충돌 영역: 장비 부분만 새 모델 크기로 (방 가구는 그대로)
   RECTS=[[-1.45,-0.12,-0.13,0.32],[-0.16,-0.27,0.49,1.25],[0.57,-1.15,1.87,0.68],...RECTS0.slice(3)].map(r=>r.map(v=>v*W3K));
+  w3MergeStatic(scene);
   w3Toast("PREVAC 도면 기반 장비 모델을 적용했습니다");
 }
 
@@ -3182,8 +3189,8 @@ function w3PostSetup(){
   const C=new T.EffectComposer(R,new T.WebGLRenderTarget(w,h,{type:T.HalfFloatType,samples:4}));
   C.addPass(new T.RenderPass(W3.SC,W3.CAM));
   const ao=new T.GTAOPass(W3.SC,W3.CAM,w,h); ao.blendIntensity=0.85;
-  ao.updateGtaoMaterial({radius:0.45, distanceExponent:1.6, thickness:1.2, scale:1.0, samples:16});
-  ao.updatePdMaterial({lumaPhi:10, depthPhi:2, normalPhi:3, radius:6, rings:2, samples:16});
+  ao.updateGtaoMaterial({radius:0.45, distanceExponent:1.6, thickness:1.2, scale:1.0, samples:8});
+  ao.updatePdMaterial({lumaPhi:10, depthPhi:2, normalPhi:3, radius:5, rings:2, samples:8});
   C.addPass(ao);
   // 블룸(빛 번짐)은 쓰지 않는다: 챔버 하이라이트가 번져 창 안이 안 보였음
   C.addPass(new T.OutputPass());
@@ -3225,15 +3232,12 @@ function w3Realism(){
   const pm=new T.PMREMGenerator(R); W3.envTex=pm.fromScene(new T.RoomEnvironment(),0.03).texture; pm.dispose();
   SC.environment=W3.envTex; SC.environmentIntensity=0.3;
   SC.background=new T.Color(0x4e575e); SC.fog=new T.FogExp2(0x6d7880,0.045);
-  // 조명: 약한 하늘빛 채움 + 낮게 들어오는 따뜻한 키 라이트(긴 그림자) + 천장 형광등 면광원
+  // 조명: 약한 하늘빛 채움 + 낮게 들어오는 따뜻한 키 라이트(긴 그림자). 천장 형광등은 빛나는 판만 (면광원은 무겁고 금속이 번쩍여서 뺌)
   SC.traverse(o=>{ if(o.isHemisphereLight){ o.intensity=0.18; o.color.setHex(0xdfe9f2); o.groundColor.setHex(0x4b453f); }
-    if(o.isDirectionalLight){ o.intensity=2.6; o.color.setHex(0xfff0dc); o.position.set(-7,6,5); o.shadow.mapSize.set(4096,4096);
+    if(o.isDirectionalLight){ o.intensity=2.6; o.color.setHex(0xfff0dc); o.position.set(-7,6,5); o.shadow.mapSize.set(2048,2048);
       Object.assign(o.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:0.5,far:30}); o.shadow.camera.updateProjectionMatrix(); o.shadow.bias=-0.0002; o.shadow.normalBias=0.02; o.shadow.radius=3; }
     if(o.isPointLight){ o.intensity*=2; o.decay=2; } });
-  T.RectAreaLightUniformsLib.init();
-  (W3.panels||[]).forEach(p=>{ const w=p.getWorldPosition(new T.Vector3());
-    const l=new T.RectAreaLight(0xeef4ff,5,1.2*K,0.3*K);   // 금속에 맺히는 하이라이트가 눈부시지 않게 약하게 l.position.copy(w).add(new T.Vector3(0,-0.02,0)); l.lookAt(w.x,0,w.z); SC.add(l);
-    p.material=new T.MeshBasicMaterial({color:new T.Color(0xffffff).multiplyScalar(2.2),toneMapped:true}); });
+  (W3.panels||[]).forEach(p=>{ p.material=new T.MeshBasicMaterial({color:new T.Color(0xffffff).multiplyScalar(2.2),toneMapped:true}); });
   // 바닥: 에폭시 코팅 (광택 + 얼룩)
   if(W3.floor){ const old=W3.floor.material; old.map.colorSpace=T.SRGBColorSpace; old.map.needsUpdate=true;
     W3.floor.material=w3Grime(new T.MeshPhysicalMaterial({map:old.map,color:0x8a9298,roughness:0.32,metalness:0,clearcoat:0.55,clearcoatRoughness:0.18}),{scale:1.2,rough:0.5,dark:0.12}); }
@@ -3247,6 +3251,40 @@ function w3Realism(){
   SC.traverse(o=>{ const m=o.material; if(!m||Array.isArray(m)) return;
     if(m.map&&m.map.isCanvasTexture&&m.map!==(W3.floor&&W3.floor.material.map)){ m.map.colorSpace=T.SRGBColorSpace; m.map.needsUpdate=true; }
     if(o.isSprite){ m.toneMapped=false; m.fog=false; m.needsUpdate=true; } });
+  w3MergeStatic(W3.ROOT,true);   // 방 가구(랙·책상·케이블·벽…)도 재질별로 합침
+}
+// 재질이 '같은 값'이면 같은 열쇠 (물체마다 재질 객체를 새로 만들어도 묶이도록)
+function w3MatKey(m){ return [m.type,m.color&&m.color.getHex(),m.roughness,m.metalness,m.emissive&&m.emissive.getHex(),m.opacity,m.transparent,m.map&&m.map.uuid,
+  m.side,m.toneMapped,m.envMapIntensity,m.depthWrite,JSON.stringify(m.userData.grime||0)].join("|"); }
+// 캐릭터·교수님·고양이: 같이 움직이는 그룹 안에서 같은 재질의 작은 부품끼리 합친다 (애니메이션은 그룹 단위라 그대로)
+function w3MergeChildren(root,skip){
+  const T=THREE; if(!T.mergeGeometries) return; const groups=[]; root.traverse(o=>{ if(o===root||o.isGroup) groups.push(o); });
+  for(const g of groups){ const by=new Map();
+    for(const c of g.children){ if(!c.isMesh||skip.has(c)||Array.isArray(c.material)) continue;
+      const k=w3MatKey(c.material)+"|"+Object.keys(c.geometry.attributes).sort().join(",")+"|"+(c.geometry.index?1:0)+"|"+c.castShadow;
+      if(!by.has(k)) by.set(k,[]); by.get(k).push(c); }
+    for(const list of by.values()){ if(list.length<2) continue;
+      const mg=T.mergeGeometries(list.map(c=>{ c.updateMatrix(); return c.geometry.clone().applyMatrix4(c.matrix); }),false); if(!mg) continue;
+      const m=new T.Mesh(mg,list[0].material); m.castShadow=list[0].castShadow; m.receiveShadow=list[0].receiveShadow; g.add(m);
+      const pk=list.find(c=>c.userData.act); if(pk){ m.userData={...pk.userData}; W3.pick=W3.pick.filter(p=>!list.includes(p)); W3.pick.push(m); }
+      list.forEach(c=>g.remove(c)); } }
+}
+// 성능: 움직이지도, 클릭되지도 않는 장비 부품을 재질별로 한 덩어리로 합쳐 그리기 횟수를 줄인다 (~300 → 수십)
+function w3MergeStatic(scene,roomOnly){
+  const T=THREE; if(!T.mergeGeometries) return;
+  const keep=new Set(W3.pick); (W3.shellMeshes||[]).forEach(m=>keep.add(m));
+  if(!roomOnly) for(const n of ["GV1_blade","GV2_blade","GV3_blade","ArmA_rod","ArmA_magnet","ArmB_rod","ArmB_magnet","Prep_stage","LL_lid","TMP_LL_rotor","TMP_Prep_rotor"]){ const o=scene.getObjectByName(n); if(o) o.traverse(x=>keep.add(x)); }
+  scene.updateMatrixWorld(true); const inv=scene.matrixWorld.clone().invert(), groups=new Map(), done=[];
+  // roomOnly: ROOT 바로 아래의 방 가구만 (장비 그룹 EQ, 램프 등은 대상 아님)
+  const list=[]; if(roomOnly) scene.children.forEach(o=>{ if(o!==W3.EQ) list.push(o); }); else scene.traverse(o=>list.push(o));
+  list.forEach(o=>{ if(!o.isMesh||o.isSkinnedMesh||o.isInstancedMesh||keep.has(o)||Array.isArray(o.material)) return;
+    const g=o.geometry, key=w3MatKey(o.material)+"|"+Object.keys(g.attributes).sort().join(",")+"|"+(g.index?1:0)+"|"+o.castShadow;
+    const c=g.clone().applyMatrix4(new T.Matrix4().multiplyMatrices(inv,o.matrixWorld));
+    if(!groups.has(key)) groups.set(key,{mat:o.material,cast:o.castShadow,geos:[]}); groups.get(key).geos.push(c); done.push(o); });
+  for(const {mat,cast,geos} of groups.values()){ const merged=T.mergeGeometries(geos,false); geos.forEach(x=>x.dispose()); if(!merged) continue;
+    const m=new T.Mesh(merged,mat); m.castShadow=cast; m.receiveShadow=true; m.name="merged_"+(mat.name||""); scene.add(m); }
+  done.forEach(o=>{ o.parent.remove(o); });
+  W3[roomOnly?"mergedRoom":"mergedEq"]=[done.length,groups.size];
 }
 // GLB 재질을 물리 기반 재질로 (이름은 Blender 재질 이름)
 function w3GlbMaterials(scene){
@@ -3259,7 +3297,8 @@ function w3GlbMaterials(scene){
       case "Panel":     m=w3Grime(new T.MeshStandardMaterial({color:0xbfc4c8,metalness:0.05,roughness:0.55}),{scale:3,rough:0.3,dark:0.08}); break;
       case "AluFrame":  m=w3Grime(new T.MeshStandardMaterial({color:0xb7bcc0,metalness:0.85,roughness:0.36}),{scale:6,rough:0.3,dark:0.05}); break;
       case "TMPBody":   m=new T.MeshStandardMaterial({color:0x3a4249,metalness:0.55,roughness:0.42}); break;
-      case "Glass":     m=new T.MeshPhysicalMaterial({color:0xf2f8ff,metalness:0,roughness:0.04,transmission:1,thickness:0.008,ior:1.5,side:T.DoubleSide}); break;
+      // 유리: 굴절(transmission)은 장면을 한 번 더 그려서 무거움 → 반투명 + 환경 반사로
+      case "Glass":     m=new T.MeshStandardMaterial({color:0xdfeaf5,metalness:0.1,roughness:0.05,transparent:true,opacity:0.28,depthWrite:false,side:T.DoubleSide,envMapIntensity:1.5}); break;
       case "Section":   m=src.clone(); m.emissiveIntensity=0; m.roughness=0.6; break;   // 단면은 칠한 색만, 발광 없음
       default:          m=src; }
     m.name=name; return made[name]=m; };
@@ -3267,8 +3306,8 @@ function w3GlbMaterials(scene){
 }
 
 function w3SetQuality(hi){
-  W3.hi=hi; W3.R.setPixelRatio(hi?Math.min(2,devicePixelRatio):1); W3.SC.environment=hi?W3.envTex:null;
-  W3.SC.traverse(o=>{ if(o.isDirectionalLight){ o.shadow.mapSize.set(hi?4096:1024,hi?4096:1024); if(o.shadow.map){ o.shadow.map.dispose(); o.shadow.map=null; } } });
+  W3.hi=hi; W3.R.setPixelRatio(hi?Math.min(1.5,devicePixelRatio):1); W3.SC.environment=hi?W3.envTex:null;
+  W3.SC.traverse(o=>{ if(o.isDirectionalLight){ o.shadow.mapSize.set(hi?2048:1024,hi?2048:1024); if(o.shadow.map){ o.shadow.map.dispose(); o.shadow.map=null; } } });
   w3Resize(); w3Toast(hi?"그래픽: 높음 (음영·빛번짐 켜짐)":"그래픽: 보통 (후처리 끔, 가벼움)");
 }
 function w3SetFoil(on){
