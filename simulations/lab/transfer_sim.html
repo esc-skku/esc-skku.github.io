@@ -359,7 +359,8 @@ text.g{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-we
 .w3meas{color:#62C78A;font-weight:600;margin-top:2px}
 .w3right{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 .w3row{display:flex;gap:8px;align-items:flex-start}
-.w3ph,.w3score{width:min(320px,30vw)}
+.w3ph,.w3score{width:320px}
+@media (max-width:1000px){ .w3ph,.w3score{display:none} }
 .w3h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px;color:#e8edf1;font-weight:600}
 .w3h small{color:#95a0a9;font-weight:400} .w3lg{font-size:.68rem;color:#95a0a9;font-weight:400;white-space:nowrap}
 .w3lg i{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c);margin:0 2px 0 5px;vertical-align:-1px}
@@ -368,6 +369,16 @@ text.g{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-we
 .w3score td{padding:1px 3px;color:#c9d1d7} .w3score td.n{text-align:right;font-family:"IBM Plex Mono",monospace}
 .w3score tr.hd td{color:#95a0a9;font-size:.68rem} .w3score tr.cur td{color:#fff;background:rgba(98,199,138,.14)}
 .w3score td.ok{color:#62C78A} .w3score td.bad{color:#F06A6A} .w3score .dmg{color:#95a0a9;font-size:.7rem;font-weight:400} .w3score .dmg b{color:#F0B33E}
+.w3prof{position:absolute;left:50%;bottom:160px;transform:translateX(-50%);width:min(640px,92vw);display:none;pointer-events:auto}
+.w3prof.show{display:block}
+.w3prof .w3card{padding:12px 14px;border-color:rgba(242,194,24,.35)}
+.w3pt{display:flex;align-items:center;gap:10px;margin-bottom:6px} .w3pt b{color:#F2C218;font-size:.95rem} .w3pt span{flex:1;color:#6d777e;font-size:.7rem}
+.w3pt button{all:unset;cursor:pointer;font-size:.75rem;color:#c9d1d7;padding:2px 8px;border:1px solid rgba(255,255,255,.15);border-radius:6px}
+.w3ps .q{color:#95a0a9;font-size:.78rem} .w3ps .a{color:#e8edf1;font-size:.94rem;line-height:1.6;margin:4px 0 10px} .w3ps .a b{color:#F2C218;font-weight:600}
+.w3pq{display:flex;flex-wrap:wrap;gap:6px}
+.w3pq button{all:unset;cursor:pointer;font-size:.74rem;padding:4px 10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;color:#c9d1d7}
+.w3pq button:hover,.w3pq button.on{background:rgba(242,194,24,.16);border-color:rgba(242,194,24,.5);color:#fff}
+.w3pq button i{font-style:normal;color:#6d777e;margin-right:4px}
 @media (max-height:760px){ .w3score{display:none} }
 @media (max-height:600px){ .w3ph{display:none} }
 .w3stk{text-align:center;min-width:76px} .w3stk b{display:block;font-family:"IBM Plex Mono",monospace;font-size:1.6rem;color:#62C78A;line-height:1.1} .w3stk span{font-size:.72rem;color:#95a0a9}
@@ -724,6 +735,24 @@ function whineSet(speed){ if(!soundOn){ if(whine){ whine.g.gain.value=0; } retur
   if(!whine){ const o=ac.createOscillator(), g=ac.createGain(); o.type="sine"; g.gain.value=0; o.connect(g).connect(ac.destination); o.start(); whine={o,g}; }
   whine.o.frequency.setTargetAtTime(120+speed*1100, ac.currentTime,.1); whine.g.gain.setTargetAtTime(speed*.012, ac.currentTime,.1); }
 function fanfare(){ [261.6,329.6,392,523.3].forEach((f,i)=>tone(f,{dur:.5,gain:.1,at:i*.08})); }
+function w3JumpSound(){ if(!soundOn) return; try{ const a=ctx(); if(!a) return; const t=a.currentTime, o=a.createOscillator(), g=a.createGain();   // 8비트 '뾰옹' (상승 스윕)
+  o.type="square"; o.frequency.setValueAtTime(330,t); o.frequency.exponentialRampToValueAtTime(1100,t+0.16);
+  g.gain.setValueAtTime(0.05,t); g.gain.setValueAtTime(0.05,t+0.12); g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t+0.24); }catch(e){} }
+// 고양이 '냐~옹': 성대 소리(톱니파+떨림)를 두 개의 포먼트 필터로 걸러 모음이 ㄴ→아→오로 바뀌게 한다.
+// vol: 0~1 (멀면 작게), short: 짧은 '냥' (점프할 때)
+function w3Meow(vol=1,short=false){ if(!soundOn||vol<0.03) return; try{ const a=ctx(); if(!a) return;
+  const t=a.currentTime, L=short?0.32:0.78, k=0.9+Math.random()*0.25;           // 길이, 음높이 개체차
+  const o=a.createOscillator(), vib=a.createOscillator(), vg=a.createGain(), f1=a.createBiquadFilter(), f2=a.createBiquadFilter(), g1=a.createGain(), g2=a.createGain(), out=a.createGain();
+  o.type="sawtooth";
+  o.frequency.setValueAtTime(480*k,t); o.frequency.linearRampToValueAtTime(760*k,t+L*0.22); o.frequency.linearRampToValueAtTime(700*k,t+L*0.5); o.frequency.exponentialRampToValueAtTime(400*k,t+L);
+  vib.frequency.value=6.5; vg.gain.value=14; vib.connect(vg).connect(o.frequency);
+  for(const [f,a0,a1,a2,q] of [[f1,420,950,560,6],[f2,1900,1500,900,8]]){ f.type="bandpass"; f.Q.value=q;
+    f.frequency.setValueAtTime(a0,t); f.frequency.linearRampToValueAtTime(a1,t+L*0.2); f.frequency.linearRampToValueAtTime(a2,t+L*0.75); }
+  g1.gain.value=1.0; g2.gain.value=0.55;
+  out.gain.setValueAtTime(0.0001,t); out.gain.linearRampToValueAtTime(0.11*vol,t+0.05); out.gain.setValueAtTime(0.11*vol,t+L*0.55); out.gain.exponentialRampToValueAtTime(0.0001,t+L);
+  o.connect(f1).connect(g1).connect(out); o.connect(f2).connect(g2).connect(out); out.connect(a.destination);
+  o.start(t); vib.start(t); o.stop(t+L+0.02); vib.stop(t+L+0.02); }catch(e){} }
 
 /* ---------- 배경음: 8비트 칩튠 (파일 없이 Web Audio로 합성) ----------
    A단조 Am–F–C–G, 100 BPM, 16마디 반복. 앞 8마디는 멜로디, 뒤 8마디는 아르페지오 + 계측기 '삐빅' 소리.
@@ -2258,6 +2287,11 @@ init(); animate(); drawPicks();
     <div class="w3card w3help"><b>조작</b><br>WASD 이동 · Shift 달리기<br>드래그 시점 · 휠 줌<br>장치 클릭 / E 조작 · Space 점프<br>F 챔버 포일 · G 그래픽 높음/보통 · M 음악<br><span class="w3btns"><button id="w3Reset" type="button">처음부터</button><button id="w3Exit" type="button">2D로 (Esc)</button></span></div>
   </div>
   <div class="w3tip" id="w3tip"></div>
+  <div class="w3prof" id="w3prof"><div class="w3card">
+    <div class="w3pt"><b>교수님</b><span>숫자 키 1–9로 질문 · Esc 닫기</span><button id="w3profX" type="button">닫기</button></div>
+    <div class="w3ps" id="w3ps"></div>
+    <div class="w3pq" id="w3pq"></div>
+  </div></div>
 </div>
 <script>
 /* =====================================================================
@@ -2462,7 +2496,7 @@ function w3Build(){
   W3.smp=[]; for(let i=0;i<3;i++){ const m=add(new T.BoxGeometry(0.05,0.015,0.05),M(0xf2925e,{m:.2,r:.5,e:0x2a1206}),0,-5,0); m.userData.sample=i; W3.pick.push(m); W3.smp.push(m); }
   // 분자
   W3.mol={}; for(const k of ["ll","prep","sto","ana"]){ const g=new T.BufferGeometry(); g.setAttribute("position",new T.BufferAttribute(new Float32Array(70*3),3)); const p=new T.Points(g,new T.PointsMaterial({color:0xb094e6,size:0.02})); ROOT.add(p); W3.mol[k]={p,n:0,v:[]}; }
-  w3BuildHero();
+  w3BuildHero(); w3BuildProf(); w3BuildCat();
   w3Input(); addEventListener("resize",w3Resize);
   W3.cam={yaw:0.15,pitch:0.42,dist:3.6};
   try{ w3Quality(); }catch(e){ console.error("quality pass",e); }
@@ -2502,6 +2536,190 @@ function w3HeroStyle(){
   W3.hero.nameSp.material.map.needsUpdate=true; W3.heroStyled=ME.gender;
 }
 
+/* ---------- 교수님 (오른쪽 문 옆 NPC) ----------
+   다가가서 클릭/E로 말을 걸면, 지금 장비 상태를 보고 다음 할 일과 이유를 알려주고(가이드 엔진 gNext와 같은 판단),
+   자주 묻는 질문에 답한다. 답은 교수님이 확인한 장비 사실만. 물어봐도 기록(연속 무사고)에는 영향 없음. */
+const PROF_POS=[4.25,2.55]; // 장비 좌표 (x,z) — 노란 문(4.66, 3.0) 옆
+const PROF_FAQ=[
+  ["지금 뭘 해야 하죠?", null],
+  ["게이트 열기 전에 뭘 확인해요?", "게이트를 열기 전에는 <b>양쪽 게이지</b>를 꼭 봅니다. GV1은 로드락이 <b>1E-7 이하</b>, GV2는 Prep이 <b>1E-9 이하</b>일 때만 열어요. 압력 차가 큰 채로 열면 기체가 깨끗한 쪽으로 쏟아져 들어갑니다."],
+  ["왜 GV2를 GV3보다 먼저 열어요?", "<b>초고진공 쪽은 항상 마지막</b>에 엽니다. Analysis가 가장 깨끗하니 GV2를 먼저 열고, 그다음 GV3예요. 암 B는 Storage를 관통해서 지나가니 Analysis까지 갈 땐 GV2·GV3가 둘 다 열려 있어야 하고, 닫을 땐 반대 순서(GV3 → GV2)로 닫습니다."],
+  ["매니퓰레이터는 언제 움직여요?", "암이 <b>전부 빠진 뒤</b>에만 움직입니다. 매니퓰레이터가 암 B 높이에 있는 채로 암 B를 Storage나 Analysis로 보내면 부딪혀요. 시료를 집었으면 <b>암을 끝까지 빼고 → 매니퓰레이터를 내리고 → 통과</b>시킵니다."],
+  ["로드락에 시료는 어떻게 넣어요?", "① GV1이 닫혀 있고 암 A가 로드락 쪽인지 확인 → ② 로드락 TMP 끄고 0%까지 기다리기 → ③ 앵글 밸브 닫기 → ④ N₂ 벤트, 대기압이 되면 위 뚜껑 열기 → ⑤ 홀더에 장착하고 뚜껑 닫기 → ⑥ 벤트 밸브 닫고 앵글 밸브 열어 러핑, 1E-1 아래에서 TMP 켜기 → <b>1E-7 이하</b>가 되면 이송합니다."],
+  ["Prep을 벤트하는 순서는요?", "<b>IG 끄기 → TMP 정지, 0%가 될 때까지 대기 → 앵글 밸브 닫기 → 벤트.</b> IG를 켠 채로 벤트하면 필라멘트가 끊어져요. 시료는 먼저 진공 쪽으로 옮겨 두고요."],
+  ["게이지는 어떤 걸 써요?", "Prep과 Analysis는 <b>이온 게이지</b>, 로드락과 Storage는 <b>풀레인지 게이지</b>예요. Storage 게이지는 6E-9까지만 읽어서 그보다 좋으면 '&lt;6.0E-9'로 나옵니다. 이온 게이지는 충분히 고진공일 때만 켭니다."],
+  ["펌프는 어떻게 돼 있어요?", "Analysis는 TMP+TSP, Storage는 TMP+NEG, Prep은 TMP+TSP, 로드락은 TMP예요. 각 TMP 뒤로 앵글 밸브와 컨벡트론을 지나 러핑 펌프로 가고, 러핑 펌프는 <b>MBE·Prep·Analysis·로드락에 각각 따로</b> 달려 있어요."],
+  ["정상 압력은 얼마예요?", "베이스 압력은 Analysis가 <b>low E-11</b>, Prep <b>1E-10</b>, Storage <b>1E-10</b> 정도예요. 앵글 밸브를 닫고 TMP를 끄면 약 1E-6까지 올라갔다가 거기서 멈춥니다."],
+  ["갑자기 경고가 뜨면요?", "냉각수 저하·정전·공압 저하·IG 단선이 생기면 인터락이 게이트를 전부 닫아요. 게이트가 닫히기 전에 <b>암부터 빼고</b>, 새로 아무것도 열지 말고 복구될 때까지 기다립니다. 정전 뒤에는 TMP를 바로 다시 켜야 해요."],
+];
+function w3BuildProf(){
+  const T=W3.T, g=new T.Group(); W3.SC.add(g);
+  const M=c=>new T.MeshStandardMaterial({color:c,roughness:.8,metalness:0}), parts=[];
+  const box=(w,h,d,c,x,y,z,par)=>{ const m=new T.Mesh(new T.BoxGeometry(w,h,d),M(c)); m.position.set(x,y,z); m.castShadow=true; (par||g).add(m); parts.push(m); return m; };
+  for(const s of [-1,1]){ box(0.13,0.66,0.15,0x2b2f36,s*0.09,0.39,0); box(0.15,0.06,0.22,0x4a3426,s*0.09,0.03,0.03); }   // 바지·구두
+  box(0.42,0.62,0.26,0x2f3f5f,0,1.02,0);                                   // 남색 재킷
+  box(0.14,0.46,0.012,0xdfe8f2,0,1.10,0.131); box(0.05,0.34,0.014,0x8a2432,0,1.09,0.138);   // 셔츠·넥타이
+  const arm=x=>{ const a=new T.Group(); a.position.set(x,1.28,0); g.add(a); box(0.12,0.52,0.14,0x2f3f5f,0,-0.24,0,a); box(0.11,0.1,0.12,0xf2c9a0,0,-0.54,0,a); return a; };
+  const armL=arm(-0.27), armR=arm(0.27);
+  box(0.16,0.22,0.02,0x6b4a2b,0,-0.52,0.09,armL);                          // 클립보드
+  const head=new T.Group(); head.position.set(0,1.56,0); g.add(head);
+  box(0.36,0.36,0.34,0xf2c9a0,0,0.12,0,head);
+  box(0.38,0.1,0.36,0x3a3a3c,0,0.32,0,head); box(0.38,0.2,0.08,0x3a3a3c,0,0.2,-0.16,head);   // 머리
+  for(const s of [-1,1]) box(0.04,0.14,0.2,0x8f9296,s*0.19,0.2,-0.04,head);   // 희끗한 옆머리
+  for(const s of [-1,1]){ box(0.1,0.07,0.012,0x111214,s*0.085,0.15,0.176,head); box(0.07,0.04,0.014,0x9fc0d8,s*0.085,0.15,0.179,head); }   // 안경
+  box(0.06,0.015,0.012,0x111214,0,0.165,0.178,head);
+  box(0.05,0.03,0.02,0x1b1b1f,-0.08,0.15,0.172,head); box(0.05,0.03,0.02,0x1b1b1f,0.08,0.15,0.172,head);
+  box(0.1,0.02,0.02,0xb5715f,0,0.03,0.175,head);                           // 입
+  // 이름표 + 말풍선 표시
+  const c=document.createElement("canvas"); c.width=320; c.height=72; const x=c.getContext("2d");
+  x.font="bold 30px 'IBM Plex Sans KR',sans-serif"; x.textAlign="center"; x.textBaseline="middle"; const t="교수님 · E로 질문", w=x.measureText(t).width+32;
+  x.fillStyle="rgba(20,24,29,.7)"; x.fillRect(160-w/2,10,w,52); x.fillStyle="#F2C218"; x.fillText(t,160,37);
+  const tex=new T.CanvasTexture(c); tex.colorSpace=T.SRGBColorSpace;
+  const sp=new T.Sprite(new T.SpriteMaterial({map:tex,depthTest:false,transparent:true,toneMapped:false,fog:false})); sp.position.y=2.18; sp.scale.set(1.0,0.225,1); g.add(sp);
+  g.scale.setScalar(0.85); g.position.set(PROF_POS[0]*W3K,0,PROF_POS[1]*W3K); g.rotation.y=-Math.PI/2;   // 방 쪽(-x)을 봄
+  parts.forEach(m=>W3.pickable(m,"prof","교수님 — 모르는 것 물어보기",new T.Vector3(PROF_POS[0],0,PROF_POS[1])));
+  W3.prof={g,head,armL,armR,sp,yaw0:g.rotation.y,talk:0};
+  document.getElementById("w3profX").onclick=w3ProfClose;
+}
+function w3ProfTick(dt,now){
+  const P=W3.prof; if(!P) return; const h=W3.hero, px=PROF_POS[0]*W3K, pz=PROF_POS[1]*W3K, d=Math.hypot(h.x-px,h.z-pz);
+  let look=0; if(d<3.2*W3K){ look=Math.atan2(h.x-px,h.z-pz)-P.yaw0; while(look>Math.PI) look-=2*Math.PI; while(look<-Math.PI) look+=2*Math.PI; look=Math.max(-0.9,Math.min(0.9,look)); }
+  P.head.rotation.y+=(look-P.head.rotation.y)*Math.min(1,dt*5);
+  P.talk=Math.max(0,P.talk-dt); const k=P.talk>0? Math.sin(now/90):0;
+  P.head.rotation.x=0.04*Math.sin(now/900)+0.06*k;                         // 숨쉬기 · 말할 때 끄덕임
+  P.armR.rotation.x=P.talk>0? -0.6+0.25*Math.sin(now/140) : P.armR.rotation.x*0.9;   // 말하면서 손짓
+  P.sp.visible=!W3.profOpen;
+  if(W3.profOpen&&d>1.8*W3K) w3ProfClose();                                // 멀어지면 대화 끝
+}
+function w3ProfDev(a){
+  const pickA={aOut:"armA",aIn:"armAback",bPrep:"armBstep",bSto:"armBstep",bOut:"armBstep",bIn:"armBback",load:"tray",unload:"tray"}[a]||a;
+  const smp={aPick:"암 A로 시료 집기",aPlace:"암 A의 시료 내려놓기",bPick:"암 B로 시료 집기",bPlace:"암 B의 시료 내려놓기"}[a];
+  if(smp) return smp+" (시료를 클릭)";
+  const o=W3.pick.find(p=>p.userData.act===pickA), btn=document.querySelector(`[data-a="${a}"]`);
+  const lab=o? o.userData.label : (btn? btn.textContent : a);
+  return lab+(btn&&o&&!lab.includes(btn.textContent)? ` → '${btn.textContent}'` : "");
+}
+function w3ProfAdvice(){
+  const end=s=>s+(/[.!?…)]$/.test(s)?"":".");
+  if(RP) return "지금은 리플레이를 보는 중이에요.";
+  if(alarmed) return "사고가 났네요. 사고 보고서에서 <b>무슨 일이 왜</b> 일어났는지 꼭 읽어 보고, '처음부터'로 다시 해 봅시다. 실제 장비라면 큰 비용과 시간이 드는 실수예요.";
+  if(done) return "잘했어요! 이번엔 <b>가이드 없이, 경고 없이</b> 더 빨리 해 볼까요?";
+  if(document.getElementById("confirm").classList.contains("show")) return "확인 창에 나온 <b>양쪽 게이지 숫자</b>를 읽어 보세요. 기준 이하일 때만 '열기'입니다.";
+  const g=gNext();
+  if(!g) return `지금은 급한 일이 없어 보여요. 목표는 <b>${TASK[task].goal.replace(/^목표:\s*/,"")}</b>예요.`;
+  if(g.wait) return `지금은 <b>기다릴 때</b>예요. ${end(g.why)}`;
+  return `다음은 <b>${w3ProfDev(g.a)}</b>.<br>${end(g.why)}`;
+}
+function w3ProfSay(i){ const q=PROF_FAQ[i]; if(!q) return;
+  document.getElementById("w3ps").innerHTML=`<div class="q">${q[0]}</div><div class="a">${q[1]||w3ProfAdvice()}</div>`;
+  document.querySelectorAll("#w3pq button").forEach((b,j)=>b.classList.toggle("on",j===i));
+  [0,.07,.14].forEach((at,k)=>tone(520+k*130,{dur:.05,wave:"square",gain:.03,at})); if(W3.prof) W3.prof.talk=1.4; }
+function w3ProfOpen(){ W3.profOpen=true; document.getElementById("w3prof").classList.add("show");
+  const pq=document.getElementById("w3pq"); pq.innerHTML=PROF_FAQ.map((q,i)=>`<button type="button"><i>${i+1}</i>${q[0]}</button>`).join("");
+  pq.querySelectorAll("button").forEach((b,i)=>b.onclick=()=>w3ProfSay(i));
+  w3ProfSay(0); }
+function w3ProfClose(){ W3.profOpen=false; document.getElementById("w3prof").classList.remove("show"); }
+
+/* ---------- 연구실 고양이 '슈냥이' ----------
+   경유점(장비 좌표, y는 올라앉는 면 높이) 사이를 걷거나 뛰어올라 돌아다닌다.
+   책상·쓰레기통→랙 위·캐비닛 위·Analysis 매니퓰레이터 판(챔버 꼭대기)·측정 랙 위. 높은 데서는 오래 앉아 쉰다. 클릭/E로 쓰다듬기. */
+const CAT_NODES={
+  left:[-2.6,0,0.9], desk:[-1.2,0,1.15], center:[-0.9,0,0.95], prep:[0.15,0,1.35], mid:[0.9,0,2.0], ana:[1.2,0,0.95], rackR:[2.3,0,1.0], door:[3.5,0,1.9],
+  bin:[-3.35,0,-0.25], rack:[-3.05,0,-1.3],
+  sDesk1:[-1.55,0.76,1.7], sDesk2:[-0.85,0.76,1.7], sBin:[-4.0,1.3,-0.6], sRack1:[-3.7,1.9,-1.85], sRack2:[-3.05,1.9,-1.9], sRack3:[-2.4,1.9,-1.9],
+  sPrep:[0.38,0.811,0.75], sAna1:[1.55,0.735,0.4], sAna2:[0.75,0.735,0.45], sAnaMan:[1.1,1.725,0.1], sRackR:[2.3,1.4,0.4]};
+const CAT_EDGES=[["left","desk"],["desk","center"],["center","prep"],["prep","mid"],["mid","ana"],["ana","rackR"],["rackR","door"],["door","mid"],["left","bin"],["bin","rack"],["left","center"],
+  ["desk","sDesk1"],["sDesk1","sDesk2"],["bin","sBin"],["sBin","sRack1"],["sRack1","sRack2"],["sRack2","sRack3"],
+  ["prep","sPrep"],["ana","sAna2"],["sAna2","sAna1"],["sAna2","sAnaMan"],["rackR","sRackR"]];
+function w3BuildCat(){
+  const T=W3.T, g=new T.Group(); W3.SC.add(g);
+  // 귀여운 2등신 치즈냥: 큰 머리, 동글동글한 몸, 큰 눈(하이라이트·깜빡임), ω 입, 볼터치, 짧은 다리, 통통한 꼬리
+  const M=(c,o={})=>new T.MeshStandardMaterial({color:c,roughness:o.r??0.9,metalness:0,transparent:!!o.t,opacity:o.t??1,depthWrite:!o.t}), parts=[];
+  const mesh=(geo,mat,x,y,z,par,sc)=>{ const m=new T.Mesh(geo,mat); m.position.set(x,y,z); if(sc) m.scale.set(...sc); m.castShadow=!mat.transparent; (par||g).add(m); parts.push(m); return m; };
+  const sph=r=>new T.SphereGeometry(r,24,16), cap=(r,l)=>new T.CapsuleGeometry(r,l,8,16);
+  const O=M(0xf2a35c), D=M(0xd9813a), W=M(0xfff6ec), P=M(0xf4a3b4,{r:.6}), K=M(0x1c1a1f,{r:.25}), H=new T.MeshBasicMaterial({color:0xffffff});
+  const body=new T.Group(); g.add(body);
+  { const b=mesh(cap(0.085,0.11),O,0,0.135,-0.01,body,[1.05,0.95,1]); b.rotation.x=Math.PI/2; }               // 통통한 몸
+  mesh(sph(0.07),W,0,0.11,0.055,body,[1,0.85,0.8]);                                                          // 흰 배
+  for(const z of [-0.06,0,0.05]){ const s=mesh(cap(0.012,0.06),D,0,0.215,z,body); s.rotation.z=Math.PI/2; } // 등 줄무늬
+  const head=new T.Group(); head.position.set(0,0.24,0.12); body.add(head);
+  mesh(sph(0.105),O,0,0.02,0,head,[1.12,0.95,1]);                                                           // 큰 머리
+  mesh(sph(0.055),W,0,-0.022,0.06,head,[1.2,0.75,0.8]);                                                      // 흰 주둥이
+  for(const x of [-0.025,0.025]){ const s=mesh(cap(0.008,0.03),D,x,0.1,0.02,head); s.rotation.x=0.4; }       // 이마 무늬
+  const ears=[], eyes=[];
+  for(const s of [-1,1]){
+    const ear=new T.Group(); ear.position.set(s*0.062,0.085,-0.005); ear.rotation.z=-s*0.32; head.add(ear); ears.push(ear);
+    mesh(new T.ConeGeometry(0.04,0.065,16),O,0,0.025,0,ear); mesh(new T.ConeGeometry(0.024,0.04,16),P,0,0.02,0.012,ear);
+    const eye=new T.Group(); eye.position.set(s*0.042,0.028,0.088); head.add(eye); eyes.push(eye);
+    mesh(sph(0.021),K,0,0,0,eye,[1,1.1,0.5]); mesh(sph(0.007),H,s*0.006,0.008,0.009,eye); mesh(sph(0.0035),H,-s*0.004,-0.007,0.01,eye);
+    const blush=mesh(new T.CircleGeometry(0.016,20),M(0xff8fa8,{t:0.45}),s*0.068,-0.012,0.083,head); blush.rotation.y=s*0.45;
+    for(const k of [-1,0,1]){ const w=mesh(new T.CylinderGeometry(0.0012,0.0012,0.07,4),M(0xfafafa,{r:.5}),s*0.085,-0.018+k*0.008,0.07,head); w.rotation.z=Math.PI/2+s*k*0.18; }   // 수염
+  }
+  mesh(sph(0.009),P,0,-0.006,0.103,head,[1.3,0.8,0.8]);                                                      // 코
+  for(const s of [-1,1]){ const m=mesh(new T.TorusGeometry(0.008,0.0022,6,12,Math.PI),K,s*0.008,-0.02,0.1,head); m.rotation.z=Math.PI; }   // ω 입
+  const tail=new T.Group(); tail.position.set(0,0.17,-0.11); body.add(tail);
+  mesh(cap(0.026,0.07),O,0,0,-0.045,tail).rotation.x=Math.PI/2;
+  const tail2=new T.Group(); tail2.position.set(0,0,-0.09); tail.add(tail2);
+  mesh(cap(0.028,0.06),D,0,0,-0.04,tail2).rotation.x=Math.PI/2;
+  const legs=[]; for(const [x,z] of [[-0.05,0.07],[0.05,0.07],[-0.05,-0.07],[0.05,-0.07]]){ const l=new T.Group(); l.position.set(x,0.085,z); g.add(l);
+    mesh(cap(0.026,0.035),O,0,-0.035,0,l); mesh(sph(0.03),W,0,-0.07,0.008,l,[1,0.6,1.15]); legs.push(l); }     // 짧은 다리 · 흰 발
+  parts.forEach(m=>{ m.userData.dyn=true; W3.pickable(m,"cat","슈냥이 (연구실 고양이) — 쓰다듬기"); });
+  // 경유점 그래프
+  const N={}; for(const k in CAT_NODES){ const [x,y,z]=CAT_NODES[k]; N[k]={k,p:new T.Vector3(x*W3K,y*W3K,z*W3K),nb:[]}; }
+  for(const [a,b] of CAT_EDGES){ N[a].nb.push(b); N[b].nb.push(a); }
+  const start=N.mid; g.position.copy(start.p);
+  // '냐옹~' 말풍선
+  const bc=document.createElement("canvas"); bc.width=192; bc.height=96; const bx=bc.getContext("2d");
+  bx.fillStyle="rgba(255,255,255,.95)"; bx.beginPath(); bx.roundRect(8,8,176,58,26); bx.fill(); bx.beginPath(); bx.moveTo(86,64); bx.lineTo(96,86); bx.lineTo(108,64); bx.fill();
+  bx.fillStyle="#d9813a"; bx.font="bold 34px 'IBM Plex Sans KR',sans-serif"; bx.textAlign="center"; bx.textBaseline="middle"; bx.fillText("냐옹~",96,38);
+  const bt=new T.CanvasTexture(bc); bt.colorSpace=T.SRGBColorSpace;
+  const bubble=new T.Sprite(new T.SpriteMaterial({map:bt,depthTest:false,transparent:true,toneMapped:false,fog:false})); bubble.scale.set(0.3,0.15,1); bubble.position.y=0.52; bubble.visible=false; g.add(bubble);
+  W3.cat={g,body,head,tail,tail2,legs,ears,eyes,bubble,N,cur:"mid",prev:null,next:null,mode:"rest",t:0,rest:1.5,dur:1,from:new T.Vector3(),to:new T.Vector3(),yaw:0,walk:0,sit:0,pet:0,blink:2,twitch:4,meowT:6,bub:0};
+}
+// 냐옹: 말풍선을 띄우고, 주인공과 가까울수록 크게
+function w3CatMeow(short){ const C=W3.cat; if(!C) return; const h=W3.hero, d=Math.hypot(h.x-C.g.position.x,h.z-C.g.position.z);
+  C.bub=short?0.9:1.7; w3Meow(Math.max(0,Math.min(1,1.25-d/7)),short); }
+function w3CatTick(dt,now){
+  const C=W3.cat; if(!C) return; const N=C.N, g=C.g, T=W3.T;
+  C.pet=Math.max(0,C.pet-dt);
+  C.bub=Math.max(0,C.bub-dt); C.bubble.visible=C.bub>0;
+  C.meowT-=dt; if(C.meowT<0){ C.meowT=10+Math.random()*16; if(C.mode!=="jump") w3CatMeow(false); }   // 가끔 혼자 냐옹
+  if(C.mode==="rest"){
+    C.t+=dt; if(C.t>C.rest&&C.pet===0){   // 다음 경유점 고르기 (막다른 곳이 아니면 왔던 길로 바로 돌아가지 않음)
+      const nb=N[C.cur].nb, cand=nb.length>1? nb.filter(k=>k!==C.prev) : nb, nx=cand[Math.floor(Math.random()*cand.length)];
+      C.next=nx; C.from.copy(g.position); C.to.copy(N[nx].p); C.t=0;
+      const dy=C.to.y-C.from.y, dist=Math.hypot(C.to.x-C.from.x,C.to.z-C.from.z);
+      C.mode=Math.abs(dy)>0.05? "jump" : "walk"; C.dur= C.mode==="jump"? 0.5+0.12*Math.abs(dy) : Math.max(0.4,dist/0.55);
+      C.yaw=Math.atan2(C.to.x-C.from.x,C.to.z-C.from.z);
+      if(C.mode==="jump"&&dy>0.3&&Math.random()<0.35) w3CatMeow(true); }                         // 높이 뛸 때 가끔 '냥!'
+  } else {
+    C.t+=dt; const u=Math.min(1,C.t/C.dur);
+    if(C.mode==="walk"){ g.position.lerpVectors(C.from,C.to,u); C.walk+=dt*11; }
+    else { const crouch=0.18; const v=u<crouch? 0 : (u-crouch)/(1-crouch);           // 잠깐 웅크렸다가 포물선으로 점프
+      g.position.lerpVectors(C.from,C.to,v); g.position.y+= Math.max(0.25,Math.abs(C.to.y-C.from.y)*0.35+0.2)*4*v*(1-v); }
+    if(u>=1){ C.prev=C.cur; C.cur=C.next; C.mode="rest"; C.t=0; const high=N[C.cur].p.y>0.1;
+      C.rest= high? 4+Math.random()*7 : 0.4+Math.random()*2.2; if(!high&&Math.random()<0.25) C.rest+=3; }
+  }
+  // 방향
+  let d=C.yaw-g.rotation.y; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI; g.rotation.y+=d*Math.min(1,dt*8);
+  // 자세: 걷기(대각선 다리), 점프(쭉 뻗기), 앉기(쉬는 시간이 길면)
+  const walking=C.mode==="walk", jumping=C.mode==="jump", u=jumping? C.t/C.dur : 0;
+  const sitT=(C.mode==="rest"&&(C.rest>2.5||C.pet>0))? 1:0; C.sit+=(sitT-C.sit)*Math.min(1,dt*4);
+  const sw=walking? Math.sin(C.walk)*0.55 : 0;
+  C.legs.forEach((l,i)=>{ const front=i<2, ph=(i===0||i===3)?1:-1;
+    l.rotation.x= jumping? (u<0.18? (front?0.4:-0.5) : (front?-0.9:0.9)) : sw*ph + (front?0:-1.3*C.sit); });
+  C.body.rotation.x= jumping&&u>=0.18? -0.25+0.5*u : -0.42*C.sit; C.body.position.y=(jumping&&u<0.18? -0.03:0)-0.02*C.sit;
+  C.tail.rotation.x=-0.9+0.4*C.sit; C.tail.rotation.y=0.35*Math.sin(now/(C.pet>0?160:700)); C.tail2.rotation.x=0.5;
+  // 쓰다듬으면 고개를 사람 쪽으로
+  const h=W3.hero; let look=0; if(C.pet>0){ look=Math.atan2(h.x-g.position.x,h.z-g.position.z)-g.rotation.y; while(look>Math.PI) look-=2*Math.PI; while(look<-Math.PI) look+=2*Math.PI; look=Math.max(-1,Math.min(1,look)); }
+  C.head.rotation.y+=(look-C.head.rotation.y)*Math.min(1,dt*6); C.head.rotation.x=0.42*C.sit*0.8+(walking?0.05*Math.sin(C.walk*2):0);
+  if(walking) C.body.position.y+=0.012*Math.abs(Math.sin(C.walk));                                   // 통통 튀는 걸음
+  C.blink-=dt; const shut=C.blink<0.12||C.pet>0;                                                     // 깜빡임 (쓰다듬으면 눈 감고 골골)
+  C.eyes.forEach(e=>e.scale.y=shut? 0.12 : 1); if(C.blink<0) C.blink=2.5+Math.random()*3;
+  C.twitch-=dt; const tw=C.twitch<0.15; C.ears.forEach((e,i)=>e.rotation.x= tw&&i===0? -0.5 : 0); if(C.twitch<0) C.twitch=3+Math.random()*5;   // 귀 쫑긋
+}
+function w3PetCat(){ const C=W3.cat; if(!C) return; if(C.mode==="rest"){ C.pet=3.5; C.t=0; C.rest=Math.max(C.rest,4); } C.meowT=Math.max(C.meowT,6); w3CatMeow(false); w3Toast("슈냥이: 냐옹~ 🐾"); }
+
 /* ---------- 입력 ---------- */
 const KEYS={};
 function w3Input(){
@@ -2509,11 +2727,12 @@ function w3Input(){
   addEventListener("keydown",e=>{ if(!W3.on) return; if(e.target.tagName==="INPUT") return; const k=e.key.toLowerCase(); KEYS[k]=true;
     if(["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)) e.preventDefault();
     if(k==="e"&&W3.hover) w3Use(W3.hover);
-    if(k===" "&&!e.repeat){ const h=W3.hero; if(h&&!(h.jy>0)){ h.vy=3.4; h.jy=0.001; tone(520,{dur:.08,gain:.04}); tone(780,{dur:.1,gain:.04,at:.05}); } }
+    if(W3.profOpen&&/^[1-9]$/.test(k)) w3ProfSay(+k-1);
+    if(k===" "&&!e.repeat){ const h=W3.hero; if(h&&!(h.jy>0)){ h.vy=4.6; h.jy=0.001; w3JumpSound(); } }
     if(k==="f") w3SetFoil(!W3.foilMode);
     if(k==="g") w3SetQuality(!W3.hi);
     if(k==="m"){ bgmToggle(!musicOn); w3Toast(musicOn?"배경 음악 켬 (M)":"배경 음악 끔 (M)"); }
-    if(k==="escape"&&!document.getElementById("overlay").classList.contains("show")) exit3D(); });
+    if(k==="escape"){ if(W3.profOpen){ w3ProfClose(); return; } if(!document.getElementById("overlay").classList.contains("show")) exit3D(); } });
   addEventListener("keyup",e=>{ KEYS[e.key.toLowerCase()]=false; });
   addEventListener("blur",()=>{ for(const k in KEYS) KEYS[k]=false; });
   let drag=null;
@@ -2542,6 +2761,8 @@ function w3Label(o){
   return o.userData.label + (b? " — "+b.textContent : "");
 }
 function w3Use(o){
+  if(o.userData.act==="cat"){ if(!w3Near(o)){ w3Toast("가까이 가서 쓰다듬어 주세요"); return; } w3PetCat(); return; }
+  if(o.userData.act==="prof"){ if(!w3Near(o)){ w3Toast("교수님께 가까이 가서 말을 거세요"); return; } W3.profOpen? w3ProfClose() : w3ProfOpen(); return; }
   if(alarmed||done||RP) return;
   if(!w3Near(o)){ w3Toast("너무 멀어요 — 가까이 가서 조작하세요"); tone(220,{dur:.1,wave:"square",gain:.04}); return; }
   ctx();
@@ -2558,7 +2779,7 @@ function w3Toast(t){ const el=document.getElementById("w3toast"); el.textContent
 
 /* ---------- 루프 ---------- */
 function w3Resize(){ if(!W3.R) return; const host=document.getElementById("w3c"); const w=host.clientWidth, h=host.clientHeight; W3.R.setSize(w,h); W3.CAM.aspect=w/Math.max(h,1); W3.CAM.updateProjectionMatrix(); if(typeof w3PostResize==="function") w3PostResize(); }
-const RECTS0=[[-1.42,-0.35,0.5,0.32],[-0.2,-0.35,0.5,0.95],[0.55,-0.75,1.85,0.68],[-0.45,0.62,0.12,0.88],[2.0,0.12,2.6,0.68],[-1.8,1.28,-0.6,1.92],[-4.3,-2.3,-2.0,-1.55],[-4.3,-0.8,-3.5,-0.4]]; // [x1,z1,x2,z2] (장비 좌표)
+const RECTS0=[[-1.42,-0.35,0.5,0.32],[-0.2,-0.35,0.5,0.95],[0.55,-0.75,1.85,0.68],[-0.45,0.62,0.12,0.88],[2.0,0.12,2.6,0.68],[-1.8,1.28,-0.6,1.92],[-4.3,-2.3,-2.0,-1.55],[-4.3,-0.8,-3.5,-0.4],[4.05,2.35,4.45,2.75]]; // [x1,z1,x2,z2] (장비 좌표), 마지막은 문 옆 교수님
 let RECTS=RECTS0.map(r=>r.map(v=>v*W3K)); // GLB가 로드되면 w3GlbAttach에서 다시 계산
 function w3Loop(now){
   if(!W3.on) return;
@@ -2590,13 +2811,16 @@ function w3Loop(now){
   if(alarmed){ h.armL.rotation.x=-2.8; h.armR.rotation.x=-2.8; h.armL.rotation.z=0.5; h.armR.rotation.z=-0.5; h.g.position.y=Math.abs(Math.sin(now/120))*0.05; }
   else if(done){ h.armL.rotation.z=2.6; h.armR.rotation.z=-2.6; h.armL.rotation.x=0; h.armR.rotation.x=0; h.g.position.y=Math.abs(Math.sin(now/160))*0.25; }
   // 점프 (Space)
-  if(h.jy>0){ h.vy-=9.8*dt; h.jy=Math.max(0,h.jy+h.vy*dt); if(h.jy===0){ h.vy=0; } h.legL.rotation.x=-0.6; h.legR.rotation.x=0.3; if(!alarmed&&!done){ h.armL.rotation.z=0.5; h.armR.rotation.z=-0.5; } }
+  // 점프 (마리오처럼): 스페이스를 누르고 있으면 더 높이, 떼거나 정점을 넘으면 빠르게 떨어짐. 한 팔 번쩍, 한쪽 무릎 들기
+  if(h.jy>0){ const g=(h.vy>0&&KEYS[" "])? 8.5 : 24; h.vy-=g*dt; h.jy=Math.max(0,h.jy+h.vy*dt); if(h.jy===0){ h.vy=0; }
+    h.legL.rotation.x=-1.25; h.legR.rotation.x=0.35;
+    if(!alarmed&&!done){ h.armR.rotation.x=-3.05; h.armR.rotation.z=-0.12; h.armL.rotation.x=0.55; h.armL.rotation.z=0.35; } }
   h.g.position.y+= (h.jy||0);
   // 카메라
   const c=W3.cam, sh=0.6, tx=h.x+Math.cos(c.yaw)*sh, ty=1.45, tz=h.z-Math.sin(c.yaw)*sh;
   W3.CAM.position.set(tx+Math.sin(c.yaw)*Math.cos(c.pitch)*c.dist, ty+Math.sin(c.pitch)*c.dist, tz+Math.cos(c.yaw)*Math.cos(c.pitch)*c.dist);
   W3.CAM.lookAt(tx,ty,tz);
-  w3Sync(dt,now);
+  w3Sync(dt,now); w3ProfTick(dt,now); w3CatTick(dt,now);
   // 호버
   const hv=w3Ray(); if(W3.hover!==hv){ if(W3.hover&&W3.hover.material.emissive) W3.hover.material.emissive.setHex(W3.hover.userData.e0||0); W3.hover=hv; if(hv&&hv.material.emissive){ hv.userData.e0=hv.material.emissive.getHex(); hv.material.emissive.setHex(0x664400); } }
   const tip=document.getElementById("w3tip");
