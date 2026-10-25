@@ -392,6 +392,25 @@ text.g{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-we
 .w3d.alarm .w3c{box-shadow:inset 0 0 0 6px #CF3A3A;animation:boardflash .5s step-end infinite}
 .w3cf{position:absolute;right:12px;top:150px;width:300px}
 .w3cf .confirm{background:rgba(16,20,25,.9);color:#e8edf1}
+/* 이스터 에그: 금·은 스타일 대화창 / 배틀 화면 / 퇴근 암전 */
+.gsbox{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:min(760px,92vw);min-height:116px;box-sizing:border-box;background:#f8f8f8;color:#202020;
+  border:5px solid #384050;border-radius:8px;box-shadow:0 0 0 4px #f8f8f8,0 0 0 9px #384050,0 10px 30px rgba(0,0,0,.45);padding:18px 30px;font:24px/1.65 Galmuri11,'IBM Plex Sans KR',monospace;
+  white-space:pre-line;display:none;z-index:30;cursor:pointer}
+.gsbox.show{display:block}
+.gsbox .more{position:absolute;right:18px;bottom:10px;font-size:18px;animation:gsBlink .7s steps(2) infinite}
+.gsyn{position:absolute;right:-9px;bottom:calc(100% + 22px);background:#f8f8f8;border:5px solid #384050;border-radius:8px;box-shadow:0 0 0 4px #f8f8f8,0 0 0 9px #384050;padding:10px 30px 10px 44px;display:none;line-height:1.8}
+.gsyn.show{display:block}
+.gsyn div{position:relative;cursor:pointer} .gsyn div.on::before{content:"▶";position:absolute;left:-30px}
+@keyframes gsBlink{50%{opacity:0}}
+.gsflash{position:absolute;inset:0;pointer-events:none;z-index:38;background:#fff;opacity:0}
+.gsbattle{position:absolute;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:40}
+.gsbattle.show{display:flex}
+.gsbattle canvas{image-rendering:pixelated;height:min(96vh,calc(96vw * 0.9));width:auto;aspect-ratio:480/432;cursor:pointer}
+.gsfade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 1.4s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;z-index:50;color:#f8f8f8;font:40px Galmuri11,'IBM Plex Sans KR',monospace}
+.gsfade.show{opacity:1;pointer-events:auto}
+.gsfade small{font-size:20px;color:#9fb3c8}
+.gsfade button{font:20px Galmuri11,'IBM Plex Sans KR',monospace;background:#f8f8f8;color:#202020;border:4px solid #384050;border-radius:6px;padding:8px 22px;cursor:pointer;opacity:0;transition:opacity .6s}
+.gsfade button.show{opacity:1}
 .w3bottom{position:absolute;left:0;right:0;bottom:0;padding:0 12px calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:flex-end;gap:12px;pointer-events:none}
 .w3log{width:min(420px,34vw);max-height:132px;overflow:hidden;display:flex;flex-direction:column;gap:2px;color:#95a0a9}
 .w3log div:first-child{color:#e8edf1} .w3log .w{color:#F0B33E} .w3log .b{color:#F06A6A;font-weight:600} .w3log .g{color:#62C78A}
@@ -799,7 +818,7 @@ function bgmStop(){ if(!BGM.on) return; BGM.on=false; clearInterval(BGM.tid); co
   try{ bus.gain.cancelScheduledValues(a.currentTime); bus.gain.setValueAtTime(bus.gain.value,a.currentTime); bus.gain.linearRampToValueAtTime(0.0001,a.currentTime+0.4);
     setTimeout(()=>{ try{ bus.disconnect(); lp.disconnect(); }catch(e){} },600); }catch(e){} }
 function bgmUpdate(){ const playing=document.getElementById("intro").classList.contains("hide");
-  (soundOn&&musicOn&&playing&&!alarmed)? bgmStart() : bgmStop(); }
+  (soundOn&&musicOn&&playing&&!alarmed&&!(typeof GS!=="undefined"&&GS.busy))? bgmStart() : bgmStop(); }   // 퇴근 이스터 에그 중엔 멈춤
 function bgmToggle(on){ musicOn=on; try{ localStorage.setItem("esc-bgm",on?"1":"0"); }catch(e){} const cb=document.getElementById("bgm"); if(cb) cb.checked=on; bgmUpdate(); }
 
 /* ================= state ================= */
@@ -2287,6 +2306,10 @@ init(); animate(); drawPicks();
     <div class="w3card w3help"><b>조작</b><br>WASD 이동 · Shift 달리기<br>드래그 시점 · 휠 줌<br>장치 클릭 / E 조작 · Space 점프<br>Ctrl 앉기 · F 챔버 포일 · G 그래픽 · M 음악<br><span class="w3btns"><button id="w3Reset" type="button">처음부터</button><button id="w3Exit" type="button">2D로 (Esc)</button></span></div>
   </div>
   <div class="w3tip" id="w3tip"></div>
+  <div class="gsbox" id="gsBox"><div id="gsTxt"></div><span class="more" id="gsMore">▼</span><div class="gsyn" id="gsYN"><div data-i="0">예</div><div data-i="1">아니요</div></div></div>
+  <div class="gsflash" id="gsFlash"></div>
+  <div class="gsbattle" id="gsBattle"><canvas id="gsCv" width="480" height="432"></canvas></div>
+  <div class="gsfade" id="gsFade"><div id="gsFadeTxt"></div><small id="gsFadeSub"></small><button id="gsAgain" type="button">다시 출근하기</button></div>
   <div class="w3prof" id="w3prof"><div class="w3card">
     <div class="w3pt"><b>교수님</b><span>숫자 키 1–9로 질문 · Esc 닫기</span><button id="w3profX" type="button">닫기</button></div>
     <div class="w3ps" id="w3ps"></div>
@@ -2314,7 +2337,7 @@ function enter3D(){
   w3Load(()=>{
     if(!W3.ready) w3Build();
     w3PostLoad(); w3GlbLoad();
-    W3.on=true; document.getElementById("w3d").classList.add("show");
+    W3.on=true; document.getElementById("w3d").classList.add("show"); try{ gsFont(); }catch(e){}   // 퇴근 이스터 에그용 픽셀 폰트 미리 받기
     const cf=document.getElementById("confirm"); W3.cfHome=cf.parentNode; W3.cfNext=cf.nextSibling; document.getElementById("w3cf").appendChild(cf);
     W3.last=performance.now(); requestAnimationFrame(w3Loop); w3Resize();
     w3Toast("WASD로 걷고, 장치 가까이 가서 클릭(또는 E) — 마우스 드래그로 시점, 휠로 줌");
@@ -2593,6 +2616,7 @@ function w3BuildProf(){
 }
 function w3ProfTick(dt,now){
   const P=W3.prof; if(!P) return; const h=W3.hero, px=PROF_POS[0]*W3K, pz=PROF_POS[1]*W3K, d=Math.hypot(h.x-px,h.z-pz);
+  if(P.fallen){ if(P.stars){ const c=P.head.getWorldPosition(new W3.T.Vector3()); P.stars.forEach((s,i)=>{ const a=now/420+i*2.094; s.position.set(c.x+Math.cos(a)*0.2,c.y+0.18+0.03*Math.sin(now/200+i),c.z+Math.sin(a)*0.2); }); } return; }   // 기절: 별만 빙글빙글
   let look=0; if(d<3.2*W3K){ look=Math.atan2(h.x-px,h.z-pz)-P.yaw0; while(look>Math.PI) look-=2*Math.PI; while(look<-Math.PI) look+=2*Math.PI; look=Math.max(-0.9,Math.min(0.9,look)); }
   P.head.rotation.y+=(look-P.head.rotation.y)*Math.min(1,dt*5);
   P.talk=Math.max(0,P.talk-dt); const k=P.talk>0? Math.sin(now/90):0;
@@ -2624,7 +2648,7 @@ function w3ProfSay(i){ const q=PROF_FAQ[i]; if(!q) return;
   document.getElementById("w3ps").innerHTML=`<div class="q">${q[0]}</div><div class="a">${q[1]||w3ProfAdvice()}</div>`;
   document.querySelectorAll("#w3pq button").forEach((b,j)=>b.classList.toggle("on",j===i));
   [0,.07,.14].forEach((at,k)=>tone(520+k*130,{dur:.05,wave:"square",gain:.03,at})); if(W3.prof) W3.prof.talk=1.4; }
-function w3ProfOpen(){ W3.profOpen=true; document.getElementById("w3prof").classList.add("show");
+function w3ProfOpen(){ if(W3.prof&&W3.prof.fallen){ w3Toast("교수님은 기절해 있다… 조용히 퇴근하자 🐾"); return; } W3.profOpen=true; document.getElementById("w3prof").classList.add("show");
   const pq=document.getElementById("w3pq"); pq.innerHTML=PROF_FAQ.map((q,i)=>`<button type="button"><i>${i+1}</i>${q[0]}</button>`).join("");
   pq.querySelectorAll("button").forEach((b,i)=>b.onclick=()=>w3ProfSay(i));
   w3ProfSay(0); }
@@ -2738,9 +2762,20 @@ function w3PetCat(){ const C=W3.cat; if(!C) return; if(C.mode==="rest"){ C.pet=3
 
 /* ---------- 입력 ---------- */
 const KEYS={};
+// 게이트 '열기' 확인 창: 오른쪽 상태창을 가리지 않게, 마지막으로 클릭한 곳 오른쪽에 (화면 밖으로 안 나가게)
+function w3PlaceConfirm(){
+  const box=document.getElementById("w3cf"), host=document.getElementById("w3d"); if(!box||!host) return;
+  const r=host.getBoundingClientRect(), x=(W3.cx??W3.mx), y=(W3.cy??W3.my); if(x==null) return;
+  const w=box.offsetWidth||300, h=box.offsetHeight||140;
+  let L=x-r.left+28, Tp=y-r.top-h/2; if(L+w>r.width-8) L=x-r.left-w-28;
+  box.style.left=Math.max(8,L)+"px"; box.style.top=Math.max(8,Math.min(r.height-h-8,Tp))+"px"; box.style.right="auto";
+}
 function w3Input(){
   const el=W3.R.domElement;
-  addEventListener("keydown",e=>{ if(!W3.on) return; if(e.target.tagName==="INPUT") return; const k=e.key.toLowerCase(); KEYS[k]=true;
+  { const cf=document.getElementById("confirm"); new MutationObserver(()=>{ if(W3.on&&cf.classList.contains("show")) requestAnimationFrame(w3PlaceConfirm); }).observe(cf,{attributes:true,attributeFilter:["class"]}); }
+  addEventListener("keydown",e=>{ if(!W3.on) return; if(e.target.tagName==="INPUT") return;
+    if(GS.busy){ if(GS.input) GS.input(e); e.preventDefault(); return; }   // 대화창·배틀 중에는 그쪽으로만
+    const k=e.key.toLowerCase(); KEYS[k]=true; if(k==="e"){ W3.cx=W3.mx; W3.cy=W3.my; }
     if(["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)) e.preventDefault();
     if(k==="e"&&W3.hover) w3Use(W3.hover);
     if(W3.profOpen&&/^[1-9]$/.test(k)) w3ProfSay(+k-1);
@@ -2755,7 +2790,7 @@ function w3Input(){
   let drag=null;
   el.addEventListener("pointerdown",e=>{ drag={x:e.clientX,y:e.clientY,moved:false}; el.setPointerCapture(e.pointerId); });
   el.addEventListener("pointermove",e=>{ W3.mx=e.clientX; W3.my=e.clientY; if(!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; if(Math.abs(dx)+Math.abs(dy)>4) drag.moved=true; if(drag.moved){ W3.cam.yaw-=dx*0.006; W3.cam.pitch=Math.max(-0.75,Math.min(1.4,W3.cam.pitch+dy*0.005)); /* 음수 = 낮은 데서 위로 올려다보기 */ drag.x=e.clientX; drag.y=e.clientY; } });
-  el.addEventListener("pointerup",e=>{ if(drag&&!drag.moved){ W3.mx=e.clientX; W3.my=e.clientY; const h=w3Ray(); if(h) w3Use(h); } drag=null; });
+  el.addEventListener("pointerup",e=>{ if(GS.busy){ drag=null; if(GS.tap) GS.tap(); return; } if(drag&&!drag.moved){ W3.mx=e.clientX; W3.my=e.clientY; W3.cx=e.clientX; W3.cy=e.clientY; const h=w3Ray(); if(h) w3Use(h); } drag=null; });
   el.addEventListener("wheel",e=>{ e.preventDefault(); W3.cam.dist=Math.max(0.3,Math.min(9,W3.cam.dist*(1+Math.sign(e.deltaY)*0.1))); },{passive:false});
 }
 function w3Ray(){
@@ -2778,7 +2813,9 @@ function w3Label(o){
   return o.userData.label + (b? " — "+b.textContent : "");
 }
 function w3Use(o){
+  if(GS.busy) return;
   if(o.userData.act==="info"){ w3Toast(o.userData.info); return; }
+  if(o.userData.act==="exit"){ if(!w3Near(o)){ w3Toast("문에 가까이 가세요"); return; } w3ExitDoor(); return; }
   if(o.userData.act==="cat"){ if(!w3Near(o)){ w3Toast("가까이 가서 쓰다듬어 주세요"); return; } w3PetCat(); return; }
   if(o.userData.act==="prof"){ if(!w3Near(o)){ w3Toast("교수님께 가까이 가서 말을 거세요"); return; } W3.profOpen? w3ProfClose() : w3ProfOpen(); return; }
   if(alarmed||done||RP) return;
@@ -3426,6 +3463,8 @@ function w3Room(){
     box(0.06,0.06,0.3,mat(0x9aa0a6,0.7,0.4),fx-0.05,2.04,z0+0.25); { const a=box(0.02,0.02,0.3,steelD,fx-0.08,2.07,z0+0.05); a.rotation.x=0.25; }
     box(0.03,0.13,0.08,mat(0x1d2024,0.3,0.5),4.685,1.25,2.25); { const l=mesh(new T.CircleGeometry(0.008,10),new T.MeshBasicMaterial({color:new T.Color(0x33ff88).multiplyScalar(2.4)}),4.668,1.29,2.25); l.rotation.y=-PI/2; }
     pic(0.32,0.2,cvTex(256,160,(c)=>{ c.fillStyle="#1d3f7a"; c.fillRect(0,0,256,160); c.fillStyle="#fff"; c.font=font(44,1); c.fillText("ESC LAB",20,62); c.font=font(20); c.fillText("Electronic Structure Control",20,98); c.fillStyle="#f2c218"; c.font=font(20,1); c.fillText("⚠ 보안경 · 실험복 착용",20,138); }),4.69,1.6,2.2,-PI/2);
+    // 문 클릭 → 나가기 (이스터 에그 w3ExitDoor)
+    { const o=new T.Mesh(new T.BoxGeometry(0.1,2.1,1.0),new T.MeshBasicMaterial({visible:false})); o.position.set(fx-0.02,1.05,z0); ROOT.add(o); o.userData.dyn=true; W3.pickable(o,"exit","문 (나가기)"); }
     // 비상구 표시 (초록, 빛남)
     box(0.06,0.2,0.42,mat(0xe8eae8,0.2,0.5),4.665,2.42,z0);
     pic(0.4,0.18,cvTex(256,112,(c)=>{ c.fillStyle="#0f9a4a"; c.fillRect(0,0,256,112); c.fillStyle="#fff";
@@ -4031,6 +4070,279 @@ function w3SetFoil(on){
   W3.foilMode=on; (W3.shellMeshes||[]).forEach(m=>{ m.material= on? W3.foil : W3.shellOuter; });
   w3Toast(on?"챔버 포일 감싸기 — F로 다시 스테인리스":"스테인리스 — F로 베이크 포일 감싼 모습");
 }
+
+/* =====================================================================
+   이스터 에그: 퇴근하기
+   문을 누르면 교수님 "어딜 가려고!" → 한 번 더 누르면 금·은 스타일 "교수님과 배틀하시겠습니까?" 예/아니요
+   → 배틀(가라! 슈냥이! → 몸통박치기 → 교수님은(는) 쓰러졌다! → 경험치·레벨업)
+   → 3D로 돌아오면 교수님이 기절해 누워 있고, 문을 누르면 암전 "퇴근에 성공했다...!"
+   배틀 음악: 같은 폴더의 battle_bgm.flac이 있으면 그 곡(배포 파일에는 넣지 않음), 없으면 직접 만든 8비트 배틀곡.
+   ===================================================================== */
+const GS={busy:false,tries:0,won:false,input:null,font:null};
+function gsFont(){ if(GS.font) return GS.font;
+  const l=document.createElement("link"); l.rel="stylesheet"; l.href="https://cdn.jsdelivr.net/npm/galmuri@2.39.9/dist/galmuri.css"; document.head.appendChild(l);
+  GS.font=new Promise(res=>{ l.onload=()=>document.fonts.load("22px Galmuri11").then(res,res); l.onerror=res; setTimeout(res,2500); }); return GS.font; }
+const gsWait=ms=>new Promise(r=>setTimeout(r,ms));
+const gsBlip=()=>tone(1320,{dur:.025,wave:"square",gain:.018});
+const gsSel=()=>tone(1760,{dur:.05,wave:"square",gain:.04});
+function gsClearKeys(){ for(const k in KEYS) KEYS[k]=false; }
+const GS_OK=["enter"," ","e","z"], GS_BACK=["x","escape","backspace"];
+
+// ── 3D 위 대화창 (타자 치듯 한 글자씩, 클릭·Enter·Space·E로 넘김) ──
+function gsSay(lines){ const box=document.getElementById("gsBox"), tx=document.getElementById("gsTxt"), more=document.getElementById("gsMore");
+  box.classList.add("show"); gsClearKeys();
+  return new Promise(done=>{ let li=0, ci=0, tid=0;
+    const show=()=>{ const s=lines[li]; ci=0; more.style.visibility="hidden"; clearInterval(tid);
+      tid=setInterval(()=>{ ci++; tx.textContent=s.slice(0,ci); if(ci%2) gsBlip(); if(ci>=s.length){ clearInterval(tid); more.style.visibility="visible"; } },38); };
+    const next=()=>{ const s=lines[li]; if(ci<s.length){ clearInterval(tid); ci=s.length; tx.textContent=s; more.style.visibility="visible"; return; }
+      gsSel(); li++; if(li>=lines.length){ GS.input=null; GS.tap=null; box.onclick=null; done(); } else show(); };
+    GS.tap=next;   // 3D 화면 아무 데나 클릭해도 넘어감 (원작처럼 어느 버튼이든)
+    GS.input=e=>{ if(e.type==="keydown"&&GS_OK.includes(e.key.toLowerCase())&&!e.repeat) next(); };
+    box.onclick=next; show(); }); }
+function gsAsk(q){ const yn=document.getElementById("gsYN"), items=[...yn.children], box=document.getElementById("gsBox"), tx=document.getElementById("gsTxt");
+  box.classList.add("show"); box.onclick=null; document.getElementById("gsMore").style.visibility="hidden"; GS.input=null;
+  return new Promise(typed=>{ let ci=0; const tid=setInterval(()=>{ ci++; tx.textContent=q.slice(0,ci); if(ci%2) gsBlip(); if(ci>=q.length){ clearInterval(tid); typed(); } },38); })   // 다 쓰이면 바로 예/아니요
+  .then(()=>new Promise(done=>{
+    let sel=0; const draw=()=>items.forEach((d,i)=>d.classList.toggle("on",i===sel)); draw(); yn.classList.add("show");
+    const pick=i=>{ gsSel(); yn.classList.remove("show"); GS.input=null; done(i===0); };
+    items.forEach((d,i)=>d.onclick=ev=>{ ev.stopPropagation(); pick(i); });
+    GS.input=e=>{ const k=e.key.toLowerCase(); if(e.type!=="keydown"||e.repeat) return;
+      if(["arrowup","arrowdown","w","s"].includes(k)){ sel=1-sel; draw(); gsBlip(); }
+      else if(GS_OK.includes(k)) pick(sel); else if(GS_BACK.includes(k)) pick(1); }; })); }
+function gsHide(){ document.getElementById("gsBox").classList.remove("show"); document.getElementById("gsYN").classList.remove("show"); GS.input=null; GS.tap=null; }
+
+// ── 배틀 음악 ──
+const GSM={on:false,tid:0,step:0,next:0,bus:null,audio:null,file:false};
+function gsmInit(a){ if(!BGM.pulse){ const n=16, re=new Float32Array(n), im=new Float32Array(n); for(let k=1;k<n;k++) im[k]=2*Math.sin(Math.PI*k*0.25)/(Math.PI*k); BGM.pulse=a.createPeriodicWave(re,im);
+    BGM.noise=a.createBuffer(1,a.sampleRate,a.sampleRate); const d=BGM.noise.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; } }
+function gsmVoice(m,t,dur,gain,type){ const a=ac, o=a.createOscillator(), g=a.createGain(); if(type==="pulse") o.setPeriodicWave(BGM.pulse); else o.type=type; o.frequency.setValueAtTime(midiHz(m),t);
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(gain,t+0.005); g.gain.setValueAtTime(gain*0.75,t+dur*0.7); g.gain.linearRampToValueAtTime(0.0001,t+dur); o.connect(g).connect(GSM.bus); o.start(t); o.stop(t+dur+0.02); }
+function gsmNoise(t,dur,gain,hp){ const s=ac.createBufferSource(), f=ac.createBiquadFilter(), g=ac.createGain(); s.buffer=BGM.noise; f.type="highpass"; f.frequency.value=hp;
+  g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); s.connect(f).connect(g).connect(GSM.bus); s.start(t,Math.random()*0.5); s.stop(t+dur+0.02); }
+// 직접 만든 배틀곡 (E단조, 168 BPM, 8분음표 단위): 1마디 하강 인트로 → 8마디 반복. 베이스는 근음–옥타브로 몰아치고, 리드는 펄스파
+const GSM_SPB=60/168/2, GSM_ROOT=[40,40,36,36,38,38,35,35];
+const GSM_LEAD=[[71,1],[74,1],[76,2],[79,1],[78,1],[76,2], [74,1],[71,1],[72,2],[74,2],[76,2], [72,1],[74,1],[76,2],[79,2],[81,1],[79,1], [78,4],[75,2],[71,2],
+  [76,1],[79,1],[83,2],[81,1],[79,1],[78,2], [79,1],[78,1],[76,2],[74,2],[72,2], [74,1],[76,1],[78,2],[79,2],[78,1],[76,1], [75,4],[78,2],[83,2]];
+const GSM_LEADT=(()=>{ const a=[]; let p=0; for(const [m,l] of GSM_LEAD){ a.push([p,m,l]); p+=l; } return a; })();
+function gsmStep(i,t){ const L=GSM_SPB;
+  if(i<8){ gsmVoice(88-i*2,t,L*0.9,0.06,"pulse"); gsmVoice(76-i*2,t,L*0.9,0.03,"square"); if(i%2===0) gsmNoise(t,0.05,0.06,4000); return; }   // 인트로: 반음씩 떨어지는 하강
+  const j=(i-8)%64, bar=Math.floor(j/8), s=j%8, root=GSM_ROOT[bar];
+  gsmVoice(root+(s%2?12:0),t,L*0.85,0.15,"triangle");
+  for(const [p,m,l] of GSM_LEADT) if(p===j) gsmVoice(m,t,L*l*0.92,0.055,"pulse");
+  gsmVoice(root+24+[0,7,12,7][s%4],t,L*0.5,0.016,"square");
+  gsmNoise(t,s%2?0.03:0.02,0.035,8000); if(s===2||s===6) gsmNoise(t,0.09,0.09,1800);
+}
+function gsmTick(){ const a=ac; if(!a||!GSM.on) return; if(GSM.next<a.currentTime) GSM.next=a.currentTime+0.05;
+  while(GSM.next<a.currentTime+0.12){ gsmStep(GSM.step,GSM.next); GSM.next+=GSM_SPB; GSM.step=GSM.step<8? GSM.step+1 : 8+((GSM.step-8+1)%64); } }
+function gsmSynth(){ const a=ctx(); if(!a||GSM.on) return; gsmInit(a); GSM.bus=a.createGain(); GSM.bus.gain.value=0.3; GSM.bus.connect(a.destination); GSM.on=true; GSM.step=0; GSM.next=a.currentTime+0.05; GSM.tid=setInterval(gsmTick,25); }
+function gsmStart(){ if(!soundOn||!musicOn) return; bgmStop();
+  const fall=()=>{ if(GSM.file) return; gsmSynth(); };
+  try{ if(!GSM.audio){ GSM.audio=new Audio("battle_bgm.flac"); GSM.audio.loop=true; GSM.audio.volume=0.45; GSM.audio.addEventListener("error",()=>{ GSM.file=false; fall(); }); }
+    GSM.audio.currentTime=0; GSM.audio.play().then(()=>{ GSM.file=true; }).catch(()=>{ GSM.file=false; fall(); }); }catch(e){ fall(); } }
+function gsmStop(){ if(GSM.audio){ try{ GSM.audio.pause(); }catch(e){} } GSM.file=false;
+  if(GSM.on){ GSM.on=false; clearInterval(GSM.tid); const b=GSM.bus; try{ b.gain.setTargetAtTime(0.0001,ac.currentTime,0.08); setTimeout(()=>{ try{ b.disconnect(); }catch(e){} },500); }catch(e){} } }
+// 승리 음악: 같은 폴더의 victory_bgm.flac (반복), 없으면 직접 만든 짧은 팡파르
+function gsVictory(){ if(!soundOn) return;
+  if(musicOn){ try{ if(!GSM.vic){ GSM.vic=new Audio("victory_bgm.flac"); GSM.vic.loop=true; GSM.vic.volume=0.45; }
+      GSM.vic.currentTime=0; GSM.vic.play().catch(()=>gsVictorySynth()); return; }catch(e){} }
+  gsVictorySynth(); }
+function gsVictoryStop(){ if(GSM.vic){ try{ GSM.vic.pause(); }catch(e){} } }
+function gsVictorySynth(){ if(!soundOn) return;
+  const N=[[72,0,1],[76,1,1],[79,2,1],[84,3,3],[83,6,1],[81,7,1],[79,8,1],[81,9,1],[83,10,2],[84,12,4]], u=0.11;
+  N.forEach(([m,p,l])=>{ tone(midiHz(m),{dur:u*l*0.95,wave:"square",gain:.05,at:p*u}); tone(midiHz(m-12),{dur:u*l*0.95,wave:"triangle",gain:.08,at:p*u}); }); }
+function gsLevelUp(){ [[79,0],[83,1],[86,2],[91,3]].forEach(([m,p])=>tone(midiHz(m),{dur:.12,wave:"square",gain:.05,at:p*0.08})); }
+function gsHitSfx(){ clunk(); tone(180,{dur:.12,wave:"square",gain:.06}); tone(90,{dur:.18,wave:"square",gain:.05,at:.05}); }
+function gsFaintSfx(){ if(!soundOn) return; try{ const a=ctx(), t=a.currentTime, o=a.createOscillator(), g=a.createGain(); o.type="square"; o.frequency.setValueAtTime(700,t); o.frequency.exponentialRampToValueAtTime(70,t+0.75);
+  g.gain.setValueAtTime(0.06,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.8); o.connect(g).connect(a.destination); o.start(t); o.stop(t+0.82); }catch(e){} }
+
+// ── 도트 스프라이트 (56×56, 화면에선 ×3) ──
+function gsSprite(draw){ const c=document.createElement("canvas"); c.width=c.height=56; const g=c.getContext("2d");
+  const p=(x,y,w,h,col)=>{ g.fillStyle=col; g.fillRect(x,y,w||1,h||1); };
+  const ell=(cx,cy,rx,ry,col)=>{ for(let y=Math.floor(cy-ry);y<=cy+ry;y++) for(let x=Math.floor(cx-rx);x<=cx+rx;x++) if(((x-cx)/rx)**2+((y-cy)/ry)**2<=1) p(x,y,1,1,col); };
+  draw(p,ell);
+  const im=g.getImageData(0,0,56,56), d=im.data, a=(x,y)=>x>=0&&y>=0&&x<56&&y<56&&d[(y*56+x)*4+3]>0, out=[];   // 바깥 테두리 한 줄
+  for(let y=0;y<56;y++) for(let x=0;x<56;x++) if(!a(x,y)&&(a(x-1,y)||a(x+1,y)||a(x,y-1)||a(x,y+1))) out.push([x,y]);
+  out.forEach(([x,y])=>p(x,y,1,1,"#202020")); return c; }
+// 교수님 앞 옆모습 (몸은 앞을 보고 살짝 왼쪽으로 틀어, 슈냥이 쪽으로 손가락질) — 금·은의 상대 트레이너 각도
+function gsProfSprite(){ return gsSprite((p)=>{
+  const NV="#2f3f6f", ND="#22305a", SK="#f2c9a0", SK2="#e2b38c", HR="#1c1a19", PT="#34495e";
+  p(14,51,10,3,"#f4f4f0"); p(29,50,9,3,"#f4f4f0"); p(14,53,10,1,"#9aa0a6"); p(29,52,9,1,"#9aa0a6");    // 흰 운동화 (왼발이 살짝 앞)
+  p(17,41,7,10,PT); p(29,41,7,9,PT); p(18,38,18,5,PT); p(33,41,3,9,"#2a3a4c");                         // 슬랙스 (먼 쪽은 그늘)
+  p(16,23,22,17,NV); p(34,24,4,15,ND);                                                                 // 재킷 (오른쪽 = 먼 쪽 그늘)
+  p(23,23,5,11,"#e8eef4"); p(24,34,3,2,"#e8eef4"); p(21,23,2,12,ND); p(28,23,2,12,ND);                 // 셔츠 V · 라펠 (왼쪽으로 치우침)
+  p(22,22,3,2,"#ffffff"); p(27,22,2,2,"#ffffff");                                                      // 열린 칼라
+  p(8,25,10,4,NV); p(4,25,4,3,SK); p(1,26,3,1,SK);                                                     // 가까운 팔: 왼쪽 앞으로 손가락질
+  p(37,25,4,14,ND); p(37,39,4,3,SK2);                                                                  // 먼 팔: 내림
+  p(23,19,6,4,SK2);                                                                                    // 목
+  p(18,7,15,14,SK); p(30,8,3,12,"#e8b892"); p(19,18,10,2,SK2);                                         // 얼굴 (먼 쪽 볼 그늘, 턱)
+  p(17,3,17,5,HR); p(31,5,4,10,HR); p(18,6,10,2,HR); p(17,7,1,5,HR); p(26,8,3,1,HR);                  // 검은 머리 · 앞머리 · 구레나룻
+  p(32,11,2,4,"#e8b892");                                                                              // 먼 쪽 귀
+  p(19,9,5,4,"#202020"); p(26,9,4,4,"#202020"); p(20,10,3,2,"#c8e4f8"); p(27,10,2,2,"#c8e4f8"); p(24,10,2,1,"#202020"); p(30,10,2,1,"#202020");   // 안경 (렌즈 크게, 투명하게)
+  p(21,11,1,1,"#202020"); p(28,11,1,1,"#202020");                                                      // 눈
+  p(19,13,2,3,SK2);                                                                                    // 코 (왼쪽)
+  p(20,16,5,1,"#a85a48"); p(24,15,1,1,"#a85a48");                                                      // 씩 웃는 입
+}); }
+// 슈냥이 옆 뒷모습 (등을 보이고 머리를 오른쪽 = 교수님 쪽으로 돌림) — 금·은의 내 포켓몬 각도
+function gsCatSprite(){ return gsSprite((p,ell)=>{
+  const O="#f2a35c", D="#d9813a", W="#fff6ec", PK="#f4a3b4";
+  for(let k=0;k<14;k++){ const a=k/13, x=Math.round(12-7*Math.sin(a*2.2)), y=Math.round(47-a*22); p(x,y,4,3,k>10?D:O); }   // 꼬리 (왼쪽으로 말려 올라감)
+  ell(27,38,16,12,O); ell(33,40,8,9,"#f7b373");                                                        // 몸 (오른쪽 옆구리 밝게)
+  p(15,32,20,2,D); p(13,37,22,2,D); p(15,42,18,2,D);                                                   // 등 줄무늬
+  p(16,48,6,3,W); p(31,48,7,3,W); p(38,45,4,4,W);                                                      // 뒷발 · 앞발 (오른쪽으로 살짝 보임)
+  for(let y=6;y<14;y++){ const w=Math.max(1,y-5); p(26-Math.floor(w/2),y,w,1,O); p(39-Math.floor(w/2),y,w,1,O); }   // 귀 두 개 (뒤에서)
+  p(39,10,1,3,PK);                                                                                     // 오른쪽 귀 안쪽 (살짝 보임)
+  ell(32,20,11,10,O);                                                                                  // 머리 (뒤통수, 오른쪽으로 돌림)
+  p(27,12,8,2,D); p(26,16,10,2,D); p(28,20,6,2,D);                                                     // 머리 줄무늬
+  p(41,21,3,4,W); p(40,17,1,2,"#1c1a1f"); p(43,22,1,1,PK);                                             // 오른쪽 볼 · 눈꼬리 · 코끝
+}); }
+// 학생 트레이너 뒷모습 (진주: 긴 머리·핀 / 현희: 짧은 머리) — 금·은처럼 처음에 나와 있다가 볼을 던지며 왼쪽으로 빠짐
+function gsTrainerSprite(){ const f=ME.gender==="f"; return gsSprite((p,ell)=>{
+  const C="#f4f6f7", CD="#d8dde2", HR=f?"#2a2320":"#1c1a19", SK="#f2c9a0";
+  p(10,32,36,24,C); p(10,32,4,24,CD); p(42,32,4,24,CD); p(27,38,1,18,CD);                              // 가운 등판
+  p(5,34,6,20,C); p(45,34,6,20,C); p(5,52,6,3,"#4a90d9"); p(45,52,6,3,"#4a90d9");                      // 팔 · 장갑
+  p(23,25,10,8,SK);                                                                                    // 목
+  p(15,14,3,5,SK); p(38,14,3,5,SK);                                                                    // 귀
+  ell(28,15,11,11,HR);                                                                                 // 뒤통수
+  if(f){ p(17,18,22,16,HR); p(16,26,24,8,HR); p(35,7,4,3,"#f07aa0"); } else { p(19,22,18,4,HR); }      // 긴 머리·핀 / 짧은 머리
+}); }
+
+// ── 배틀 장면 (480×432 캔버스 = 게임보이 160×144의 3배) ──
+const GSB={};
+function gsFrame(g,x,y,w,h){ g.fillStyle="#f8f8f8"; g.fillRect(x,y,w,h); g.strokeStyle="#384050"; g.lineWidth=6; g.strokeRect(x+3,y+3,w-6,h-6); g.lineWidth=3; g.strokeStyle="#9aa0b4"; g.strokeRect(x+10,y+10,w-20,h-20); }
+function gsHPBar(g,x,y,w,f){ g.fillStyle="#202020"; g.font="18px Galmuri11,monospace"; g.fillText("HP:",x-46,y-4); g.fillStyle="#384050"; g.fillRect(x-2,y-2,w+4,12); g.fillStyle="#f8f8f8"; g.fillRect(x,y,w,8);
+  g.fillStyle=f>0.5?"#18c020":f>0.2?"#f8b800":"#f82800"; g.fillRect(x,y,Math.round(w*Math.max(0,f)),8); }
+function gsBattleDraw(){ const B=GSB, g=B.g; if(!g) return; g.imageSmoothingEnabled=false; g.textBaseline="top";
+  g.fillStyle="#f8f8f8"; g.fillRect(0,0,480,432);
+  // 교수님 (오른쪽 위)
+  if(B.eShow){ g.save(); g.beginPath(); g.rect(0,0,480,200); g.clip(); g.drawImage(B.prof,288+B.ex,18+B.eDrop,168,168); g.restore(); }
+  // 슈냥이 (왼쪽 아래, 뒷모습)
+  if(B.tShow) g.drawImage(B.trainer,36+B.tx,120,168,168);   // 학생 트레이너 (뒷모습)
+  if(B.pScale>0.01){ const s=168*B.pScale, x=36+B.px+B.lunge*60+(168-s)/2, y=120-B.lunge*30+(168-s); if(B.pBlink) {} else g.drawImage(B.cat,x,y,s,s); }
+  if(B.ball){ const b=B.ball; g.fillStyle="#f82800"; g.beginPath(); g.arc(b.x,b.y,11,Math.PI,0); g.fill(); g.fillStyle="#f8f8f8"; g.beginPath(); g.arc(b.x,b.y,11,0,Math.PI); g.fill();
+    g.strokeStyle="#202020"; g.lineWidth=3; g.beginPath(); g.arc(b.x,b.y,11,0,7); g.stroke(); g.beginPath(); g.moveTo(b.x-11,b.y); g.lineTo(b.x+11,b.y); g.stroke(); }
+  if(B.poof>0){ g.fillStyle=`rgba(255,255,255,${B.poof})`; g.beginPath(); g.arc(120,230,90*(1.2-B.poof),0,7); g.fill(); }
+  g.fillStyle="#202020"; g.font="22px Galmuri11,monospace";
+  // 교수님 정보 (왼쪽 위): 이름·레벨·HP, L자 테두리
+  if(B.eInfo){ g.fillText("교수님",36,24); g.fillText("Lv50",186,24); gsHPBar(g,96,62,144,B.eHP);
+    g.fillStyle="#202020"; g.fillRect(30,84,226,4); g.fillRect(252,56,4,32); }
+  // 슈냥이 정보 (오른쪽 아래): 이름·레벨·HP·숫자·경험치
+  if(B.pInfo){ g.fillText("슈냥이",252,190); g.fillText("Lv"+B.lvl,394,190); gsHPBar(g,300,226,144,B.pHP);
+    g.fillStyle="#202020"; g.fillText(`${String(Math.ceil(B.hpMax*B.pHP)).padStart(2," ")}/ ${B.hpMax}`,330,240);
+    g.fillStyle="#384050"; g.fillRect(290,272,160,8); g.fillStyle="#3890f8"; g.fillRect(292,274,Math.round(156*B.exp),4);
+    g.fillStyle="#202020"; g.fillRect(244,284,4,-62); g.fillRect(244,282,212,4); g.font="14px Galmuri11,monospace"; g.fillText("EXP",254,268); g.font="22px Galmuri11,monospace"; }
+  // 글상자
+  gsFrame(g,0,288,480,144);
+  const T=B.text.slice(0,Math.floor(B.shown)).split("\n"); g.fillStyle="#202020"; T.forEach((s,i)=>g.fillText(s,32,322+i*46));
+  if(B.wait&&B.shown>=B.text.length&&!B.menu&&(performance.now()/350|0)%2) g.fillText("▼",432,384);
+  // 메뉴
+  if(B.menu==="main"){ gsFrame(g,236,288,244,144); g.fillStyle="#202020"; const it=["싸운다","포켓몬","가방","도망간다"];
+    it.forEach((s,i)=>{ const x=274+(i%2)*104, y=320+(i>1?52:0); g.fillText(s,x,y); if(i===B.sel) g.fillText("▶",x-26,y); }); }
+  if(B.menu==="moves"){ gsFrame(g,0,214,210,90); g.fillStyle="#202020"; g.fillText("타입/",22,234); g.fillText(B.sel===0?"노말   35/35":B.sel===1?"노말   40/40":"노말   30/30",40,264);
+    gsFrame(g,96,288,384,144); g.fillStyle="#202020"; const mv=["몸통박치기","울음소리","꼬리흔들기","-"];
+    mv.forEach((s,i)=>{ g.fillText(s,152,310+i*28); if(i===B.sel) g.fillText("▶",126,310+i*28); }); }
+  if(B.flash>0){ g.fillStyle=`rgba(248,248,248,${B.flash})`; g.fillRect(0,0,480,432); }
+  if(B.dark>0){ g.fillStyle=`rgba(0,0,0,${B.dark})`; g.fillRect(0,0,480,432); }
+  if(B.wipe>0){ g.fillStyle="#000"; g.fillRect(0,0,240*B.wipe,432); g.fillRect(480-240*B.wipe,0,240*B.wipe,432); }
+}
+function gsBattleLoop(){ const B=GSB; if(!B.on) return; if(B.text&&B.shown<B.text.length){ const n=B.shown+0.9; if(Math.floor(n)>Math.floor(B.shown)&&Math.floor(n)%2) gsBlip(); B.shown=Math.min(B.text.length,n); }
+  gsBattleDraw(); requestAnimationFrame(gsBattleLoop); }
+function gsTween(key,to,ms){ const B=GSB, from=B[key], t0=performance.now(); return new Promise(r=>{ const f=()=>{ const u=Math.min(1,(performance.now()-t0)/ms); B[key]=from+(to-from)*u; if(u<1) requestAnimationFrame(f); else r(); }; f(); }); }
+function bSay(text,auto){ const B=GSB; B.text=text; B.shown=0; B.wait=true; B.menu=null;
+  if(auto!=null) return new Promise(r=>{ const f=()=>{ if(B.shown>=B.text.length) setTimeout(r,auto); else requestAnimationFrame(f); }; f(); });
+  return new Promise(r=>{ B.adv=r; }); }
+function bMenu(kind){ const B=GSB; B.menu=kind; B.sel=0; return new Promise(r=>{ B.pick=r; }); }
+function gsBattleInput(key){ const B=GSB;
+  if(B.menu){ const n=B.menu==="main"?4:3;
+    if(B.menu==="main"){ if(["arrowright","d"].includes(key)) B.sel=B.sel%2?B.sel:B.sel+1; if(["arrowleft","a"].includes(key)) B.sel=B.sel%2?B.sel-1:B.sel; if(["arrowdown","s"].includes(key)) B.sel=B.sel>1?B.sel:B.sel+2; if(["arrowup","w"].includes(key)) B.sel=B.sel>1?B.sel-2:B.sel; }
+    else { if(["arrowdown","s"].includes(key)) B.sel=Math.min(n-1,B.sel+1); if(["arrowup","w"].includes(key)) B.sel=Math.max(0,B.sel-1); }
+    if(key.startsWith("arrow")||"wasd".includes(key)) gsBlip();
+    if(GS_OK.includes(key)){ gsSel(); const f=B.pick; B.pick=null; B.menu=null; f&&f(B.sel); }
+    else if(GS_BACK.includes(key)&&B.menu==="moves"){ gsSel(); const f=B.pick; B.pick=null; B.menu=null; f&&f(-1); }
+    return; }
+  if(GS_OK.includes(key)){ if(B.shown<B.text.length){ B.shown=B.text.length; return; } if(B.adv){ gsSel(); const f=B.adv; B.adv=null; B.wait=false; f(); } } }
+function gsBattleClick(ev){ const B=GSB, r=ev.target.getBoundingClientRect(), x=(ev.clientX-r.left)/r.width*480, y=(ev.clientY-r.top)/r.height*432;
+  if(B.menu==="main"&&x>236&&y>288){ B.sel=(y>370?2:0)+(x>370?1:0); return gsBattleInput("enter"); }
+  if(B.menu==="moves"){ if(x>96&&y>300){ const i=Math.max(0,Math.min(2,Math.floor((y-306)/28))); B.sel=i; return gsBattleInput("enter"); } return gsBattleInput("x"); }
+  gsBattleInput("enter"); }
+async function gsBattle(){
+  const B=GSB, wrap=document.getElementById("gsBattle"), cv=document.getElementById("gsCv"), fl=document.getElementById("gsFlash");
+  Object.assign(B,{g:cv.getContext("2d"),prof:gsProfSprite(),cat:gsCatSprite(),trainer:gsTrainerSprite(),tx:330,tShow:true,hpMax:20,ex:-330,eDrop:0,eShow:true,eHP:1,eInfo:false,px:0,pScale:0,lunge:0,pHP:1,exp:0.35,lvl:5,pInfo:false,
+    text:"",shown:0,wait:false,menu:null,sel:0,ball:null,poof:0,flash:0,dark:0,wipe:1,on:true,pBlink:false});
+  // 전환: 3D 화면이 하얗게 세 번 번쩍 → 검게
+  gsmStart(); for(let i=0;i<3;i++){ fl.style.transition="none"; fl.style.opacity=1; await gsWait(90); fl.style.opacity=0; await gsWait(90); }
+  fl.style.background="#000"; fl.style.opacity=1; await gsWait(250);
+  wrap.classList.add("show"); cv.onclick=gsBattleClick; fl.style.opacity=0; fl.style.background="#fff"; requestAnimationFrame(gsBattleLoop);
+  GS.input=e=>{ if(e.type==="keydown"&&!e.repeat) gsBattleInput(e.key.toLowerCase()); };
+  await gsTween("wipe",0,500); await Promise.all([gsTween("ex",0,800),gsTween("tx",0,800)]); B.eInfo=true;   // 교수님은 왼쪽에서, 학생은 오른쪽에서 미끄러져 들어옴
+  await bSay("교수님이(가)\n승부를 걸어왔다!");
+  await bSay("가라! 슈냥이!",100); gsTween("tx",-300,550); await gsWait(120);   // 학생이 왼쪽으로 빠지며 볼을 던짐
+  B.ball={x:70,y:300}; const t0=performance.now(); await new Promise(r=>{ const f=()=>{ const u=Math.min(1,(performance.now()-t0)/650); B.ball={x:70+60*u,y:300-230*u+190*u*u}; if(u<1) requestAnimationFrame(f); else r(); }; f(); });
+  B.tShow=false; B.ball=null; B.poof=1; w3Meow(0.9,false); gsTween("poof",0,450); await gsTween("pScale",1,380); B.pInfo=true;
+  // 고르기
+  let turn=0;
+  for(;;){ await bSay("슈냥이는(은)\n무엇을 할까?",0); const c=await bMenu("main");
+    if(c===1){ await bSay("지금 싸울 수 있는 건\n슈냥이밖에 없다!"); continue; }
+    if(c===2){ await bSay("가방에는 구리 개스킷과\n알루미늄 포일뿐…"); continue; }
+    if(c===3){ await bSay("안 돼! 승부 도중에\n등을 보일 수는 없다!"); continue; }
+    const m=await bMenu("moves"); if(m<0) continue;
+    if(m===0) break;
+    if(m===1){ await bSay("슈냥이의 울음소리!",250); w3Meow(1,false); await gsWait(700); await bSay("교수님의 공격이\n떨어졌다!"); }
+    else { await bSay("슈냥이의 꼬리흔들기!",250); for(let k=0;k<6;k++){ B.px=(k%2?-6:6); await gsWait(70); } B.px=0; await bSay("교수님의 방어가\n떨어졌다!"); }
+    // 교수님 차례
+    turn++; await bSay(turn%2?"교수님의 잔소리!":"교수님의 과제 폭탄!",250); B.ex=-10; await gsWait(80); B.ex=0; gsHitSfx();
+    for(let k=0;k<4;k++){ B.pBlink=!B.pBlink; await gsWait(80); } B.pBlink=false; await gsTween("pHP",Math.max(0.3,B.pHP-0.28),600);
+    await bSay(turn%2?"슈냥이는(은)\n귀를 접었다…":"슈냥이는(은)\n하품을 했다…"); }
+  // 몸통박치기
+  await bSay("슈냥이의\n몸통박치기!",150);
+  await gsTween("lunge",1,140); gsHitSfx(); await gsTween("lunge",0,180);
+  for(let k=0;k<6;k++){ B.eShow=!B.eShow; await gsWait(70); } B.eShow=true;
+  await gsTween("eHP",0,1100);
+  await bSay("급소에 맞았다!");
+  await bSay("효과가 굉장했다!");
+  gsmStop(); gsFaintSfx(); await gsTween("eDrop",190,500); B.eShow=false; B.eInfo=false;
+  await bSay("교수님은(는)\n쓰러졌다!");
+  gsVictory();
+  // Lv50을 이겼으니 한 번에 Lv5 → 11: 경험치 막대가 여러 번 차오르며 한 단계씩 (최대 HP도 늘어남)
+  await bSay("슈냥이는(은)\n경험치 12,500을 얻었다!",0);
+  for(let L=6;L<=11;L++){ await gsTween("exp",1,L===6?700:260); gsLevelUp(); B.lvl=L; B.hpMax=20+Math.round((L-5)*2.4); B.exp=0; await gsWait(150); }
+  await gsTween("exp",0.3,400);
+  B.wait=true; await new Promise(r=>{ B.adv=r; });
+  await bSay("슈냥이는(은)\n레벨 11로 올랐다!");
+  await bSay("교수님: 크윽…\n오늘은… 퇴근해도 좋다…");
+  await gsTween("dark",1,700); gsVictoryStop(); wrap.classList.remove("show"); B.on=false; GS.input=null; cv.onclick=null;
+}
+
+// ── 문: 나가기 ──
+async function w3ExitDoor(){
+  if(GS.busy) return; if(GS.won) return gsLeave();
+  GS.busy=true; gsClearKeys(); await gsFont();
+  const P=W3.prof; if(P) P.talk=2.5;
+  try{
+    if(GS.tries===0){ GS.tries=1; await gsSay(["교수님: 어딜 가려고!"]); }
+    else { await gsSay(["교수님: 또 나가려고?","교수님: 나가려면 나와 배틀해서\n이겨야 나갈 수 있다!"]);
+      const yes=await gsAsk("교수님과 배틀하시겠습니까?");
+      if(yes){ gsHide(); await gsBattle(); w3ProfFaint(true); GS.won=true; w3Toast("교수님이 쓰러져 있다… 이제 문으로 나갈 수 있다!"); setTimeout(bgmUpdate,300); }
+      else await gsSay(["교수님: …그럼 연구나 계속하자!"]); }
+  } finally { gsHide(); GS.busy=false; }
+}
+// 교수님 기절: 문 옆에 반듯이 누워 머리 위로 별이 빙글빙글
+function w3ProfFaint(on){ const P=W3.prof; if(!P) return; const T=THREE;
+  P.fallen=on;
+  if(on){ P.g.position.set(4.0*W3K,0.11,PROF_POS[1]*W3K); P.g.quaternion.setFromEuler(new T.Euler(0,0,0)); P.g.rotateX(-Math.PI/2); P.sp.visible=false; P.head.rotation.set(0,0,0);
+    if(!P.stars){ const c=document.createElement("canvas"); c.width=c.height=64; const x=c.getContext("2d"); x.fillStyle="#ffd84a"; x.strokeStyle="#7a5a00"; x.lineWidth=3; x.beginPath();
+        for(let i=0;i<10;i++){ const a=i/10*Math.PI*2-Math.PI/2, r=i%2?12:28; x.lineTo(32+Math.cos(a)*r,32+Math.sin(a)*r); } x.closePath(); x.fill(); x.stroke();
+      const tx=new T.CanvasTexture(c); tx.colorSpace=T.SRGBColorSpace; P.stars=[];
+      for(let i=0;i<3;i++){ const s=new T.Sprite(new T.SpriteMaterial({map:tx,transparent:true,depthWrite:false,toneMapped:false})); s.scale.set(0.12,0.12,1); W3.SC.add(s); P.stars.push(s); } }
+    P.stars.forEach(s=>s.visible=true); }
+  else { P.g.position.set(PROF_POS[0]*W3K,0,PROF_POS[1]*W3K); P.g.quaternion.setFromEuler(new T.Euler(0,P.yaw0,0)); P.sp.visible=true; if(P.stars) P.stars.forEach(s=>s.visible=false); } }
+// 퇴근 성공: 암전 → 글자 → '다시 출근하기'
+async function gsLeave(){ GS.busy=true; gsClearKeys(); await gsFont();
+  const F=document.getElementById("gsFade"), t=document.getElementById("gsFadeTxt"), sub=document.getElementById("gsFadeSub"), btn=document.getElementById("gsAgain");
+  t.textContent=""; sub.textContent=""; btn.classList.remove("show"); clunk(); F.classList.add("show"); bgmStop(); await gsWait(1500);
+  const s="퇴근에 성공했다...!"; for(let i=1;i<=s.length;i++){ t.textContent=s.slice(0,i); gsBlip(); await gsWait(110); }
+  gsVictory(); await gsWait(900); sub.textContent="오늘도 수고했어요. 내일 또 만나요 🐾"; await gsWait(600); btn.classList.add("show");
+  GS.input=e=>{ if(e.type==="keydown"&&GS_OK.includes(e.key.toLowerCase())) btn.click(); };
+  btn.onclick=()=>{ GS.input=null; gsVictoryStop(); w3ProfFaint(false); GS.won=false; GS.tries=0; F.classList.remove("show"); GS.busy=false; setTimeout(bgmUpdate,400); w3Toast("다시 출근! 교수님도 정신을 차렸다."); }; }
 
 document.getElementById("w3Btn").addEventListener("click",enter3D);
 document.getElementById("w3Exit").addEventListener("click",exit3D);
