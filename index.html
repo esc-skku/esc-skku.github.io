@@ -873,6 +873,19 @@
 
       <div style="padding: 22px 0; border-bottom: 1px solid #e4e4dd;">
         <div data-row="wrap" style="display: flex; justify-content: space-between; align-items: baseline; gap: 20px; margin-bottom: 10px;">
+          <div style="font-size: 17px; font-weight: 600; color: #1c2521;">Korean Physical Society Fall Meeting — Jeju, Korea</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8b948e; flex-shrink: 0;">2026.10.20 – 24</div>
+        </div>
+        <div style="display: grid; gap: 6px; font-size: 15px; line-height: 1.6; color: #3d4742;">
+          <div><strong style="color: #124633;">Hyeonhee Na</strong> · Oral — Electron doping beyond the nominal concentration in Mo-substituted SrRuO<sub>3</sub></div>
+          <div><strong style="color: #124633;">Hanjun Sim</strong> · Poster — Epitaxy growth of Cr-oxide thin film using ozone-assisted oxide MBE system</div>
+          <div><strong style="color: #124633;">Jeonghwan Oh</strong> · Oral — Observation of isotropic low-energy Kondo hybridization in heavy-fermion CePtAl<sub>4</sub>Ge<sub>2</sub></div>
+          <div><strong style="color: #124633;">Jinju Lee</strong> · Oral — Realization of an octahedral rotation-free surface in SrRuO<sub>3</sub></div>
+        </div>
+      </div>
+
+      <div style="padding: 22px 0; border-bottom: 1px solid #e4e4dd;">
+        <div data-row="wrap" style="display: flex; justify-content: space-between; align-items: baseline; gap: 20px; margin-bottom: 10px;">
           <div style="font-size: 17px; font-weight: 600; color: #1c2521;">32nd International Workshop on Oxide Electronics — Sendai, Japan</div>
           <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8b948e; flex-shrink: 0;">2026.09.27 – 30</div>
         </div>
@@ -1593,6 +1606,11 @@ class Component extends DCLogic {
       isContact: page === 'contact',
       showBanner: this.props.showRecruitBanner ?? true,
       photoYearGroups: this.groupByYear(this.withGallery([
+        { id: 'p-kps-oct26-1', file: 'p-kps-oct26-1.jpg', title: '한국물리학회 가을 학술대회', date: '제주 · Oct 2026', note: '나현희 학생 구두 발표' },
+        { id: 'p-kps-oct26-2', file: 'p-kps-oct26-2.jpg', title: '한국물리학회 가을 학술대회', date: '제주 · Oct 2026', note: '심한준 학생 포스터 발표' },
+        { id: 'p-kps-oct26-3', file: 'p-kps-oct26-3.jpg', title: '한국물리학회 가을 학술대회', date: '제주 · Oct 2026', note: '오정환 학생 구두 발표' },
+        { id: 'p-kps-oct26-4', file: 'p-kps-oct26-4.jpg', title: '한국물리학회 가을 학술대회', date: '제주 · Oct 2026', note: '이진주 학생 구두 발표' },
+        { id: 'p-kps-oct26-5', file: 'p-kps-oct26-5.jpg', title: '한국물리학회 가을 학술대회', date: '제주 · Oct 2026', note: '' },
         { id: 'p-iwoe32-sep26', file: 'p-iwoe32-sep26.jpg', title: 'iWOE32', date: 'Sendai · Sep 2026', note: '32nd International Workshop on Oxide Electronics에서 학생 네 명이 포스터 발표를 했습니다.' },
         { id: 'p-aps-aug26-1', file: 'p-aps-aug26-1.webp', title: '응용물리 심포지움', date: '춘천 · Aug 2026', note: '제17회 응용물리심포지움, 강원대학교' },
         { id: 'p-aps-aug26-2', file: 'p-aps-aug26-2.webp', title: '응용물리 심포지움', date: '춘천 · Aug 2026', note: '심한준 학생 포스터 발표 (P-19)' },
