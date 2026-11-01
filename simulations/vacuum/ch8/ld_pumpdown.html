@@ -64,12 +64,12 @@ canvas{display:block;width:100%;height:300px}
 .clock{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
 .scale{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:4px}
 .scale .g{height:8px;flex:1;max-width:260px;border-radius:4px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 nav.crumb{font-size:12.5px;color:var(--muted);margin:0 0 10px}
 nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border)}
 nav.crumb a:hover{color:var(--accent);border-bottom-color:var(--accent)}
 nav.crumb span{margin:0 7px;color:var(--border)}
 footer{max-width:1320px;margin:0 auto;padding:14px 22px 28px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
@@ -131,6 +131,19 @@ footer{max-width:1320px;margin:0 auto;padding:14px 22px 28px;border-top:1px soli
       </g>
       <text x="704" y="352" text-anchor="end" fill="#e02020" font-size="17">Ion gauge</text>
       <text x="760" y="352" fill="var(--muted)" font-size="12">NW25</text>
+      <!-- magnifier: inside of the tee -->
+      <defs><clipPath id="magClip"><circle cx="545" cy="250" r="92"/></clipPath></defs>
+      <line x1="615" y1="191" x2="724" y2="287" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3"/>
+      <line x1="615" y1="309" x2="724" y2="303" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3"/>
+      <circle cx="735" cy="295" r="14" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <circle cx="545" cy="250" r="92" fill="var(--card)"/>
+      <circle id="magTint" cx="545" cy="250" r="92" fill="#e8d9b0" opacity="0.3"/>
+      <g id="magDots" clip-path="url(#magClip)"></g>
+      <circle cx="545" cy="250" r="92" fill="none" stroke="var(--muted)" stroke-width="2"/>
+      <text x="545" y="150" text-anchor="middle" fill="var(--muted)" font-size="12">T 내부 확대 (지름 약 2.2 cm)</text>
+      <text id="magN" x="545" y="360" text-anchor="middle" fill="var(--text)" font-size="12"></text>
+      <text id="magL" x="545" y="376" text-anchor="middle" fill="var(--text)" font-size="12"></text>
+      <text id="magR" x="545" y="392" text-anchor="middle" fill="var(--accent)" font-size="12" font-weight="bold"></text>
       <text x="735" y="395" text-anchor="middle" fill="var(--muted)" font-size="12">← 여기부터가 우리가 뽑는 공간</text>
     </svg>
     <div class="scale" aria-hidden="true"><span>760 Torr</span><span class="g" id="scaleG"></span><span>10⁻⁶ Torr</span><span style="margin-left:8px">관 색 = 압력</span></div>
@@ -187,7 +200,7 @@ footer{max-width:1320px;margin:0 auto;padding:14px 22px 28px;border-top:1px soli
       <button id="sndBtn" class="on">소리 켬</button>
       <button id="bgmBtn">BGM 끔</button>
     </div>
-    <p class="note">모든 수치는 모식적인 값이에요. 실제 장비의 turbo 전환 압력, STOP 시 vent 동작은 leak detector 매뉴얼 설정을 따르니 실험 전에 맞춰 두세요. 모델: bellows 쪽 0.4 L와 tee 쪽 0.15 L 두 구간, 점성·분자 흐름을 잇는 컨덕턴스(NW25, 1 m bellows ≈ 1 L/s 분자류), 표면 탈기체 q ∝ 1/t(배기 1시간에 5×10⁻⁹ Torr·L·s⁻¹·cm⁻²), O-ring 투과 일정.</p>
+    <p class="note">모든 수치는 모식적인 값이에요. 실제 장비의 turbo 전환 압력, STOP 시 vent 동작은 leak detector 매뉴얼 설정을 따르니 실험 전에 맞춰 두세요. 모델: bellows 쪽 0.4 L와 tee 쪽 0.15 L 두 구간, 점성·분자 흐름을 잇는 컨덕턴스(NW25, 1 m bellows ≈ 1 L/s 분자류), 표면 탈기체 q ∝ 1/t(배기 1시간에 5×10⁻⁹ Torr·L·s⁻¹·cm⁻²), O-ring 투과 일정. 확대 원의 점 개수는 760 Torr에서 10⁻⁵ Torr까지 10자리를 보여 주려고 로그 눈금으로 줄인 것이고(실제 비율은 아래 n 값), 점이 방향을 바꾸는 간격은 실제 λ/D 비율을 따라요(N₂, 상온, λ ≈ 5×10⁻³ cm·Torr / P).</p>
   </section>
 </main>
 <footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
@@ -389,7 +402,7 @@ $('scaleG').style.background='linear-gradient(90deg,'+[0,.25,.5,.75,1].map(x=>pc
 
 function render(){
   $('belFill').setAttribute('stroke',pcol(S.PL));
-  $('teeFill').setAttribute('fill',pcol(S.PC));$('armFill').setAttribute('fill',pcol(S.PC));
+  $('teeFill').setAttribute('fill',pcol(S.PC));$('magTint').setAttribute('fill',pcol(S.PC));$('armFill').setAttribute('fill',pcol(S.PC));
   $('valveGate').setAttribute('transform',S.valve?'':'rotate(90 735 169)');
   $('valveKnob').setAttribute('y',S.valve?120:134);$('valveStem').setAttribute('y2',S.valve?130:144);
   $('valveTxt').textContent=S.valve?'열림':'닫힘';
@@ -414,7 +427,7 @@ function render(){
 // chart
 const cv=$('cv'),ctx=cv.getContext('2d');
 function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
-const SUP={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷'};
+const SUP={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
 function drawChart(){
   const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
   if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
@@ -437,6 +450,34 @@ function drawChart(){
     row=(x-lastX<60)?row+1:0;lastX=x;ctx.fillText(m.mark,x+3,T+10+row*13);}
 }
 
+// magnifier: molecules inside the tee
+const MAG={cx:545,cy:250,R:92,dots:[]},NS='http://www.w3.org/2000/svg',D_TEE=2.2;
+function magTarget(p){const x=Math.max(0,Math.min(1,(Math.log10(Math.max(p,1e-7))+6)/(Math.log10(760)+6)));return Math.round(160*Math.pow(x,1.5));}
+function addDot(){const el=document.createElementNS(NS,'circle');el.setAttribute('r','3');el.setAttribute('fill','#d2553a');$('magDots').appendChild(el);
+  const a=Math.random()*2*Math.PI,r=(MAG.R-4)*Math.sqrt(Math.random()),th=Math.random()*2*Math.PI;
+  MAG.dots.push({x:r*Math.cos(a),y:r*Math.sin(a),vx:Math.cos(th),vy:Math.sin(th),el});}
+function sci(v){const e=Math.floor(Math.log10(v));return (v/Math.pow(10,e)).toFixed(1)+'×10'+String(e).split('').map(c=>SUP[c]).join('');}
+function fmtL(cm){if(cm<1e-4)return (cm*1e7).toPrecision(2)+' nm';if(cm<0.1)return (cm*1e4).toPrecision(2)+' µm';if(cm<100)return cm.toPrecision(2)+' cm';return (cm/100).toPrecision(2)+' m';}
+function updMag(dt){
+  const P=S.PC,N=magTarget(P);
+  while(MAG.dots.length<N)addDot();
+  while(MAG.dots.length>N){const d=MAG.dots.splice(Math.floor(Math.random()*MAG.dots.length),1)[0];d.el.remove();}
+  const lam=5e-3/P, lamPx=Math.max(1.5,lam/D_TEE*2*MAG.R), Rw=MAG.R-3;
+  for(const d of MAG.dots){
+    let s=70*dt,g=0;
+    while(s>0&&g++<20){const ds=Math.min(s,lamPx);d.x+=d.vx*ds;d.y+=d.vy*ds;s-=ds;
+      const rr=Math.hypot(d.x,d.y);
+      if(rr>Rw){const nx=d.x/rr,ny=d.y/rr;d.x=nx*Rw;d.y=ny*Rw;const a=Math.random()*2*Math.PI;let vx=Math.cos(a),vy=Math.sin(a);if(vx*nx+vy*ny>0){vx=-vx;vy=-vy;}d.vx=vx;d.vy=vy;}
+      else if(Math.random()<1-Math.exp(-ds/lamPx)){const a=Math.random()*2*Math.PI;d.vx=Math.cos(a);d.vy=Math.sin(a);}
+    }
+    d.el.setAttribute('cx',(MAG.cx+d.x).toFixed(1));d.el.setAttribute('cy',(MAG.cy+d.y).toFixed(1));
+  }
+  const Kn=lam/D_TEE;
+  $('magN').textContent='분자 수밀도 n ≈ '+sci(3.27e16*P)+' cm⁻³';
+  $('magL').textContent='평균자유행로 λ ≈ '+fmtL(lam)+'  ·  Kn = λ/D ≈ '+(Kn<0.01||Kn>=100?sci(Kn):Kn.toPrecision(2));
+  $('magR').textContent=Kn<0.01?'점성류: 분자끼리 부딪혀요':Kn<1?'전이 영역':'분자류: 주로 벽에 부딪혀요';
+}
+
 // loop
 let last=performance.now();
 function frame(now){
@@ -450,6 +491,7 @@ function frame(now){
   }
   S.rotor+=((S.mode==='test'?1:0)-S.rotor)*(1-Math.exp(-real/(S.mode==='test'?5:20)));
   SND.update(S);
+  updMag(Math.min(real,0.05));
   render();requestAnimationFrame(frame);
 }
 log('초기 상태: 모두 대기압, angle valve 열림');
