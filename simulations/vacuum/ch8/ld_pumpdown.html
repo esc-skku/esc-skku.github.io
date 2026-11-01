@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>He leak detector로 펌프다운 — 실험 예습 시뮬레이터</title>
+<style>
+:root{
+  --bg:#101211;--card:#1a1d1b;--border:#2c302d;--text:#e8ece9;--muted:#a8b0aa;--accent:#6aa6f2;
+  --warn:#f28b62;--ok:#3fcf98;--disp:#0a0e14;--dispText:#ffcf6b;--dispDim:#55606f;
+  --c1:#f28b62;--c2:#6aa6f2;--c3:#8a93a6;--pipeEdge:#c9d6e6;
+  color-scheme:dark;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+header{padding:18px 22px 4px;max-width:1320px;margin:0 auto}
+h1{margin:0 0 4px;font-size:21px;color:var(--accent)}
+.sub{margin:0;color:var(--muted);font-size:14px;max-width:78ch}
+.wrap{padding:10px 22px 28px;max-width:1320px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px}
+@media (max-width:980px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+.span{grid-column:1/-1}
+h2{margin:0 0 8px;font-size:16px;color:var(--accent)}
+svg text{font-family:inherit}
+#sch{width:100%;height:auto;display:block}
+.clk{cursor:pointer}
+.clk:focus{outline:none}
+.clk:focus-visible rect,.clk:focus-visible circle{stroke:var(--accent);stroke-width:3}
+.inst{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+@media (max-width:760px){.inst{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.dev{border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.dev .nm{font-size:13px;font-weight:bold}
+.lcd{background:var(--disp);color:var(--dispText);border-radius:6px;padding:6px 8px;font-family:Consolas,"D2Coding",monospace;font-size:19px;text-align:right;min-height:40px;font-variant-numeric:tabular-nums;letter-spacing:.5px}
+.lcd small{display:block;font-size:11px;color:var(--dispDim);text-align:left;letter-spacing:0}
+.lcd.off{color:var(--dispDim)}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+button{padding:6px 11px;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit}
+button:hover{border-color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.on{background:var(--accent);color:var(--card);border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+ol.steps li{counter-increment:s;padding:8px 8px 8px 38px;position:relative;border-radius:8px;font-size:14px;color:var(--muted)}
+ol.steps li::before{content:counter(s);position:absolute;left:8px;top:8px;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);display:grid;place-items:center;font-size:12px}
+ol.steps li.done{color:var(--text)}
+ol.steps li.done::before{content:"✓";background:var(--ok);border-color:var(--ok);color:#fff}
+ol.steps li.cur{background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--text)}
+ol.steps li.cur::before{border-color:var(--accent);color:var(--accent);font-weight:bold}
+ol.steps li .d{display:none;font-size:13px;margin-top:4px;color:var(--text)}
+ol.steps li.cur .d{display:block}
+ol.steps li b{font-weight:600}
+#log{margin-top:10px;font-size:12.5px;max-height:170px;overflow:auto;border-top:1px solid var(--border);padding-top:8px}
+#log div{margin-bottom:4px}
+#log .w{color:var(--warn)}
+#log .t{color:var(--muted);font-variant-numeric:tabular-nums;margin-right:6px}
+.bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13px}
+.bar label{display:flex;align-items:center;gap:6px}
+canvas{display:block;width:100%;height:300px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-top:6px;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+.note{font-size:12.5px;color:var(--muted);margin-top:8px;max-width:95ch}
+.clock{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.scale{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:4px}
+.scale .g{height:8px;flex:1;max-width:260px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+nav.crumb{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border)}
+nav.crumb a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+nav.crumb span{margin:0 7px;color:var(--border)}
+footer{max-width:1320px;margin:0 auto;padding:14px 22px 28px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 8</a><span>/</span>Leak detector 펌프다운</nav>
+  <h1>He leak detector로 펌프다운 해보기</h1>
+  <p class="sub">실험 전에 순서를 미리 따라가 보는 시뮬레이터예요. 그림의 장비를 직접 누르거나 아래 버튼을 쓰세요. 관 색이 그 구간의 압력을 나타내요.</p>
+</header>
+<main class="wrap">
+  <section class="card">
+    <svg id="sch" viewBox="0 0 960 410" role="img" aria-label="He leak detector, bellows, angle valve, convectron gauge, ion gauge 배치도">
+      <!-- detector -->
+      <rect x="30" y="200" width="340" height="180" rx="6" fill="#17607f" stroke="var(--pipeEdge)" stroke-width="2"/>
+      <text x="48" y="228" fill="#fff" font-size="17">He leak detector</text>
+      <!-- internal plumbing -->
+      <path id="intRough" d="M120 200 L120 250 L80 250 L80 330 L150 330" fill="none" stroke="#ffffff55" stroke-width="5"/>
+      <path id="intTest" d="M120 200 L120 250 L220 250 L220 280 M220 320 L220 330 L170 330" fill="none" stroke="#ffffff55" stroke-width="5"/>
+      <g id="turboIc"><rect x="196" y="280" width="48" height="40" rx="4" fill="#0e3f55" stroke="#fff" stroke-width="1.5"/><path d="M204 290 L236 290 M206 300 L234 300 M208 310 L232 310" stroke="#fff" stroke-width="1.5"/></g>
+      <text x="252" y="305" fill="#fff" font-size="12">Turbo</text>
+      <g id="backIc"><circle cx="160" cy="342" r="18" fill="#0e3f55" stroke="#fff" stroke-width="1.5"/><path d="M150 342 A10 10 0 1 1 160 352" fill="none" stroke="#fff" stroke-width="1.5"/></g>
+      <text x="184" y="360" fill="#fff" font-size="12">Backing pump</text>
+      <text id="ldMode" x="355" y="227" text-anchor="end" fill="#ffd166" font-size="12">STANDBY</text>
+      <!-- bellows -->
+      <path id="bel" d="M120 200 C 170 80, 260 75, 420 68 S 690 40, 735 150" fill="none" stroke="var(--pipeEdge)" stroke-width="18" stroke-linecap="butt"/>
+      <path id="belFill" d="M120 200 C 170 80, 260 75, 420 68 S 690 40, 735 150" fill="none" stroke="#e8d9b0" stroke-width="13"/>
+      <path d="M120 200 C 170 80, 260 75, 420 68 S 690 40, 735 150" fill="none" stroke="#00000030" stroke-width="13" stroke-dasharray="2 5"/>
+      <text x="430" y="52" text-anchor="middle" fill="var(--text)" font-size="15">bellows</text>
+      <!-- tee -->
+      <rect id="teeFill" x="722" y="188" width="26" height="140" fill="#e8d9b0" stroke="var(--pipeEdge)" stroke-width="2"/>
+      <rect id="armFill" x="748" y="246" width="56" height="16" fill="#e8d9b0" stroke="var(--pipeEdge)" stroke-width="2"/>
+      <!-- angle valve -->
+      <g id="valveG" class="clk" tabindex="0" role="button" aria-label="angle valve 열기/닫기">
+        <rect x="716" y="150" width="38" height="38" fill="#c40000" stroke="#ff4a4a" stroke-width="2"/>
+        <line id="valveGate" x1="722" y1="169" x2="748" y2="169" stroke="#fff" stroke-width="4"/>
+        <line id="valveStem" x1="735" y1="150" x2="735" y2="130" stroke="var(--pipeEdge)" stroke-width="4"/>
+        <rect id="valveKnob" x="720" y="120" width="30" height="10" rx="3" fill="var(--pipeEdge)"/>
+      </g>
+      <text x="704" y="165" text-anchor="end" fill="#e02020" font-size="17">Angle valve</text>
+      <text id="valveTxt" x="704" y="184" text-anchor="end" fill="var(--muted)" font-size="12">열림</text>
+      <text x="760" y="168" fill="var(--muted)" font-size="12">NW25</text>
+      <g id="clampG" class="clk" tabindex="0" role="button" aria-label="KF 클램프 풀기/조이기">
+        <rect x="704" y="178" width="64" height="24" fill="transparent"/>
+        <g id="clampR"><rect x="712" y="185" width="46" height="9" rx="3" fill="#9aa4b5" stroke="var(--pipeEdge)" stroke-width="1.5"/><circle cx="763" cy="189.5" r="4.5" fill="#9aa4b5" stroke="var(--pipeEdge)" stroke-width="1.5"/></g>
+      </g>
+      <text x="790" y="196" fill="var(--muted)" font-size="11">KF 클램프</text>
+      <text id="airTxt" x="790" y="212" fill="var(--warn)" font-size="12" style="display:none">← 공기 유입</text>
+      <!-- convectron -->
+      <g id="convG" class="clk" tabindex="0" role="button" aria-label="convectron gauge 켜기/끄기">
+        <rect x="804" y="236" width="36" height="36" fill="#c40000" stroke="#ff4a4a" stroke-width="2"/>
+        <circle id="convLed" cx="822" cy="254" r="5" fill="#400"/>
+      </g>
+      <text x="848" y="252" fill="#e02020" font-size="15">Convectron</text>
+      <text x="848" y="270" fill="#e02020" font-size="15">gauge</text>
+      <text x="760" y="288" fill="var(--muted)" font-size="12">NW16</text>
+      <!-- ion gauge -->
+      <g id="igG" class="clk" tabindex="0" role="button" aria-label="ion gauge 켜기/끄기">
+        <rect x="716" y="328" width="38" height="38" fill="#c40000" stroke="#ff4a4a" stroke-width="2"/>
+        <path id="igFil" d="M726 347 q4 -8 8 0 q4 8 8 0 q4 -8 8 0" fill="none" stroke="#400" stroke-width="2.5"/>
+      </g>
+      <text x="704" y="352" text-anchor="end" fill="#e02020" font-size="17">Ion gauge</text>
+      <text x="760" y="352" fill="var(--muted)" font-size="12">NW25</text>
+      <text x="735" y="395" text-anchor="middle" fill="var(--muted)" font-size="12">← 여기부터가 우리가 뽑는 공간</text>
+    </svg>
+    <div class="scale" aria-hidden="true"><span>760 Torr</span><span class="g" id="scaleG"></span><span>10⁻⁶ Torr</span><span style="margin-left:8px">관 색 = 압력</span></div>
+
+    <div class="inst">
+      <div class="dev">
+        <div class="nm">He leak detector</div>
+        <div class="lcd" id="ldLcd"><small>inlet</small>—</div>
+        <div class="btns"><button id="ldStart">START</button><button id="ldStop">STOP</button><button id="ldVent">VENT</button></div>
+      </div>
+      <div class="dev">
+        <div class="nm">Angle valve · KF 클램프</div>
+        <div class="lcd" id="valveLcd" style="font-size:16px"><small>상태</small>열림</div>
+        <div class="btns"><button id="valveBtn">닫기</button><button id="clampBtn">클램프 풀기</button></div>
+      </div>
+      <div class="dev">
+        <div class="nm">Convectron gauge</div>
+        <div class="lcd off" id="convLcd"><small>Torr</small>OFF</div>
+        <div class="btns"><button id="convBtn">켜기</button></div>
+      </div>
+      <div class="dev">
+        <div class="nm">Ion gauge</div>
+        <div class="lcd off" id="igLcd"><small>Torr</small>OFF</div>
+        <div class="btns"><button id="igBtn">켜기</button></div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="card">
+    <h2>실험 순서</h2>
+    <ol class="steps" id="steps"></ol>
+    <div id="log" aria-live="polite"></div>
+  </aside>
+
+  <section class="card span">
+    <div class="bar" style="justify-content:space-between">
+      <h2 style="margin:0">압력 기록</h2>
+      <span class="clock" id="clock">0:00</span>
+    </div>
+    <canvas id="cv" aria-label="시간에 따른 압력 그래프"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--c1)"></i>Convectron 읽음값</span>
+      <span><i style="background:var(--c2)"></i>Ion gauge 읽음값</span>
+      <span><i style="background:var(--c3)"></i>Leak detector inlet</span>
+    </div>
+    <div class="bar" style="margin-top:12px">
+      <span>시간 배속</span>
+      <span class="btns" id="speeds"></span>
+      <button id="pauseBtn">일시정지</button>
+      <label>Turbo 전환 압력
+        <select id="xover"><option value="5">5 Torr</option><option value="1">1 Torr</option><option value="0.5" selected>0.5 Torr</option><option value="0.1">0.1 Torr</option></select></label>
+      <label><input type="checkbox" id="autoVent" checked> STOP 시 inlet 자동 vent</label>
+      <button id="resetBtn">처음부터</button>
+      <button id="sndBtn" class="on">소리 켬</button>
+      <button id="bgmBtn">BGM 끔</button>
+    </div>
+    <p class="note">모든 수치는 모식적인 값이에요. 실제 장비의 turbo 전환 압력, STOP 시 vent 동작은 leak detector 매뉴얼 설정을 따르니 실험 전에 맞춰 두세요. 모델: bellows 쪽 0.4 L와 tee 쪽 0.15 L 두 구간, 점성·분자 흐름을 잇는 컨덕턴스(NW25, 1 m bellows ≈ 1 L/s 분자류), 표면 탈기체 q ∝ 1/t(배기 1시간에 5×10⁻⁹ Torr·L·s⁻¹·cm⁻²), O-ring 투과 일정.</p>
+  </section>
+</main>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+
+<script>
+(function(){
+const VL=0.40, VC=0.15, AL=1600, AC=150, Q1=5e-9, QP=2e-7;
+const S_ROUGH=0.4, PU_ROUGH=0.02, S_TURBO=2.0, C_VENT=0.08;
+let S;
+function fresh(){
+  return {t:0,PL:760,PC:760,mode:'standby',ventOpen:true,valve:true,clamp:false,rotor:0,conv:false,ig:'off',igT:0,
+    ageL:0,ageC:0,crossT:0,cur:0,done:Array(9).fill(false),hist:[],events:[],lastH:-1};
+}
+S=fresh();
+let speed=1, paused=false;
+const $=id=>document.getElementById(id);
+
+// ---- sound (Web Audio, all synthesized) ----
+const SND=(function(){
+  let ac=null,master,on=true,NB;const pump={},turbo={},hiss={};
+  function loopNoise(){const s=ac.createBufferSource();s.buffer=NB;s.loop=true;s.start();return s;}
+  function init(){
+    if(ac){if(ac.state==='suspended')ac.resume();return;}
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+    ac=new AC();master=ac.createGain();master.gain.value=on?0.8:0;master.connect(ac.destination);
+    NB=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    // backing pump: low saw + rumble, chugging tremolo; louder and brighter under gas load
+    pump.g=ac.createGain();pump.g.gain.value=0;pump.lp=ac.createBiquadFilter();pump.lp.type='lowpass';pump.lp.frequency.value=200;
+    const saw=ac.createOscillator();saw.type='sawtooth';saw.frequency.value=48;const sg=ac.createGain();sg.gain.value=0.5;saw.connect(sg).connect(pump.lp);saw.start();
+    const n=loopNoise();const ng=ac.createGain();ng.gain.value=0.6;n.connect(ng).connect(pump.lp);
+    const trem=ac.createGain();trem.gain.value=0.7;const lfo=ac.createOscillator();lfo.frequency.value=7;const lg=ac.createGain();lg.gain.value=0.3;lfo.connect(lg).connect(trem.gain);lfo.start();
+    pump.lp.connect(trem).connect(pump.g).connect(master);
+    // turbo: whine whose pitch follows rotor speed
+    turbo.g=ac.createGain();turbo.g.gain.value=0;
+    turbo.o1=ac.createOscillator();turbo.o1.type='sine';turbo.o2=ac.createOscillator();turbo.o2.type='triangle';
+    const g2=ac.createGain();g2.gain.value=0.35;turbo.o1.connect(turbo.g);turbo.o2.connect(g2).connect(turbo.g);turbo.o1.start();turbo.o2.start();
+    const tn=loopNoise();turbo.bp=ac.createBiquadFilter();turbo.bp.type='bandpass';turbo.bp.Q.value=8;const tng=ac.createGain();tng.gain.value=0.25;tn.connect(turbo.bp).connect(tng).connect(turbo.g);
+    turbo.g.connect(master);
+    // hiss: air rushing into vacuum
+    hiss.g=ac.createGain();hiss.g.gain.value=0;hiss.f=ac.createBiquadFilter();hiss.f.type='highpass';hiss.f.frequency.value=1500;loopNoise().connect(hiss.f).connect(hiss.g).connect(master);
+  }
+  function blip(freq,dur,type,vol){if(!ac||!on)return;const t=ac.currentTime;const o=ac.createOscillator();o.type=type;o.frequency.value=freq;const g=ac.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(1e-4,t+dur);o.connect(g).connect(master);o.start(t);o.stop(t+dur+0.02);}
+  function click(){if(!ac||!on)return;const t=ac.currentTime;const s=ac.createBufferSource();s.buffer=NB;const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=3000;f.Q.value=2;const g=ac.createGain();g.gain.setValueAtTime(0.5,t);g.gain.exponentialRampToValueAtTime(1e-4,t+0.03);s.connect(f).connect(g).connect(master);s.start(t,Math.random());s.stop(t+0.05);}
+  function clunk(){if(!ac||!on)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(60,t+0.12);const g=ac.createGain();g.gain.setValueAtTime(0.35,t);g.gain.exponentialRampToValueAtTime(1e-4,t+0.18);o.connect(g).connect(master);o.start(t);o.stop(t+0.2);click();}
+  function beep(){blip(1800,0.09,'square',0.05);}
+  function err(){blip(440,0.12,'square',0.06);setTimeout(()=>blip(330,0.18,'square',0.06),150);}
+  function update(st){
+    if(!ac)return;const t=ac.currentTime;const running=st.mode!=='standby';
+    const load=Math.min(1,Math.max(0,(Math.log10(Math.max(st.PL,1e-3))+1)/3.9));
+    pump.g.gain.setTargetAtTime(running?0.06+0.22*load:0,t,running?0.15:0.4);
+    pump.lp.frequency.setTargetAtTime(160+900*load,t,0.2);
+    const r=st.rotor,f=(90+760*r)*(1-(st.mode==='test'?0.12*load:0));
+    turbo.o1.frequency.setTargetAtTime(f,t,0.1);turbo.o2.frequency.setTargetAtTime(f*2.003,t,0.1);turbo.bp.frequency.setTargetAtTime(f*3,t,0.1);
+    turbo.g.gain.setTargetAtTime(0.05*r*r,t,0.1);
+    let h=0;if(st.clamp)h=Math.max(h,(760-st.PC)/760);if(st.mode==='standby'&&st.ventOpen)h=Math.max(h,(760-st.PL)/760);if(st.valve)h=Math.max(h,Math.abs(st.PL-st.PC)/760);
+    hiss.g.gain.setTargetAtTime(0.25*Math.sqrt(Math.min(1,h)),t,0.05);
+  }
+  // ---- BGM: calm generative loop (Am7 – Fmaj7 – Cmaj7 – G6, 84 BPM) ----
+  let bg=null,bgTimer=null,bgNext=0,bgStep=0,bgOn=false;
+  const mtof=m=>440*Math.pow(2,(m-69)/12);
+  const CH=[[57,60,64,67],[53,57,60,64],[48,55,59,64],[55,59,62,64]];
+  const E=60/84/2, ARP=[0,2,1,3,2,1,3,2], HIT=[1,0,1,1,0,1,1,0];
+  function bgSetup(){bg={};bg.g=ac.createGain();bg.g.gain.value=0;bg.g.connect(ac.destination);
+    bg.dl=ac.createDelay(2);bg.dl.delayTime.value=E*3;bg.fb=ac.createGain();bg.fb.gain.value=0.35;bg.dlp=ac.createBiquadFilter();bg.dlp.type='lowpass';bg.dlp.frequency.value=1800;
+    bg.dl.connect(bg.dlp);bg.dlp.connect(bg.fb);bg.fb.connect(bg.dl);bg.dlp.connect(bg.g);}
+  function tone(type,f,t,a,hold,rel,vol,dest,lp){const o=ac.createOscillator();o.type=type;o.frequency.value=f;const gg=ac.createGain();
+    gg.gain.setValueAtTime(0,t);gg.gain.linearRampToValueAtTime(vol,t+a);gg.gain.setValueAtTime(vol,t+a+hold);gg.gain.exponentialRampToValueAtTime(1e-4,t+a+hold+rel);
+    let n=o;if(lp){const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=lp;o.connect(fl);n=fl;}n.connect(gg);dest.forEach(d=>gg.connect(d));o.start(t);o.stop(t+a+hold+rel+0.05);}
+  function bgSched(){if(!bgOn)return;while(bgNext<ac.currentTime+0.4){const t=bgNext,bar=Math.floor(bgStep/8)%4,s=bgStep%8,ch=CH[bar];
+    if(s===0){ch.forEach(m=>{tone('triangle',mtof(m),t,1.2,E*8-1.2,1.8,0.022,[bg.g],900);tone('sine',mtof(m)*1.003,t,1.2,E*8-1.2,1.8,0.018,[bg.g]);});
+      tone('sine',mtof(ch[0]-12),t,0.05,E*6,0.8,0.07,[bg.g]);}
+    if(HIT[s]){const m=ch[ARP[s]]+12+(((bgStep>>5)%2)&&s>4?12:0);tone('sine',mtof(m),t,0.005,0.02,0.7,0.035,[bg.g,bg.dl]);}
+    bgNext+=E;bgStep++;}}
+  function bgm(){init();if(!ac)return false;if(!bg)bgSetup();bgOn=!bgOn;const t=ac.currentTime;
+    bg.g.gain.cancelScheduledValues(t);
+    if(bgOn){bg.g.gain.setTargetAtTime(0.6,t,0.5);bgNext=t+0.1;bgStep=0;bgSched();bgTimer=setInterval(bgSched,100);}
+    else{bg.g.gain.setTargetAtTime(0,t,0.4);clearInterval(bgTimer);bgTimer=null;}
+    return bgOn;}
+  function toggle(){on=!on;if(master)master.gain.setTargetAtTime(on?0.8:0,ac.currentTime,0.05);return on;}
+  function suspend(x){if(ac){x?ac.suspend():ac.resume();}}
+  return {init,click,clunk,beep,err,update,toggle,suspend,bgm};
+})();
+document.addEventListener('pointerdown',()=>SND.init(),true);
+document.addEventListener('keydown',()=>SND.init(),true);
+document.addEventListener('click',e=>{if(e.target.closest('button'))SND.click();},true);
+document.addEventListener('visibilitychange',()=>SND.suspend(document.hidden));
+
+const STEPS=[
+ ['Convectron gauge 켜기','열전도 게이지예요. 대기압부터 약 10⁻³ Torr까지 쓸 수 있어서 처음 배기를 지켜보는 데 알맞아요. 지금은 760 Torr 근처를 가리켜야 해요.'],
+ ['He leak detector START','처음에는 detector 안의 backing pump만으로 뽑아요(roughing). inlet 압력이 전환 압력 아래로 내려가면 turbo 쪽으로 경로가 바뀌어요. Convectron 값이 떨어지는 걸 보여 주세요.'],
+ ['충분히 떨어질 때까지 기다리기','Convectron이 10⁻³ Torr 근처에서 더 이상 잘 내려가지 않는 것처럼 보이면 측정 하한에 닿은 거예요. 실제 압력은 계속 내려가고 있어요.'],
+ ['Ion gauge 켜기','뜨거운 필라멘트를 쓰는 게이지라 약 10⁻³ Torr보다 높은 압력에서 켜면 필라멘트가 상해요. 그래서 convectron으로 먼저 확인한 다음 켜요.'],
+ ['10⁻⁴~10⁻⁵ Torr 확인','Ion gauge 값이 10⁻⁴ 아래로 내려가는 걸 보여 주세요. 시간이 갈수록 천천히 내려가는 이유는 벽과 bellows 표면의 탈기체 때문이에요.'],
+ ['Ion gauge 끄기','고압에 노출되기 전에 먼저 꺼 둬요.'],
+ ['Angle valve 닫기','이제 tee 쪽(게이지 두 개)이 detector와 분리돼요.'],
+ ['He leak detector STOP','Detector가 inlet을 vent해도 valve가 닫혀 있으니 convectron 쪽 진공은 유지돼요. 다만 탈기체 때문에 압력이 천천히 오르는 것도 보여요(rate of rise).'],
+ ['Vent해서 760 Torr까지','Angle valve는 닫은 채로, valve와 tee 사이 KF 클램프를 풀어요. 진공 상태에서는 대기압이 플랜지를 눌러서 클램프를 풀어도 바로 떨어지지 않아요. 살짝 젖히면 공기가 들어가며 convectron이 760 Torr까지 올라가요. 센터링 링이 떨어지지 않게 잡아 주세요.']
+];
+const stepsEl=$('steps');
+STEPS.forEach(s=>{const li=document.createElement('li');li.innerHTML='<b>'+s[0]+'</b><div class="d">'+s[1]+'</div>';stepsEl.appendChild(li);});
+
+function fmtE(p){const e=Math.floor(Math.log10(p));const m=p/Math.pow(10,e);let mm=m.toFixed(1);let ee=e;if(mm==='10.0'){mm='1.0';ee++;}return mm+'E'+(ee<0?'-':'+')+String(Math.abs(ee)).padStart(2,'0');}
+function tstr(t){const m=Math.floor(t/60),s=Math.floor(t%60);return m+':'+String(s).padStart(2,'0');}
+function log(msg,w){S.events.push({t:S.t,msg,w});const d=document.createElement('div');if(w)d.className='w';d.innerHTML='<span class="t">'+tstr(S.t)+'</span>'+msg;$('log').prepend(d);}
+function mark(lbl){S.hist.push({mark:lbl,t:S.t});}
+
+function q(age){return Q1*3600/Math.max(age,30);}
+function convRead(){return S.PC+1e-4;}
+function step(dt){
+  // outgassing + permeation (only meaningful below ~50 Torr)
+  if(S.PL<50) S.PL+=(AL*q(S.ageL)+QP)/VL*dt;
+  if(S.PC<50) S.PC+=(AC*q(S.ageC)+QP)/VC*dt;
+  // pumping at detector side
+  if(S.mode==='rough'||S.mode==='test'){
+    const Sd = S.mode==='rough' ? S_ROUGH : S_TURBO;
+    const Pu = S.mode==='rough' ? PU_ROUGH : 1e-8;
+    const Cb = 71*S.PL+1.0;
+    const Se = 1/(1/Sd+1/Cb);
+    S.PL = Pu+(S.PL-Pu)*Math.exp(-Se/VL*dt);
+  } else if(S.ventOpen){
+    S.PL += (760-S.PL)*(1-Math.exp(-C_VENT/VL*dt));
+  }
+  // angle valve exchange (exact two-node relaxation)
+  if(S.valve){
+    const C=50*(S.PL+S.PC)/2+8, k=C*(1/VL+1/VC), Peq=(S.PL*VL+S.PC*VC)/(VL+VC), f=Math.exp(-k*dt);
+    S.PL=Peq+(S.PL-Peq)*f; S.PC=Peq+(S.PC-Peq)*f;
+  }
+  // opened KF joint between angle valve and tee: tee side vents to air
+  if(S.clamp){ S.PC += (760-S.PC)*(1-Math.exp(-0.3/VC*dt)); }
+  // surface exposure clocks
+  S.ageL = S.PL>50?0:S.ageL+dt; S.ageC = S.PC>50?0:S.ageC+dt;
+  // detector crossover
+  if(S.mode==='rough'){ if(S.PL<+$('xover').value){S.crossT+=dt; if(S.crossT>1.5){S.mode='test';SND.clunk();log('Inlet '+fmtE(S.PL)+' Torr → turbo 경로로 전환');mark('turbo');}} else S.crossT=0; }
+  // ion gauge
+  if(S.ig!=='off'){
+    if(S.PC>1e-3){S.ig='off';SND.err();log('Ion gauge 과압 보호로 꺼짐 ('+fmtE(S.PC)+' Torr). 실제로는 필라멘트가 손상될 수 있어요.',true);mark('IG trip');}
+    else if(S.ig==='start'){S.igT+=dt;if(S.igT>2){S.ig='on';}}
+  }
+  S.t+=dt;
+}
+
+function checkSteps(){
+  const c=S.cur; if(c>8)return;
+  const ig=S.ig==='on'?S.PC:Infinity;
+  let ok=false;
+  switch(c){
+    case 0: ok=S.conv; break;
+    case 1: ok=S.mode!=='standby' && S.PC<10; break;
+    case 2: ok=S.mode==='test' && S.PC<1e-3; break;
+    case 3: ok=S.ig==='on'; break;
+    case 4: ok=ig<1e-4; break;
+    case 5: ok=S.ig==='off'; break;
+    case 6: ok=!S.valve; break;
+    case 7: ok=S.mode==='standby'&&!S.valve; break;
+    case 8: ok=S.PC>700; break;
+  }
+  if(ok){S.done[c]=true;S.cur++;}
+}
+
+// controls
+function startLD(){ if(S.mode!=='standby')return; SND.beep(); S.mode='rough';S.ventOpen=false;S.crossT=0;log('Leak detector START — backing pump로 roughing 시작');mark('LD start');
+  if(!S.valve) log('Angle valve가 닫혀 있어서 tee 쪽은 아직 배기되지 않아요.',true); }
+function stopLD(){ if(S.mode==='standby')return; SND.beep(); S.mode='standby'; S.ventOpen=$('autoVent').checked; log('Leak detector STOP'+(S.ventOpen?' — inlet vent':''));mark('LD stop');
+  if(S.valve&&S.ventOpen) log('Angle valve가 열린 채로 STOP해서 tee 쪽까지 vent돼요. 7번(valve 닫기)을 먼저 해야 해요.',true);
+  if(S.valve&&S.ventOpen&&S.ig!=='off') log('Ion gauge가 켜진 채로 vent되고 있어요.',true); }
+function ventLD(){ if(S.mode!=='standby'){log('VENT는 STOP 상태에서만 돼요.',true);return;} if(!S.ventOpen){S.ventOpen=true;log('Detector inlet vent');} }
+function toggleValve(){ SND.clunk(); S.valve=!S.valve; log('Angle valve '+(S.valve?'열림':'닫힘'));mark(S.valve?'valve open':'valve close');
+  if(S.valve && S.PL-S.PC>100) log('Detector 쪽 공기가 tee 쪽으로 들어와요.'); }
+function toggleClamp(){ SND.clunk(); S.clamp=!S.clamp;
+  if(S.clamp){ log('Angle valve–tee 사이 KF 클램프를 풀어 vent');mark('clamp open');
+    if(S.valve&&S.mode!=='standby') log('Angle valve가 열린 채로 뜯어서 leak detector가 대기를 직접 빨아들여요. valve를 먼저 닫아야 해요.',true);
+    if(S.ig!=='off') log('Ion gauge가 켜진 채로 vent하고 있어요.',true); }
+  else { log('KF 클램프 다시 조임');mark('clamp close'); } }
+function toggleConv(){ SND.beep(); S.conv=!S.conv; log('Convectron '+(S.conv?'켬':'끔')); }
+function toggleIG(){ if(S.ig!=='off'){S.ig='off';log('Ion gauge 끔');mark('IG off');return;}
+  if(S.PC>1e-3){SND.err();log('지금 '+fmtE(S.PC)+' Torr라 ion gauge를 켤 수 없어요. 10⁻³ Torr 아래에서 켜세요.',true);return;}
+  S.ig='start';S.igT=0;SND.beep();log('Ion gauge 켬 — emission 안정화 중');mark('IG on'); }
+$('ldStart').onclick=startLD;$('ldStop').onclick=stopLD;$('ldVent').onclick=ventLD;
+$('valveBtn').onclick=toggleValve;$('clampBtn').onclick=toggleClamp;$('convBtn').onclick=toggleConv;$('igBtn').onclick=toggleIG;
+const keyAct=(el,fn)=>{el.addEventListener('click',fn);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn();}});};
+keyAct($('valveG'),toggleValve);keyAct($('convG'),toggleConv);keyAct($('clampG'),toggleClamp);keyAct($('igG'),toggleIG);
+const SPEEDS=[1,5,20,60];
+SPEEDS.forEach(v=>{const b=document.createElement('button');b.textContent=v+'×';b.onclick=()=>{speed=v;renderSpeeds();};b.dataset.v=v;$('speeds').appendChild(b);});
+function renderSpeeds(){[...$('speeds').children].forEach(b=>b.classList.toggle('on',+b.dataset.v===speed));}
+renderSpeeds();
+$('pauseBtn').onclick=()=>{paused=!paused;$('pauseBtn').textContent=paused?'계속':'일시정지';};
+$('sndBtn').onclick=()=>{SND.init();const o=SND.toggle();$('sndBtn').textContent=o?'소리 켬':'소리 끔';$('sndBtn').classList.toggle('on',o);};
+$('bgmBtn').onclick=()=>{const o=SND.bgm();$('bgmBtn').textContent=o?'BGM 켬':'BGM 끔';$('bgmBtn').classList.toggle('on',o);};
+$('resetBtn').onclick=()=>{S=fresh();$('log').innerHTML='';log('초기 상태: 모두 대기압, angle valve 열림');};
+
+// colors
+function pcol(p){ // log scale 760 -> 1e-6
+  const x=Math.min(1,Math.max(0,(Math.log10(760)-Math.log10(Math.max(p,1e-7)))/(Math.log10(760)+6)));
+  const stops=[[232,217,176],[96,178,170],[48,104,168],[38,34,96]];
+  const s=x*(stops.length-1),i=Math.min(stops.length-2,Math.floor(s)),f=s-i;
+  const c=stops[i].map((v,j)=>Math.round(v+(stops[i+1][j]-v)*f));return 'rgb('+c+')';
+}
+$('scaleG').style.background='linear-gradient(90deg,'+[0,.25,.5,.75,1].map(x=>pcol(Math.pow(10,Math.log10(760)-x*(Math.log10(760)+6)))).join(',')+')';
+
+function render(){
+  $('belFill').setAttribute('stroke',pcol(S.PL));
+  $('teeFill').setAttribute('fill',pcol(S.PC));$('armFill').setAttribute('fill',pcol(S.PC));
+  $('valveGate').setAttribute('transform',S.valve?'':'rotate(90 735 169)');
+  $('valveKnob').setAttribute('y',S.valve?120:134);$('valveStem').setAttribute('y2',S.valve?130:144);
+  $('valveTxt').textContent=S.valve?'열림':'닫힘';
+  $('valveLcd').innerHTML='<small>valve'+(S.clamp?' · 클램프 풀림':'')+'</small>'+(S.valve?'열림':'닫힘');
+  $('clampR').setAttribute('transform',S.clamp?'translate(16 9) rotate(14 735 189)':'');$('airTxt').style.display=S.clamp?'':'none';
+  $('clampBtn').textContent=S.clamp?'클램프 조이기':'클램프 풀기';$('clampBtn').classList.toggle('on',S.clamp);$('valveBtn').textContent=S.valve?'닫기':'열기';
+  const act='#ffd166';
+  $('intRough').setAttribute('stroke',S.mode==='rough'?act:'#ffffff40');
+  $('intTest').setAttribute('stroke',S.mode==='test'?act:'#ffffff40');
+  $('ldMode').textContent=S.mode==='rough'?'ROUGHING (backing pump)':S.mode==='test'?'TEST (turbo)':(S.ventOpen?'STANDBY · inlet vented':'STANDBY');
+  $('ldLcd').innerHTML='<small>inlet · '+(S.mode==='rough'?'roughing':S.mode==='test'?'turbo':'standby')+'</small>'+(S.PL<1e-3?'&lt;1.0E-03':fmtE(S.PL));
+  $('ldStart').classList.toggle('on',S.mode!=='standby');
+  $('convLed').setAttribute('fill',S.conv?'#7dff9a':'#400');
+  const cl=$('convLcd');cl.classList.toggle('off',!S.conv);cl.innerHTML='<small>Torr</small>'+(S.conv?fmtE(convRead()):'OFF');$('convBtn').textContent=S.conv?'끄기':'켜기';$('convBtn').classList.toggle('on',S.conv);
+  $('igFil').setAttribute('stroke',S.ig==='off'?'#400':'#ffb347');
+  const il=$('igLcd');il.classList.toggle('off',S.ig==='off');il.innerHTML='<small>Torr</small>'+(S.ig==='off'?'OFF':S.ig==='start'?'EMIS…':fmtE(S.PC));$('igBtn').textContent=S.ig==='off'?'켜기':'끄기';$('igBtn').classList.toggle('on',S.ig!=='off');
+  [...stepsEl.children].forEach((li,i)=>{li.classList.toggle('done',S.done[i]);li.classList.toggle('cur',i===S.cur);});
+  $('clock').textContent='경과 '+tstr(S.t)+(speed>1?'  ('+speed+'× 배속)':'');
+  drawChart();
+}
+
+// chart
+const cv=$('cv'),ctx=cv.getContext('2d');
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+const SUP={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷'};
+function drawChart(){
+  const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  const L=64,R=12,T=14,B=30,pw=w-L-R,ph=h-T-B;
+  const tmax=Math.max(60,S.t*1.05), ymin=-6, ymax=3.2;
+  const X=t=>L+t/tmax*pw, Y=lp=>T+(ymax-lp)/(ymax-ymin)*ph;
+  ctx.font='12px "Malgun Gothic",system-ui,sans-serif';ctx.strokeStyle=css('--border');ctx.fillStyle=css('--muted');ctx.lineWidth=1;
+  for(let e=-6;e<=3;e++){const y=Y(e);ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(L+pw,y);ctx.stroke();ctx.textAlign='right';ctx.fillText('10'+String(e).split('').map(c=>SUP[c]).join(''),L-6,y+4);}
+  ctx.textAlign='center';const stepT=tmax>1200?300:tmax>300?60:tmax>120?30:10;
+  for(let t=0;t<=tmax;t+=stepT){ctx.fillText(tstr(t),X(t),T+ph+18);}
+  ctx.save();ctx.translate(14,T+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('압력 (Torr)',0,0);ctx.restore();
+  const pts=S.hist.filter(p=>!p.mark);
+  function line(key,col,dash){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.setLineDash(dash||[]);ctx.beginPath();let on=false;
+    for(const p of pts){const v=p[key];if(v==null){on=false;continue;}const x=X(p.t),y=Y(Math.log10(Math.min(Math.max(v,1e-6),1500)));if(!on){ctx.moveTo(x,y);on=true;}else ctx.lineTo(x,y);}ctx.stroke();ctx.setLineDash([]);}
+  line('ld',css('--c3'),[5,4]);line('cv',css('--c1'));line('ig',css('--c2'));
+  ctx.fillStyle=css('--muted');ctx.font='11px "Malgun Gothic",system-ui,sans-serif';ctx.textAlign='left';
+  let lastX=-99,row=0;
+  for(const m of S.hist.filter(p=>p.mark)){const x=X(m.t);ctx.strokeStyle=css('--border');ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(x,T);ctx.lineTo(x,T+ph);ctx.stroke();ctx.setLineDash([]);
+    row=(x-lastX<60)?row+1:0;lastX=x;ctx.fillText(m.mark,x+3,T+10+row*13);}
+}
+
+// loop
+let last=performance.now();
+function frame(now){
+  let real=Math.min(0.1,(now-last)/1000);last=now;
+  if(!paused){
+    let simT=real*speed;const dt=0.01;
+    while(simT>0){const d=Math.min(dt,simT);step(d);simT-=d;}
+    if(S.t-S.lastH>=Math.max(0.2,S.t/1500)){S.lastH=S.t;
+      S.hist.push({t:S.t,cv:S.conv?convRead():null,ig:S.ig==='on'?S.PC:null,ld:S.PL<1e-3?null:S.PL});}
+    checkSteps();
+  }
+  S.rotor+=((S.mode==='test'?1:0)-S.rotor)*(1-Math.exp(-real/(S.mode==='test'?5:20)));
+  SND.update(S);
+  render();requestAnimationFrame(frame);
+}
+log('초기 상태: 모두 대기압, angle valve 열림');
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
