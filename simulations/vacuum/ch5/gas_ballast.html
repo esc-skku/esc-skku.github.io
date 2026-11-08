@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>가스 발라스트 시뮬레이션 — 유회전펌프 압축 중 수증기는 언제 물이 되나</title>
+<style>
+  :root{--bg:#101211;--card:#1a1d1b;--border:#2c302d;--text:#e8ece9;--muted:#a8b0aa;--accent:#6aa6f2;--hot:#f28b62;--cold:#6aa6f2;
+        --air:#a8b0aa;--water:#6aa6f2;--ballast:#3fcf98;--liquid:#9cc4f5;--metal:#3a403c;--metal2:#5a625d;--pocket:rgba(106,166,242,.14);--btn:#222623;--btnh:#2c302d;color-scheme:dark}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 24px 6px}
+  h1{margin:0 0 4px;font-size:22px;color:var(--accent)}
+  .sub{margin:0;color:var(--muted);font-size:14px}
+  .wrap{padding:10px 24px 28px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:14px}
+  @media (max-width:1000px){.grid{grid-template-columns:1fr}}
+  canvas{display:block;width:100%;height:auto}
+  .bar{display:flex;flex-wrap:wrap;gap:12px 26px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:3px}
+  .ctl label{font-size:13px;color:var(--muted)}
+  .ctl .v{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:200px}
+  button{padding:7px 14px;border:1px solid var(--border);background:var(--btn);color:var(--text);border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+  button:hover{background:var(--btnh)}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button.primary{background:var(--accent);color:var(--card);border-color:var(--accent)}
+  .chk{display:flex;align-items:center;gap:6px;font-size:14px}
+  .cap{font-size:13px;color:var(--muted);margin:8px 2px 0}
+  .phase{font-size:15px;font-weight:600;min-height:24px;margin:6px 2px 0}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  th{font-weight:600;color:var(--muted);font-size:13px}
+  td:first-child,th:first-child{text-align:left}
+  .verdict{font-size:17px;font-weight:700;margin:0 0 10px}
+  .verdict.bad{color:var(--hot)} .verdict.ok{color:var(--ballast)}
+  .note{font-size:14px;max-width:80ch}
+  .note b{color:var(--accent)}
+  .eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:17px;margin:6px 0 10px;overflow-x:auto}
+  .flag{font-size:13px;color:var(--muted)}
+  .res-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}
+  @media (max-width:1000px){.res-grid{grid-template-columns:1fr}}
+  .presets{display:flex;flex-wrap:wrap;gap:8px}
+  nav.crumb{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border)}
+  nav.crumb a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+  nav.crumb span{margin:0 7px;color:var(--border)}
+  footer{padding:14px 24px 28px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+  @media (prefers-reduced-motion: reduce){ .phase{transition:none} }
+</style>
+</head>
+<body>
+<header>
+  <nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 5</a><span>/</span>가스 발라스트</nav>
+  <h1>가스 발라스트: 압축 중 수증기는 언제 물이 되는가</h1>
+  <p class="sub">5.2 유회전펌프 (슬라이드 23–24) — 한 포켓의 기체를 따라가며 공기·수증기 분압을 추적합니다. 수증기 분압이 펌프 온도의 포화증기압 p<sub>s</sub>에 먼저 닿으면 응축, 전체 압력이 배기밸브 압력 p<sub>d</sub>에 먼저 닿으면 그대로 배출됩니다.</p>
+</header>
+<div class="wrap">
+  <div class="card">
+    <div class="presets">
+      <button data-preset="0">수증기만 배기</button>
+      <button data-preset="1">습한 챔버 러프 배기</button>
+      <button data-preset="2">건조 공기</button>
+      <button data-preset="3">펌프가 덜 데워졌을 때</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <canvas id="pump" width="480" height="480" aria-label="회전 베인 펌프 단면 애니메이션"></canvas>
+      <div class="phase" id="phase"></div>
+      <div class="row">
+        <button class="primary" id="play">일시정지</button>
+        <button id="restart">처음부터</button>
+        <div class="ctl" style="margin-left:6px"><label for="scrub">포켓 진행</label><input type="range" id="scrub" min="0" max="526" step="0.5" value="0"></div>
+        <div class="ctl"><label for="spd">속도 <span id="spdv">1.0×</span></label><input type="range" id="spd" min="0.25" max="3" step="0.25" value="1" style="width:120px"></div>
+      </div>
+      <p class="cap">점: <span style="color:var(--air)">●</span> 흡입 공기 &nbsp;<span style="color:var(--water)">●</span> 수증기 &nbsp;<span style="color:var(--ballast)">●</span> 발라스트 공기 &nbsp;<span style="color:var(--liquid)">⬤</span> 응축된 물(오일에 섞임). 점 개수는 상대적인 양만 나타냅니다.</p>
+    </div>
+    <div class="card">
+      <canvas id="plot" width="640" height="480" aria-label="압축비에 따른 분압 그래프"></canvas>
+      <p class="cap">가로축: 밀폐된 뒤 포켓의 압축비 V<sub>0</sub>/V (로그). 등온 압축이므로 응축·배기 전에는 모든 분압이 기울기 1의 직선입니다. 점선 파랑은 같은 조건에서 발라스트를 끈 경우의 수증기 분압입니다.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="bar">
+      <div class="ctl"><label for="pin">입구 압력 p<sub>in</sub></label><input type="range" id="pin" min="0" max="3.0057" step="0.001"><span class="v" id="pinv"></span></div>
+      <div class="ctl"><label for="xw">입구 기체 중 수증기 비율</label><input type="range" id="xw" min="0" max="1" step="0.01"><span class="v" id="xwv"></span></div>
+      <div class="ctl"><label for="T">펌프(오일) 온도</label><input type="range" id="T" min="30" max="110" step="1"><span class="v" id="Tv"></span></div>
+      <div class="ctl"><label for="pd">배기밸브 열림 압력 p<sub>d</sub></label><input type="range" id="pd" min="1013" max="1300" step="1"><span class="v" id="pdv"></span></div>
+    </div>
+    <div class="bar" style="margin-top:12px">
+      <label class="chk"><input type="checkbox" id="bal"> 가스 발라스트 열기</label>
+      <div class="ctl"><label for="b">발라스트 유량비 B/S</label><input type="range" id="b" min="0.01" max="0.3" step="0.01"><span class="v" id="bv"></span></div>
+      <div class="ctl"><label for="rh">발라스트 공기 습도 (20 °C 실내 공기 기준)</label><input type="range" id="rh" min="0" max="1" step="0.05"><span class="v" id="rhv"></span></div>
+    </div>
+  </div>
+
+  <div class="res-grid">
+    <div class="card">
+      <p class="verdict" id="verdict"></p>
+      <table id="tbl"></table>
+    </div>
+    <div class="card note">
+      <p style="margin-top:0"><b>응축 조건.</b> 배기밸브가 열리는 순간 전체 압력은 p<sub>d</sub>이므로, 그때의 수증기 분압은 p<sub>d</sub>×(수증기 몰분율)입니다. 이것이 p<sub>s</sub>(T)보다 크면 그 전에 응축이 일어납니다. 발라스트는 압축 초기에 건조한 공기를 b = B/S만큼 넣어 몰분율을 낮춥니다.</p>
+      <div class="eq">p<sub>d</sub> (p<sub>w</sub> + b p<sub>w,B</sub>) ≤ p<sub>s</sub> (p<sub>a</sub> + p<sub>w</sub> + b p<sub>atm</sub>)</div>
+      <p>순수 수증기(p<sub>a</sub> = 0)에 대해 풀면 <b>수증기 허용압</b>(water vapour tolerance):</p>
+      <div class="eq">p<sub>W0</sub> = b · (p<sub>s</sub> p<sub>atm</sub> − p<sub>d</sub> p<sub>w,B</sub>) / (p<sub>d</sub> − p<sub>s</sub>)</div>
+      <p>p<sub>d</sub> = p<sub>atm</sub>로 두면 펌프 제조사 카탈로그에 나오는 식과 같습니다. 슬라이드 24의 세 가지 방법이 여기서 다 보입니다. 온도를 올리면 p<sub>s</sub>가 커지고, p<sub>s</sub> ≥ p<sub>d</sub>(물은 약 100 °C, 밸브 과압까지 더하면 그 이상)가 되면 응축 자체가 불가능합니다("110도"의 의미). 발라스트는 b를 키우는 방법입니다.</p>
+      <p><b>대가.</b> 발라스트 기체 b·p<sub>atm</sub>은 입구에서 들어온 기체와 무관하게 매 회전 포켓에 들어갑니다. 입구 압력이 낮을수록 이 양이 상대적으로 커지고, 일부가 입구 쪽으로 새어 도달압력이 나빠집니다. 그래서 "발라스트를 안 하면 배기 속력이 좋다"(슬라이드 23).</p>
+      <p class="flag">값의 출처: p<sub>s</sub>(T)는 물의 포화증기압 실측 근사식(Buck 식, 0–100 °C)입니다. 포켓 기하(편심 회전자, 2 베인, 포트 위치), b ≈ 0.1, 펌프 온도 60–80 °C, p<sub>d</sub>는 교육용 대표값입니다. 등온 압축과 즉시 응축(과포화 없음)을 가정했고, 오일에 녹는 기체와 누설은 무시했습니다.</p>
+    </div>
+  </div>
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+
+<script>
+(function(){
+"use strict";
+const PATM = 1013.25;
+const MBAR2TORR = 0.750062;
+const E = 0.18, R = 1.0, RR = R - E;            // stator radius, eccentricity, rotor radius
+const U_SEAL = 270, U_END = 526, BAL0 = 272, BAL1 = 335, EXH_OK = 356;
+const INLET = [150, 180], EXHAUST = [76, 86], BALPORT = 300;   // rotor-polar angles (deg)
+const DU = 0.5;
+
+function psat(Tc){ return 6.1121*Math.exp((18.678 - Tc/234.5)*(Tc/(257.14+Tc))); } // mbar (Buck)
+
+// ---------- geometry ----------
+const rad = d => d*Math.PI/180;
+function rhoS(phiDeg){ const p = rad(phiDeg); return -E*Math.sin(p) + Math.sqrt(R*R - E*E*Math.cos(p)**2); }
+const FSTEP = 0.1, FN = Math.round(720/FSTEP)+1;
+const F = new Float64Array(FN);
+for(let i=1;i<FN;i++){
+  const a=(i-1)*FSTEP, b=i*FSTEP, m=(a+b)/2;
+  const g = x => 0.5*(rhoS(x)**2 - RR*RR);
+  F[i] = F[i-1] + (g(a)+4*g(m)+g(b))/6*rad(FSTEP);
+}
+function Fat(phi){ const x=phi/FSTEP, i=Math.floor(x); if(i>=FN-1) return F[FN-1]; const t=x-i; return F[i]*(1-t)+F[i+1]*t; }
+function region(u){ if(u<=180) return [90,90+u]; if(u<=360) return [u-90,90+u]; return [u-90,450]; }
+function area(u){ const [a,b]=region(u); return Fat(b)-Fat(a); }
+const V0 = area(U_SEAL);
+const NU = Math.round(U_END/DU)+1;
+const Vn = new Float64Array(NU);
+for(let i=0;i<NU;i++) Vn[i] = Math.max(area(i*DU)/V0, 1e-6);
+const idx = u => Math.min(NU-1, Math.max(0, Math.round(u/DU)));
+
+// ---------- physics ----------
+function simulate(P, b){
+  const ps = psat(P.T), pa_in = P.pin*(1-P.xw), pw_in = P.pin*P.xw;
+  const pwB = P.rh*psat(20);
+  const iS = idx(U_SEAL);
+  const out = {pa:new Float64Array(NU), pw:new Float64Array(NU), p:new Float64Array(NU), liq:new Float64Array(NU),
+               surv:new Float64Array(NU), balCum:new Float64Array(NU), open:new Uint8Array(NU),
+               condU:null, openU:null, ps, pwB, pa_in, pw_in, nBtot:0, nBwTot:0};
+  for(let i=0;i<=iS;i++){ out.pa[i]=pa_in; out.pw[i]=pw_in; out.p[i]=P.pin; out.surv[i]=1; }
+  let na=pa_in, nw=pw_in, liq=0, nBa=0, nBw=0, surv=1, opened=false;   // amounts in mbar·V0
+  const nBrate = b*PATM*DU/(BAL1-BAL0);
+  for(let i=iS+1;i<NU;i++){
+    const u=i*DU, V=Vn[i];
+    if(b>0 && u>BAL0 && u<=BAL1 && !opened){
+      const pnow = (na+nw)/V;
+      if(pnow < PATM){
+        const add = nBrate, addw = add*pwB/PATM;
+        na += add-addw; nw += addw; nBa += add-addw; nBw += addw;
+      }
+    }
+    // valve opens first if the uncondensed mixture reaches p_d with p_w <= p_s at that moment
+    const pUn = (na+nw)/V;
+    const valveFirst = u>=EXH_OK && pUn>=P.pd && P.pd*nw/(na+nw) <= ps;
+    const cap = ps*V;
+    if(!valveFirst && nw > cap){ if(out.condU===null) out.condU=u; liq += nw-cap; nw = cap; }
+    let p = (na+nw)/V;
+    if(u>=EXH_OK && p>=P.pd){
+      if(!opened){ opened=true; out.openU=u; }
+      const f = P.pd*V/(na+nw); na*=f; nw*=f; surv*=f; p=P.pd;
+    }
+    out.pa[i]=na/V; out.pw[i]=nw/V; out.p[i]=p; out.liq[i]=liq; out.surv[i]=surv; out.open[i]=opened?1:0;
+    out.balCum[i]=nBa+nBw;
+  }
+  out.nBtot=nBa+nBw; out.nBwTot=nBw;
+  out.waterIn = pw_in + nBw;
+  out.liqFinal = liq;
+  return out;
+}
+
+// ---------- state ----------
+const PRESETS = [
+  {pin:30,  xw:1.00, T:70, pd:1013, bal:false, b:0.10, rh:0.5},
+  {pin:20,  xw:0.50, T:70, pd:1013, bal:false, b:0.10, rh:0.5},
+  {pin:100, xw:0.01, T:70, pd:1013, bal:false, b:0.10, rh:0.5},
+  {pin:30,  xw:0.30, T:45, pd:1013, bal:false, b:0.10, rh:0.5},
+];
+const P = Object.assign({}, PRESETS[0]);
+let sim, ghost, dots=[], u=0, playing=true, hold=0, speed=1;
+
+const $ = id => document.getElementById(id);
+const els = {pin:$('pin'), xw:$('xw'), T:$('T'), pd:$('pd'), bal:$('bal'), b:$('b'), rh:$('rh')};
+
+function fmtP(p){
+  if(!isFinite(p)) return '∞';
+  const s = p>=100? p.toFixed(0) : p>=10? p.toFixed(1) : p>=1? p.toFixed(2) : p.toPrecision(2);
+  return s;
+}
+function fmtPT(p){ return fmtP(p)+' mbar ('+fmtP(p*MBAR2TORR)+' torr)'; }
+
+function syncInputs(){
+  els.pin.value = Math.log10(P.pin); els.xw.value=P.xw; els.T.value=P.T; els.pd.value=P.pd;
+  els.bal.checked=P.bal; els.b.value=P.b; els.rh.value=P.rh;
+}
+function readInputs(){
+  P.pin = Math.min(PATM, Math.pow(10, +els.pin.value)); P.xw=+els.xw.value; P.T=+els.T.value; P.pd=+els.pd.value;
+  P.bal=els.bal.checked; P.b=+els.b.value; P.rh=+els.rh.value;
+}
+function labels(){
+  $('pinv').textContent = fmtPT(P.pin);
+  $('xwv').textContent = Math.round(P.xw*100)+' %  (p_w = '+fmtP(P.pin*P.xw)+' mbar)';
+  $('Tv').textContent = P.T+' °C  →  p_s = '+fmtP(psat(P.T))+' mbar';
+  $('pdv').textContent = P.pd+' mbar';
+  $('bv').textContent = P.b.toFixed(2)+(P.bal?'':'  (꺼짐)');
+  $('rhv').textContent = Math.round(P.rh*100)+' %  (p_w,B = '+fmtP(P.rh*psat(20))+' mbar)';
+  els.b.disabled = !P.bal; els.rh.disabled = !P.bal;
+}
+
+// ---------- dots ----------
+let seed=12345; const rnd=()=>{ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; };
+function uForVolume(frac){ // intake phase: first u where V >= frac
+  const iS=idx(U_SEAL); for(let i=0;i<=iS;i++) if(Vn[i]>=frac) return i*DU; return U_SEAL;
+}
+function uForBallast(frac){
+  const tot=sim.nBtot; if(tot<=0) return Infinity;
+  for(let i=idx(U_SEAL);i<NU;i++) if(sim.balCum[i]>=frac*tot) return i*DU; return Infinity;
+}
+function buildDots(){
+  seed=777; dots=[];
+  const nIn = P.pin, nB = sim.nBtot;
+  const per = Math.min(70/nIn, 170/(nIn+nB));
+  const nA = Math.round(per*sim.pa_in), nW = Math.round(per*sim.pw_in);
+  const nBa = Math.round(per*(sim.nBtot-sim.nBwTot)), nBw = Math.round(per*sim.nBwTot);
+  const mk=(type,born)=>({type, born, al:0.04+0.92*rnd(), be:0.12+0.76*rnd(), re:rnd(), rl:rnd(), dal:0.04+0.92*rnd()});
+  for(let k=0;k<nA;k++) dots.push(mk('a', uForVolume(rnd())));
+  for(let k=0;k<nW;k++) dots.push(mk('w', uForVolume(rnd())));
+  for(let k=0;k<nBa;k++) dots.push(mk('b', uForBallast(rnd())));
+  for(let k=0;k<nBw;k++) dots.push(mk('bw', uForBallast(rnd())));
+  // liquid order: intake water first, ballast water after (rank)
+  const waters = dots.filter(d=>d.type==='w'||d.type==='bw').sort((x,y)=>(x.type===y.type? x.rl-y.rl : (x.type==='w'?-1:1)));
+  waters.forEach((d,k)=>d.wrank=k);
+  buildDots.nWater = waters.length;
+}
+
+function recompute(){
+  readInputs(); labels();
+  sim = simulate(P, P.bal? P.b : 0);
+  ghost = P.bal? simulate(P, 0) : null;
+  buildDots(); table(); drawPlot(); drawPump();
+}
+
+// ---------- results ----------
+function table(){
+  const ps = sim.ps, pdv=P.pd;
+  const noB = ghost || sim;
+  const condFrac = s => s.waterIn>0 ? s.liqFinal/s.waterIn : 0;
+  const pwAtOpen = s => { if(s.openU===null) return null; return s.pw[idx(s.openU)]; };
+  const b = P.bal? P.b : 0;
+  const pW0 = ps>=pdv ? Infinity : P.b*(ps*PATM - pdv*sim.pwB)/(pdv-ps);
+  const pwMax = ps>=pdv ? Infinity : (ps*sim.pa_in + b*(ps*PATM - pdv*sim.pwB))/(pdv-ps);
+  const rows = [];
+  rows.push(['펌프 온도에서 물의 포화증기압 p<sub>s</sub>', fmtPT(ps)]);
+  rows.push(['배기에 필요한 압축비 p<sub>d</sub>/p<sub>in</sub> (발라스트 없이)', (pdv/P.pin).toFixed(P.pin>100?2:0)]);
+  const fmtOpen = s => { const v=pwAtOpen(s); if(v===null) return s.condU!==null? '밸브 안 열림 (거의 전부 응축)' : '밸브 안 열림'; return fmtP(v)+' mbar'+(s.condU!==null?' (= p<sub>s</sub>, 응축)':''); };
+  rows.push(['밸브 열릴 때 수증기 분압 — 발라스트 없음', fmtOpen(noB)]);
+  if(P.bal) rows.push(['밸브 열릴 때 수증기 분압 — 발라스트 b = '+P.b.toFixed(2), fmtOpen(sim)]);
+  rows.push(['응축되어 오일로 들어간 수증기 — 발라스트 없음', (condFrac(noB)*100).toFixed(1)+' %']);
+  if(P.bal) rows.push(['응축되어 오일로 들어간 수증기 — 발라스트 있음', (condFrac(sim)*100).toFixed(1)+' %']);
+  rows.push(['수증기 허용압 p<sub>W0</sub> (순수 수증기, b = '+P.b.toFixed(2)+')', isFinite(pW0)? fmtPT(Math.max(0,pW0)) : '제한 없음 (p<sub>s</sub> ≥ p<sub>d</sub>)']);
+  rows.push(['현재 입구 공기분압에서 허용되는 최대 수증기 분압'+(P.bal?'':' (발라스트 없음)'), isFinite(pwMax)? fmtP(Math.max(0,pwMax))+' mbar  (현재 '+fmtP(sim.pw_in)+')' : '제한 없음']);
+  if(P.bal){
+    const ratio = sim.nBtot/P.pin;
+    rows.push(['포켓에 들어간 발라스트 기체 (입구 압력 환산)', fmtP(sim.nBtot)+' mbar  = 흡입 기체의 '+(ratio>=10?ratio.toFixed(0):ratio.toFixed(1))+'배']);
+    if(sim.nBtot < 0.98*P.b*PATM) rows.push(['주의', '포켓 압력이 대기압을 넘어 발라스트가 일부만 들어갔습니다']);
+  }
+  $('tbl').innerHTML = '<tr><th>항목</th><th>값</th></tr>' + rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('');
+  const v=$('verdict');
+  if(sim.condU!==null){ v.className='verdict bad'; v.textContent='응축 발생: 수증기의 '+(condFrac(sim)*100).toFixed(0)+' %가 펌프 안에서 물이 되어 오일에 섞입니다.'+(sim.openU===null?' 남는 기체가 없어 배기밸브도 열리지 않습니다.':''); }
+  else if(sim.openU===null){ v.className='verdict bad'; v.textContent='배기밸브가 열리지 않습니다 — 단단 압축비 한계보다 입구 압력이 낮습니다.'; }
+  else { v.className='verdict ok'; v.textContent= P.bal&&ghost&&ghost.condU!==null ? '발라스트 덕분에 응축 없이 수증기가 배출됩니다.' : '응축 없음: 수증기가 기체 상태로 배출됩니다.'; }
+}
+
+// ---------- drawing helpers ----------
+function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function setupCanvas(c){
+  const dpr=window.devicePixelRatio||1, w=c.width/(c._dpr||1), h=c.height/(c._dpr||1);
+  if(!c._w){ c._w=c.width; c._h=c.height; }
+  c.width=c._w*dpr; c.height=c._h*dpr; c._dpr=dpr;
+  const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return ctx;
+}
+const pumpC=$('pump'), plotC=$('plot');
+let pctx=setupCanvas(pumpC), gctx=setupCanvas(plotC);
+
+// world -> screen for pump
+const CX=240, CY=248, SC=140;
+const toS = (x,y)=>[CX+x*SC, CY-y*SC];
+function wallPt(phi, frac){ // point at rotor-polar angle phi, radial fraction between rotor (0) and stator (1)
+  const p=rad(phi), rs=rhoS(phi), rr=RR+frac*(rs-RR);
+  return toS(rr*Math.cos(p), E+rr*Math.sin(p));
+}
+function statorAngle(phi){ const p=rad(phi), rs=rhoS(phi); return Math.atan2(E+rs*Math.sin(p), rs*Math.cos(p)); }
+
+function drawPump(){
+  const ctx=pctx, W=pumpC._w, H=pumpC._h;
+  ctx.clearRect(0,0,W,H);
+  const metal=css('--metal'), metal2=css('--metal2'), text=css('--text'), muted=css('--muted'), card=css('--card');
+  const i=idx(u);
+  // stator body
+  ctx.fillStyle=metal; ctx.beginPath(); ctx.arc(CX,CY,(R+0.17)*SC,0,2*Math.PI); ctx.fill();
+  ctx.fillStyle=card; ctx.beginPath(); ctx.arc(CX,CY,R*SC,0,2*Math.PI); ctx.fill();
+  // ports: gap in stator wall + radial pipe
+  const font='13px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
+  function port(phi1,phi2,label,col,len){
+    const a1=statorAngle(phi1), a2=statorAngle(phi2), am=(a1+a2)/2, half=Math.abs(a2-a1)/2;
+    const r0=(R-0.01)*SC, r1=(R+0.17+len)*SC;
+    // pipe body (rectangle along am, width = chord of gap)
+    const w=Math.sin(half)*R*SC, ux=Math.cos(am), uy=-Math.sin(am), vx=-uy, vy=ux;
+    const p=(r,s)=>[CX+ux*r+vx*s, CY+uy*r+vy*s];
+    ctx.fillStyle=card; ctx.beginPath();
+    for(const [r,s2] of [[r0*Math.cos(half),-w],[r1,-w],[r1,w],[r0*Math.cos(half),w]]){ const q=p(r,s2); ctx.lineTo(q[0],q[1]); }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle=metal2; ctx.lineWidth=3; ctx.beginPath();
+    let q=p(R*SC,-w); ctx.moveTo(q[0],q[1]); q=p(r1,-w); ctx.lineTo(q[0],q[1]);
+    q=p(R*SC,w); ctx.moveTo(q[0],q[1]); q=p(r1,w); ctx.lineTo(q[0],q[1]); ctx.stroke();
+    ctx.fillStyle=col; ctx.font=font; ctx.textAlign='center';
+    const tw=ctx.measureText(label).width;
+    q=p(r1+12+Math.abs(ux)*tw*0.5,0);
+    const tx=Math.min(W-tw/2-4, Math.max(tw/2+4, q[0]));
+    ctx.fillText(label, tx, q[1]+(uy<-0.3?-4:uy>0.3?12:4));
+    return {am, r1, w, p};
+  }
+  port(INLET[0],INLET[1],'흡입구 (p_in)',muted,0.16);
+  const opened = sim.open[i]===1 && u<=U_END;
+  const ex=port(EXHAUST[0],EXHAUST[1], opened?'배기밸브 열림':'배기밸브 닫힘', opened?css('--hot'):muted, 0.16);
+  // flap valve across exhaust pipe mouth
+  { const q1=ex.p((R+0.17)*SC,-ex.w-2), q2=ex.p((R+0.17)*SC,ex.w+2);
+    ctx.strokeStyle=opened?css('--hot'):text; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(q1[0],q1[1]);
+    if(opened){ const q3=ex.p((R+0.17)*SC+2*ex.w,-ex.w+4); ctx.lineTo(q3[0],q3[1]); } else ctx.lineTo(q2[0],q2[1]);
+    ctx.stroke(); }
+  const balOn = P.bal && u>BAL0 && u<=BAL1 && sim.balCum[i] > (sim.balCum[Math.max(0,i-1)]||0);
+  port(BALPORT-2.5,BALPORT+2.5, P.bal? (balOn?'발라스트 유입 중':'가스 발라스트 (열림)') : '가스 발라스트 (닫힘)', P.bal? css('--ballast'):muted, 0.12);
+
+  // tracked pocket
+  const [a,b]=region(Math.min(u,U_END));
+  if(b-a>0.3){
+    ctx.fillStyle=css('--pocket'); ctx.beginPath();
+    const n=80;
+    for(let k=0;k<=n;k++){ const ph=a+(b-a)*k/n; const [x,y]=wallPt(ph,1); k?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    for(let k=n;k>=0;k--){ const ph=a+(b-a)*k/n; const [x,y]=wallPt(ph,0); ctx.lineTo(x,y); }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle=css('--accent'); ctx.lineWidth=1.2; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+  }
+  // rotor
+  const [rx,ry]=toS(0,E);
+  ctx.fillStyle=metal2; ctx.beginPath(); ctx.arc(rx,ry,RR*SC,0,2*Math.PI); ctx.fill();
+  ctx.fillStyle=card; ctx.beginPath(); ctx.arc(rx,ry,0.12*SC,0,2*Math.PI); ctx.fill();
+  // vanes
+  const v1=90+Math.min(u,U_END), v2=v1+180;
+  ctx.strokeStyle=text; ctx.lineWidth=5; ctx.lineCap='round';
+  for(const v of [v1,v2]){
+    const p=rad(v), rs=rhoS(v);
+    const [x0,y0]=toS(0.35*Math.cos(p),E+0.35*Math.sin(p)), [x1,y1]=toS(rs*Math.cos(p),E+rs*Math.sin(p));
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  }
+  ctx.lineCap='butt';
+
+  // dots
+  const surv=sim.surv[i];
+  const liqFrac = sim.waterIn>0? sim.liq[i]/sim.waterIn : 0;
+  const nLiq = Math.round(liqFrac*(buildDots.nWater||0));
+  const colors={a:css('--air'), w:css('--water'), b:css('--ballast'), bw:css('--water')};
+  if(b-a>0.3){
+    for(const d of dots){
+      if(d.born>u) continue;
+      const isW = d.type==='w'||d.type==='bw';
+      const liquid = isW && d.wrank<nLiq;
+      if(!liquid && d.re>surv) continue;
+      if(liquid){
+        const [x,y]=wallPt(a+(b-a)*d.dal, 0.86);
+        ctx.fillStyle=css('--liquid'); ctx.beginPath(); ctx.arc(x,y,4.2,0,2*Math.PI); ctx.fill();
+      } else {
+        const [x,y]=wallPt(a+(b-a)*d.al, d.be);
+        ctx.fillStyle=colors[d.type]; ctx.beginPath(); ctx.arc(x,y,2.6,0,2*Math.PI); ctx.fill();
+      }
+    }
+  }
+  // phase text
+  let ph;
+  if(u<U_SEAL) ph='흡입 중: 포켓이 넓어지며 입구 압력 그대로 기체를 받습니다.';
+  else if(sim.openU!==null && u>=sim.openU) ph='배기밸브 열림: 압력은 p_d로 고정되고 기체가 밀려 나갑니다.';
+  else if(sim.condU!==null && u>=sim.condU) ph='응축 중: 수증기 분압이 p_s에 걸려 더 압축하면 물이 됩니다.';
+  else if(P.bal && u>BAL0 && u<=BAL1) ph='발라스트 유입: 건조한 공기가 포켓에 들어와 수증기 비율을 낮춥니다.';
+  else ph='밀폐 후 압축: 부피가 줄며 모든 분압이 같은 비율로 올라갑니다.';
+  if(u>=U_END && sim.openU===null) ph = sim.condU!==null ? '압축 끝: 수증기가 거의 전부 물이 되어 밸브를 열 기체가 남지 않았습니다.' : '압축 끝: 밸브가 열리지 못했습니다 (압축비 부족).';
+  $('phase').textContent=ph;
+}
+
+// ---------- plot ----------
+function drawPlot(){
+  const ctx=gctx, W=plotC._w, H=plotC._h;
+  ctx.clearRect(0,0,W,H);
+  const text=css('--text'), muted=css('--muted'), border=css('--border');
+  const L=66, Rm=16, T=18, B=48;
+  const xmax=Math.log10(1/Vn[NU-1]);
+  const pos=[sim.pa_in, sim.pw_in].filter(v=>v>0);
+  let ymin=Math.pow(10, Math.floor(Math.log10(Math.max(0.01, Math.min(...pos, P.pin)*0.5))));
+  const ymax=Math.pow(10,3.5);
+  const X=lx=>L+(W-L-Rm)*lx/xmax, Y=p=>{ const l=Math.log10(Math.max(p,ymin*0.5)); return T+(H-T-B)*(Math.log10(ymax)-l)/(Math.log10(ymax)-Math.log10(ymin)); };
+  ctx.font='12px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
+  // grid
+  ctx.strokeStyle=border; ctx.fillStyle=muted; ctx.lineWidth=1;
+  for(let e=Math.log10(ymin); e<=3; e++){
+    const y=Y(Math.pow(10,e)); ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-Rm,y); ctx.stroke();
+    ctx.textAlign='right'; ctx.fillText(e>=0? String(Math.pow(10,e)) : Math.pow(10,e).toPrecision(1), L-6, y+4);
+  }
+  for(let e=0; e<=Math.floor(xmax); e++){
+    const x=X(e); ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,H-B); ctx.stroke();
+    ctx.textAlign='center'; ctx.fillText(String(Math.pow(10,e)), x, H-B+16);
+  }
+  ctx.fillStyle=text; ctx.textAlign='center'; ctx.fillText('압축비  V₀ / V', L+(W-L-Rm)/2, H-12);
+  ctx.save(); ctx.translate(16,T+(H-T-B)/2); ctx.rotate(-Math.PI/2); ctx.fillText('압력 (mbar)',0,0); ctx.restore();
+
+  // reference lines
+  const hline=(p,col,label,dash,right)=>{ if(p>ymax) return; const y=Y(p); ctx.strokeStyle=col; ctx.setLineDash(dash); ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-Rm,y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=col; ctx.textAlign=right?'right':'left'; ctx.fillText(label,right?W-Rm-4:L+6,y-5); };
+  hline(sim.ps, css('--hot'), 'p_s(T) = '+fmtP(sim.ps)+' mbar  (이 위로 수증기는 존재 불가)', [6,4], true);
+  hline(P.pd, text, 'p_d = '+P.pd+' mbar  (배기밸브)', [2,3]);
+
+  // ballast band
+  if(P.bal){
+    const x0=X(Math.log10(1/Vn[idx(BAL0)])), x1=X(Math.log10(1/Vn[idx(BAL1)]));
+    ctx.fillStyle=css('--ballast'); ctx.globalAlpha=0.14; ctx.fillRect(x0,T,Math.max(4,x1-x0),H-T-B); ctx.globalAlpha=1;
+    ctx.textAlign='left'; ctx.fillText('← 발라스트 유입', Math.max(x1,x0+4)+4, H-B-8);
+  }
+  const iS=idx(U_SEAL);
+  const curve=(s,key,col,w,dash)=>{
+    ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash(dash||[]); ctx.beginPath(); let st=false;
+    for(let i=iS;i<NU;i++){ const v=s[key][i]; if(!(v>0)) {st=false; continue;} const x=X(Math.log10(1/Vn[i])), y=Y(v); st?ctx.lineTo(x,y):ctx.moveTo(x,y); st=true; }
+    ctx.stroke(); ctx.setLineDash([]);
+  };
+  if(ghost) curve(ghost,'pw',css('--water'),1.6,[5,4]);
+  curve(sim,'pa',css('--air'),2);
+  curve(sim,'pw',css('--water'),2.6);
+  curve(sim,'p',text,2.2);
+  // events
+  const mark=(s,uu,col,label)=>{ if(uu===null) return; const ii=idx(uu); const x=X(Math.log10(1/Vn[ii])); ctx.fillStyle=col;
+    ctx.beginPath(); ctx.arc(x, Y(s==='p'? sim.p[ii] : sim.pw[ii]), 5,0,2*Math.PI); ctx.fill(); ctx.textAlign='left'; ctx.fillText(label, x+7, Y(s==='p'? sim.p[ii]:sim.pw[ii])+16); };
+  mark('w', sim.condU, css('--hot'), '응축 시작');
+  mark('p', sim.openU, text, '밸브 열림');
+  // legend
+  const lg=[[text,'전체 압력',[]],[css('--air'),'공기 분압',[]],[css('--water'),'수증기 분압',[]]];
+  if(ghost) lg.push([css('--water'),'수증기 (발라스트 없을 때)',[5,4]]);
+  let ly=T+14; const lx=W-Rm-190;
+  ctx.fillStyle=css('--card'); ctx.globalAlpha=0.85; ctx.fillRect(lx-6,T+2,192,lg.length*18+8); ctx.globalAlpha=1;
+  for(const [c,t,d] of lg){ ctx.strokeStyle=c; ctx.lineWidth=2.4; ctx.setLineDash(d); ctx.beginPath(); ctx.moveTo(lx,ly-4); ctx.lineTo(lx+24,ly-4); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=text; ctx.textAlign='left'; ctx.fillText(t,lx+30,ly); ly+=18; }
+  // current marker
+  const i=idx(u);
+  const lx0 = u<U_SEAL? 0 : Math.log10(1/Vn[i]);
+  const x=X(lx0);
+  ctx.strokeStyle=css('--accent'); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,H-B); ctx.stroke();
+  for(const [key,col] of [['p',text],['pw',css('--water')],['pa',css('--air')]]){
+    const v=sim[key][i]; if(v>0){ ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,Y(v),4,0,2*Math.PI); ctx.fill(); }
+  }
+  if(u<U_SEAL){ ctx.fillStyle=css('--accent'); ctx.textAlign='left'; ctx.fillText('흡입 중 (아직 밀폐 전)', x+6, H-B-8); }
+}
+
+// ---------- animation ----------
+let last=null;
+function step(ts){
+  if(last===null) last=ts;
+  const dt=Math.min(0.05,(ts-last)/1000); last=ts;
+  if(playing){
+    if(u>=U_END){ hold+=dt; if(hold>1.6){ u=0; hold=0; } }
+    else {
+      const i=idx(u), j=Math.min(NU-1,i+1);
+      const dlnV=Math.abs(Math.log(Vn[j]/Vn[i]))/DU;
+      const rate = (u<U_SEAL? 110 : 70) * speed / (1 + 45*dlnV);
+      u=Math.min(U_END, u+rate*dt);
+    }
+    $('scrub').value=u;
+    drawPump(); drawPlot();
+  }
+  requestAnimationFrame(step);
+}
+
+// ---------- events ----------
+for(const k in els) els[k].addEventListener('input', recompute);
+document.querySelectorAll('[data-preset]').forEach(bt=>bt.addEventListener('click',()=>{
+  Object.assign(P, PRESETS[+bt.dataset.preset]); syncInputs(); recompute(); u=0; hold=0;
+}));
+$('play').addEventListener('click',()=>{ playing=!playing; $('play').textContent=playing?'일시정지':'재생'; });
+$('restart').addEventListener('click',()=>{ u=0; hold=0; drawPump(); drawPlot(); });
+$('scrub').addEventListener('input',e=>{ u=+e.target.value; hold=0; drawPump(); drawPlot(); });
+$('spd').addEventListener('input',e=>{ speed=+e.target.value; $('spdv').textContent=speed.toFixed(2).replace(/0$/,'')+'×'; });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ drawPump(); drawPlot(); });
+if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){ playing=false; $('play').textContent='재생'; }
+
+syncInputs(); recompute();
+requestAnimationFrame(step);
+})();
+</script>
+</body>
+</html>
