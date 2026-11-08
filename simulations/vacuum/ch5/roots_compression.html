@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>루츠 펌프 압축비 K₀ — 왜 1 mbar 근처에서 최대인가</title>
+<style>
+  :root{--bg:#101211;--card:#1a1d1b;--border:#2c302d;--text:#e8ece9;--muted:#a8b0aa;--accent:#6aa6f2;--hot:#f28b62;--cold:#6aa6f2;
+        --gas:#6aa6f2;--gap:#f28b62;--des:#3fcf98;--metal:#3a403c;--metal2:#5a625d;--pocket:rgba(106,166,242,.12);--btn:#222623;--btnh:#2c302d;color-scheme:dark}
+  *{box-sizing:border-box}
+  :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 24px 6px}
+  h1{margin:0 0 4px;font-size:22px;color:var(--accent)}
+  .sub{margin:0;color:var(--muted);font-size:14px;max-width:110ch}
+  .wrap{padding:10px 24px 28px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px}
+  @media (max-width:1000px){.grid{grid-template-columns:1fr}}
+  canvas{display:block;width:100%;height:auto}
+  h2{font-size:16px;margin:0 0 8px;color:var(--accent)}
+  .bar{display:flex;flex-wrap:wrap;gap:12px 26px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:3px}
+  .ctl label{font-size:13px;color:var(--muted)}
+  .ctl .v{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:210px}
+  button{padding:7px 14px;border:1px solid var(--border);background:var(--btn);color:var(--text);border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+  button:hover{background:var(--btnh)}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .cap{font-size:13px;color:var(--muted);margin:8px 2px 0}
+  .big{font-size:17px;font-weight:700;margin:0 0 8px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  th{font-weight:600;color:var(--muted);font-size:13px}
+  td:first-child,th:first-child{text-align:left}
+  .note{font-size:14px}
+  .note b{color:var(--accent)}
+  .eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:17px;margin:6px 0 10px;overflow-x:auto}
+  .flag{font-size:13px;color:var(--muted)}
+  nav.crumb{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border)}
+  nav.crumb a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+  nav.crumb span{margin:0 7px;color:var(--border)}
+  footer{padding:14px 24px 28px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+  .split{height:16px;border-radius:8px;overflow:hidden;display:flex;margin:6px 0 4px;border:1px solid var(--border)}
+  .split div{height:100%}
+</style>
+</head>
+<body>
+<header>
+  <nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 5</a><span>/</span>루츠 펌프 압축비</nav>
+  <h1>루츠 펌프 압축비 K₀: 왜 ~1 mbar에서 최대인가</h1>
+  <p class="sub">5.3 루츠 펌프 (슬라이드 37, 44) · Chambers 6.2.2. 입구를 막고(blank-off) 출구 압력 p<sub>o</sub>를 바꿔 가며 K₀ = p<sub>o</sub>/p<sub>i</sub>를 재는 상황입니다. 이때 앞으로 보내는 양 S<sub>D</sub>p<sub>i</sub>는 두 가지 역류와 정확히 같아집니다: <span style="color:var(--gap)">틈새 역류</span>(고압에서 지배)와 <span style="color:var(--des)">회전자 표면 탈착 역류</span>(저압에서 지배).</p>
+</header>
+<div class="wrap">
+  <div class="grid">
+    <div class="card">
+      <canvas id="anim" width="500" height="540" aria-label="루츠 펌프 단면 애니메이션"></canvas>
+      <div class="split" aria-hidden="true"><div id="sg" style="background:var(--gap)"></div><div id="sd" style="background:var(--des)"></div></div>
+      <p class="cap" id="splitTxt"></p>
+      <p class="cap"><span style="color:var(--gas)">●</span> 기체 (점 밀도 ∝ 압력, 출구는 최대 표시 개수로 잘림) &nbsp;<span style="color:var(--gap)">●</span> 틈새로 새는 역류 &nbsp;<span style="color:var(--des)">●</span> 출구 쪽에서 회전자에 흡착 → 가운데로 실려 올라가 입구 쪽에서 탈착. 회전은 실제(~3000 rpm)보다 매우 느리게, 틈새는 과장해서 그렸습니다.</p>
+    </div>
+    <div class="card">
+      <h2>영유량 압축비 K₀ vs 출구 압력</h2>
+      <canvas id="kplot" width="680" height="440" aria-label="K0 그래프"></canvas>
+      <p class="cap">굵은 선: 모델 K₀. 점선: 한 가지 역류만 있을 때의 상한 (빨강 = 틈새만, 초록 = 탈착만). 실제 K₀는 둘 중 작은 쪽에 묶입니다: 1/K₀ ≈ 1/K<sub>gap</sub> + 1/K<sub>des</sub>. 동그라미: Chambers 표 8.2의 K₀ 값.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="bar">
+      <div class="ctl"><label for="po">출구(배압) 압력 p<sub>o</sub></label><input type="range" id="po" min="-3" max="2" step="0.01" value="0"><span class="v" id="pov"></span></div>
+      <div class="ctl"><label for="gap">틈새 크기 (기준 대비)</label><input type="range" id="gap" min="0.5" max="2" step="0.05" value="1"><span class="v" id="gapv"></span></div>
+      <div class="ctl"><label for="des">표면 흡착·탈착량 (기준 대비)</label><input type="range" id="des" min="0" max="3" step="0.05" value="1"><span class="v" id="desv"></span></div>
+      <button id="reset">Chambers 기준값으로</button>
+      <button id="play">일시정지</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>다단 루츠: 같은 K₀ 곡선을 단마다 다른 압력에서 읽는다</h2>
+    <canvas id="mplot" width="1100" height="380" aria-label="다단 루츠 압력 계단 그래프"></canvas>
+    <div class="bar" style="margin-top:8px">
+      <div class="ctl"><label for="nst">단 수</label><input type="range" id="nst" min="1" max="8" step="1" value="7"><span class="v" id="nstv"></span></div>
+    </div>
+    <p class="cap">입구를 막은 상태에서 루츠 단을 직렬로 이었을 때입니다. 맨 왼쪽 단이 대기압으로 배기하고, 각 단은 자기 출구 압력에서의 K₀만큼만 압축하므로 전체 압축비는 그 곱입니다. 화살표 색은 그 단에서 어떤 역류가 지배하는지(빨강 = 틈새, 초록 = 탈착, 파랑 = 비슷)를 나타냅니다. 위의 틈새·탈착 슬라이더가 그대로 적용됩니다. 모든 단을 같은 펌프로 두었고, 100 mbar 위는 표 8.2 범위 밖이라 외삽이며, 깊은 단의 숫자는 경향을 보이는 용도입니다(실제 다단 건식펌프 도달압력 ≈ 10⁻²–10⁻³ mbar).</p>
+  </div>
+
+  <div class="card">
+    <p class="big" id="verdict"></p>
+    <table id="tbl"></table>
+  </div>
+
+  <div class="card note">
+    <p style="margin-top:0"><b>모델.</b> 입구를 막으면 알짜 유량 Q = 0이므로 (Chambers 식 6.1)</p>
+    <div class="eq">S<sub>D</sub> p<sub>i</sub> = Q<sub>gap</sub> + Q<sub>des</sub></div>
+    <div class="eq">Q<sub>gap</sub> = (C<sub>m</sub> + c<sub>v</sub> p̄)(p<sub>o</sub> − p<sub>i</sub>), &nbsp; p̄ = (p<sub>o</sub> + p<sub>i</sub>)/2</div>
+    <div class="eq">Q<sub>des</sub> = R p<sub>o</sub> / (1 + p<sub>o</sub>/p*)</div>
+    <p>틈새 컨덕턴스는 2장의 결과 그대로입니다. 분자류에서는 압력과 무관한 상수 C<sub>m</sub>, 점성류에서는 평균압력 p̄에 비례하는 항 c<sub>v</sub>p̄이 커집니다. 그래서 출구 압력이 높을수록 역류가 급격히 늘어 K₀가 떨어집니다.</p>
+    <p>탈착 역류는 출구 쪽(고압)에서 회전자 표면에 붙은 분자가 가운데 맞물림 영역을 지나 입구 쪽(저압)에서 떨어져 나오는 양입니다. 흡착량이 낮은 압력에서는 p<sub>o</sub>에 비례하고, 높은 압력에서는 포화된다고 놓았습니다(3·4장의 Langmuir 흡착과 같은 꼴). 그러면 저압에서는 Q<sub>des</sub>/p<sub>o</sub>가 일정해져 K₀가 ~7 근처의 바닥값으로 수렴하고, 고압에서는 흡착이 포화돼 탈착 역류의 비중이 사라집니다. 두 효과 사이에서 K₀가 최대가 됩니다.</p>
+    <p class="flag">값의 출처: K₀의 정성적 설명(고압은 틈새 역류, 저압은 탈착 역류, 최대 ~40 @ ~1 mbar)과 식 6.1, 표 8.2의 K₀ 값은 Chambers 6.2.2 및 8.5절입니다. 모델의 네 매개변수(C<sub>m</sub> = 0.020 S<sub>D</sub>, c<sub>v</sub> = 0.0024 S<sub>D</sub>/mbar, R = 0.13 S<sub>D</sub>, p* = 0.062 mbar)는 표 8.2의 K₀에 맞춘 값이며, 맞춤 오차는 ~15% 이내입니다(10 mbar에서 모델 31, 표 26). 탈착량의 포화 꼴은 이 시뮬레이터의 가정이고 Chambers는 정성적으로만 설명합니다. 틈새 크기 의존성(C<sub>m</sub> ∝ g², c<sub>v</sub> ∝ g³)은 좁은 슬릿의 근사 스케일링입니다. 회전자 단면은 사이클로이드 2엽 윤곽입니다.</p>
+  </div>
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+
+<script>
+(function(){
+"use strict";
+const FIT = {cm:0.020302, cv:0.0024449, R:0.13211, ps:0.062457};
+const TBL = {p:[100,10,4,2,1,0.4,0.1,0.01,0.001], K:[7.7,26,38,42,36,26,14,7.4,7],
+             };
+const st = {po:1, g:1, d:1, n:7};
+const $ = id=>document.getElementById(id);
+
+// ---------- model ----------
+function model(po, g, d, useGap=true, useDes=true){
+  const cm = useGap? FIT.cm*g*g : 0, cv = useGap? FIT.cv*g*g*g : 0;
+  const D = useDes? FIT.R*d*po/(1+po/FIT.ps) : 0;
+  const a=cv/2, b=cm+1, c=cv/2*po*po + cm*po + D;
+  const pi = a>1e-14 ? (-b+Math.sqrt(b*b+4*a*c))/(2*a) : c/b;
+  if(!(pi>0)) return {K:Infinity, pi:0, qgap:0, qdes:0};
+  return {K:po/pi, pi, qgap:(cm+cv*(po+pi)/2)*(po-pi), qdes:D};
+}
+const fmt = p => { if(!isFinite(p)) return '∞'; if(p>=100) return p.toFixed(0); if(p>=10) return p.toFixed(1); if(p>=1) return p.toFixed(2);
+  const e=Math.floor(Math.log10(p)), m=p/Math.pow(10,e); return m.toFixed(1)+'×10'+sup(e); };
+const fmtK = k => !isFinite(k)||k>999? '>999' : k>=10? k.toFixed(0) : k.toFixed(1);
+
+// ---------- canvas helpers ----------
+function css(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function setup(c){ const dpr=window.devicePixelRatio||1; c._w=c._w||c.width; c._h=c._h||c.height; c.width=c._w*dpr; c.height=c._h*dpr;
+  const x=c.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); return x; }
+const A=$('anim'), KP=$('kplot'), MP=$('mplot');
+const actx=setup(A), kctx=setup(KP), mctx=setup(MP);
+const FONT='12px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
+
+// ---------- rotor geometry (2-lobe cycloidal, pitch radius 1) ----------
+const Rp=1, rc=0.25, RS=1.55, SHRINK=0.975;
+const PROF=[];
+(function(){ const n=90, tm=Math.PI/2;
+  for(let k=0;k<4;k++){ const ca=Math.cos(k*tm), sa=Math.sin(k*tm);
+    for(let j=0;j<n;j++){ const t=tm*j/n; let x,y;
+      if(k%2===0){ x=(Rp+rc)*Math.cos(t)-rc*Math.cos((Rp+rc)/rc*t); y=(Rp+rc)*Math.sin(t)-rc*Math.sin((Rp+rc)/rc*t); }
+      else { x=(Rp-rc)*Math.cos(t)+rc*Math.cos((Rp-rc)/rc*t); y=(Rp-rc)*Math.sin(t)-rc*Math.sin((Rp-rc)/rc*t); }
+      PROF.push([(ca*x-sa*y)*SHRINK,(sa*x+ca*y)*SHRINK]); } } })();
+// r(theta) lookup in rotor frame
+const NR=720, RTH=new Float64Array(NR);
+(function(){ for(const [x,y] of PROF){ let th=Math.atan2(y,x); if(th<0) th+=2*Math.PI; const i=Math.floor(th/(2*Math.PI)*NR)%NR; RTH[i]=Math.max(RTH[i],Math.hypot(x,y)); }
+  for(let i=0;i<NR;i++) if(!RTH[i]){ let j=1; while(!RTH[(i+j)%NR]&&!RTH[(i-j+NR)%NR]) j++; RTH[i]=RTH[(i+j)%NR]||RTH[(i-j+NR)%NR]; } })();
+const rAt = th => { let t=th%(2*Math.PI); if(t<0) t+=2*Math.PI; return RTH[Math.floor(t/(2*Math.PI)*NR)%NR]; };
+let rotorArea=0; for(let i=0;i<PROF.length;i++){ const [x1,y1]=PROF[i],[x2,y2]=PROF[(i+1)%PROF.length]; rotorArea+=0.5*(x1*y2-x2*y1); }
+
+const CX=250, CY=262, SC=88;
+const S = (x,y)=>[CX+x*SC, CY-y*SC];
+const ARC0 = 85*Math.PI/180;
+const TOPY = RS*Math.sin(ARC0), PIPE_TOP = 2.75;
+const PORTX = 1 - RS*Math.cos(ARC0); // inlet/outlet half width
+
+// ---------- particles ----------
+let seed=99; const rnd=()=>{ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; };
+const RHO_IN = 6.5;    // dots per unit area at inlet
+let inDots=[], outDots=[], pocketDots=[[],[]], flowP=[];
+function boxDots(n, ysign){ const a=[]; for(let i=0;i<n;i++) a.push({x:(rnd()*2-1)*PORTX*0.95, y:ysign*(TOPY+0.05+rnd()*(PIPE_TOP-TOPY-0.1))}); return a; }
+function rebuildDots(){
+  const m=model(st.po,st.g,st.d);
+  const area = 2*PORTX*(PIPE_TOP-TOPY);
+  inDots = boxDots(Math.max(3,Math.round(RHO_IN*area)), 1);
+  outDots = boxDots(Math.min(320, Math.round(RHO_IN*area*m.K)), -1);
+  const nPocket = Math.round(RHO_IN*(Math.PI*RS*RS - rotorArea));
+  for(let r=0;r<2;r++){ pocketDots[r]=[]; for(let i=0;i<nPocket;i++){ const th=rnd()*2*Math.PI, r0=rAt(th);
+      const rr=Math.sqrt(r0*r0 + rnd()*(RS*RS-r0*r0)); pocketDots[r].push([rr*Math.cos(th), rr*Math.sin(th)]); } }
+}
+
+// ---------- animation state ----------
+let ang=0, playing=true, last=null, spawnG=0, spawnD=0;
+const OMEGA = 2*Math.PI*0.22;   // rad/s (visual)
+const BACKRATE = 7;              // visual backflow particles per second
+
+function rot([x,y],a){ const c=Math.cos(a), s=Math.sin(a); return [c*x-s*y, s*x+c*y]; }
+function rotorAbs(r, p){ return r===0 ? (q=>[q[0]-1,q[1]])(rot(p,ang)) : (q=>[q[0]+1,q[1]])(rot(p,-ang)); }
+
+function spawn(kind){
+  if(kind==='gap'){
+    const w=rnd(); const path = w<0.5? 'c' : (w<0.75? 'l':'r');
+    flowP.push({kind, path, t:0, T: path==='c'?1.3:1.8, jit:(rnd()-0.5)*0.08});
+  } else {
+    const r = rnd()<0.5?0:1;
+    // pick a surface point currently facing the outlet side near the mesh
+    const absA = r===0 ? (-80+rnd()*55)*Math.PI/180 : (205+rnd()*55)*Math.PI/180; // absolute direction about own center
+    const thRot = r===0 ? absA-ang : absA+ang;
+    flowP.push({kind, r, th:thRot, state:'ads', t:0});
+  }
+}
+function stepParticles(dt){
+  const m=model(st.po,st.g,st.d), tot=m.qgap+m.qdes || 1;
+  spawnG += dt*BACKRATE*m.qgap/tot; spawnD += dt*BACKRATE*m.qdes/tot;
+  while(spawnG>1){ spawn('gap'); spawnG-=1; } while(spawnD>1){ spawn('des'); spawnD-=1; }
+  for(const p of flowP){
+    if(p.kind==='gap'){ p.t+=dt; }
+    else if(p.state==='ads'){
+      const absA = p.r===0 ? p.th+ang : p.th-ang;
+      let deg=((absA*180/Math.PI)%360+360)%360;
+      // released when it has come round to the inlet side of the mesh
+      if((p.r===0 && deg>15 && deg<90) || (p.r===1 && deg>90 && deg<165)){
+        const rr=rAt(p.th)+0.04; const q=rotorAbs(p.r,[rr*Math.cos(p.th), rr*Math.sin(p.th)]);
+        p.state='free'; p.x=q[0]; p.y=q[1]; p.t=0; p.vx=(rnd()-0.5)*0.5; p.vy=1.4+rnd()*0.6;
+      }
+      p.age=(p.age||0)+dt; if(p.age>6) p.dead=true;
+    } else { p.t+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if(p.y>PIPE_TOP-0.1 || p.t>1.4) p.dead=true; }
+  }
+  flowP = flowP.filter(p=> !p.dead && !(p.kind==='gap' && p.t>p.T));
+}
+function gapPos(p){
+  const f=p.t/p.T;
+  if(p.path==='c') return [p.jit + 0.03*Math.sin(f*20), -2.1 + 4.2*f];
+  const r=RS-0.035; if(p.path==='l'){ const a=(268 - 176*f)*Math.PI/180; return [-1+r*Math.cos(a), r*Math.sin(a)]; }
+  const a=(-88 + 176*f)*Math.PI/180; return [1+r*Math.cos(a), r*Math.sin(a)];
+}
+
+function jiggle(arr, ysign){
+  for(const d of arr){ d.x+=(rnd()-0.5)*0.05; d.y+=(rnd()-0.5)*0.05;
+    if(Math.abs(d.x)>PORTX*0.95) d.x=Math.sign(d.x)*PORTX*0.95;
+    const lo=TOPY+0.04, hi=PIPE_TOP-0.05; const ay=Math.abs(d.y);
+    if(ay<lo) d.y=ysign*lo; if(ay>hi) d.y=ysign*hi; }
+}
+
+function drawAnim(){
+  const ctx=actx, W=A._w, H=A._h; ctx.clearRect(0,0,W,H);
+  const metal=css('--metal'), metal2=css('--metal2'), text=css('--text'), muted=css('--muted'), card=css('--card'), gas=css('--gas');
+  // stator body: fill everything metal, then cut cavity
+  ctx.fillStyle=metal;
+  const [bx0,by0]=S(-1-RS-0.22, RS+0.22), [bx1,by1]=S(1+RS+0.22, -RS-0.22);
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx0,by0,bx1-bx0,by1-by0,18) : ctx.rect(bx0,by0,bx1-bx0,by1-by0); ctx.fill();
+  // cavity: union of two circles + pipes + middle box
+  ctx.fillStyle=card; ctx.beginPath();
+  ctx.arc(...S(-1,0), RS*SC, 0, 2*Math.PI); ctx.moveTo(...S(1+RS,0)); ctx.arc(...S(1,0), RS*SC, 0, 2*Math.PI); ctx.fill();
+  const [mx0,my0]=S(-1,TOPY), [mx1,my1]=S(1,-TOPY); ctx.fillRect(mx0,my0,mx1-mx0,my1-my0);
+  const [px0,py0]=S(-PORTX,PIPE_TOP+0.3), [px1,py1]=S(PORTX,-PIPE_TOP-0.3); ctx.fillRect(px0,py0,px1-px0,py1-py0);
+  // pipe walls
+  ctx.strokeStyle=metal2; ctx.lineWidth=3; ctx.beginPath();
+  for(const sx of [-1,1]) for(const sy of [-1,1]){ const [a,b]=S(sx*PORTX, sy*(TOPY-0.02)), [c,d]=S(sx*PORTX, sy*(PIPE_TOP+0.3)); ctx.moveTo(a,b); ctx.lineTo(c,d); }
+  ctx.stroke();
+  // inlet blank flange
+  const [fx0,fy0]=S(-PORTX-0.12, PIPE_TOP+0.12), [fx1]=S(PORTX+0.12,0);
+  ctx.fillStyle=metal2; ctx.fillRect(fx0,fy0-6,fx1-fx0,7);
+  ctx.font='13px "Malgun Gothic","Apple SD Gothic Neo",sans-serif'; ctx.textAlign='left'; ctx.fillStyle=muted;
+  ctx.fillText('입구 (막음) — p_i', S(PORTX+0.12,0)[0]+4, S(0,PIPE_TOP-0.1)[1]);
+  ctx.fillText('출구 — p_o (회전펌프로)', S(PORTX+0.12,0)[0]+4, S(0,-PIPE_TOP+0.25)[1]);
+  // pocket gas (rotor frame dots on the outer sides)
+  ctx.fillStyle=gas;
+  for(let r=0;r<2;r++){
+    for(const p of pocketDots[r]){
+      const [x,y]=rotorAbs(r,p);
+      const outer = r===0 ? x < -1-0.05 : x > 1+0.05;
+      if(!outer || y < -TOPY*0.98 || y>TOPY) continue;
+      const [sx,sy]=S(x,y); ctx.fillRect(sx-1.6,sy-1.6,3.2,3.2);
+    }
+  }
+  // inlet & outlet dots
+  for(const d of inDots){ const [sx,sy]=S(d.x,d.y); ctx.beginPath(); ctx.arc(sx,sy,2.4,0,2*Math.PI); ctx.fill(); }
+  for(const d of outDots){ const [sx,sy]=S(d.x,d.y); ctx.beginPath(); ctx.arc(sx,sy,2.4,0,2*Math.PI); ctx.fill(); }
+  // rotors
+  const rotPaths=[];
+  for(let r=0;r<2;r++){
+    const path=new Path2D();
+    PROF.forEach((p,i)=>{ const [x,y]=rotorAbs(r,p); const [sx,sy]=S(x,y); i?path.lineTo(sx,sy):path.moveTo(sx,sy); });
+    path.closePath(); rotPaths.push(path);
+    ctx.fillStyle=metal2; ctx.fill(path); ctx.strokeStyle=text; ctx.lineWidth=1; ctx.stroke(path);
+    const [cx,cy]=S(r===0?-1:1,0); ctx.fillStyle=card; ctx.beginPath(); ctx.arc(cx,cy,6,0,2*Math.PI); ctx.fill();
+    // rotation arrow
+    ctx.strokeStyle=muted; ctx.lineWidth=1.5; ctx.beginPath();
+    const ccw = r===0; ctx.arc(cx,cy,16, ccw? -0.2 : Math.PI+0.2, ccw? -2.6 : Math.PI+2.6, ccw); ctx.stroke();
+  }
+  // backflow particles
+  for(const p of flowP){
+    let x,y,col;
+    if(p.kind==='gap'){ [x,y]=gapPos(p); col=css('--gap'); }
+    else if(p.state==='ads'){ const rr=rAt(p.th)+0.035; [x,y]=rotorAbs(p.r,[rr*Math.cos(p.th), rr*Math.sin(p.th)]); col=css('--des'); }
+    else { x=p.x; y=p.y; col=css('--des'); }
+    const [sx,sy]=S(x,y);
+    if(p.kind==='gap' && p.path==='c'){ const dpr=window.devicePixelRatio||1; ctx.save(); ctx.setTransform(1,0,0,1,0,0);
+      const hid = rotPaths.some(pp=>ctx.isPointInPath(pp, sx*dpr, sy*dpr)); ctx.restore(); if(hid) continue; }
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(sx,sy,3.4,0,2*Math.PI); ctx.fill();
+  }
+}
+
+// ---------- plots ----------
+function axes(ctx,W,H,L,R,T,B,xmin,xmax,ymin,ymax,ylog,xlabel,ylabel,yticks){
+  const text=css('--text'), muted=css('--muted'), border=css('--border');
+  const X=lx=>L+(W-L-R)*(lx-xmin)/(xmax-xmin);
+  const Y=v=>{ const t= ylog? (Math.log10(v)-ymin)/(ymax-ymin) : (v-ymin)/(ymax-ymin); return T+(H-T-B)*(1-Math.min(1.02,Math.max(-0.02,t))); };
+  ctx.font=FONT; ctx.strokeStyle=border; ctx.lineWidth=1; ctx.fillStyle=muted;
+  for(let e=Math.ceil(xmin); e<=xmax; e++){ const x=X(e); ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,H-B); ctx.stroke(); ctx.textAlign='center';
+    ctx.fillText(e>=0? String(Math.pow(10,e)) : '10'+sup(e), x, H-B+16); }
+  for(const v of yticks){ const y=Y(v); ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); ctx.textAlign='right'; ctx.fillText(String(v), L-6, y+4); }
+  ctx.fillStyle=text; ctx.textAlign='center'; ctx.fillText(xlabel, L+(W-L-R)/2, H-10);
+  ctx.save(); ctx.translate(15,T+(H-T-B)/2); ctx.rotate(-Math.PI/2); ctx.fillText(ylabel,0,0); ctx.restore();
+  return {X,Y};
+}
+function sup(e){ const m={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'}; return String(e).split('').map(c=>m[c]).join(''); }
+function line(ctx,pts,col,w,dash){ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash(dash||[]); ctx.beginPath(); let s=false;
+  for(const [x,y] of pts){ if(!isFinite(y)){s=false;continue;} s?ctx.lineTo(x,y):ctx.moveTo(x,y); s=true; } ctx.stroke(); ctx.setLineDash([]); }
+
+function drawK(){
+  const ctx=kctx, W=KP._w, H=KP._h; ctx.clearRect(0,0,W,H);
+  const L=50,R=14,T=14,B=44, YMAX=60;
+  const {X,Y}=axes(ctx,W,H,L,R,T,B,-3,2,0,YMAX,false,'출구 압력 p_o (mbar)','K₀ = p_o / p_i',[0,10,20,30,40,50,60]);
+  const g=[],k=[],kg=[],kd=[];
+  for(let lx=-3; lx<=2.0001; lx+=0.02){ const p=Math.pow(10,lx);
+    const m=model(p,st.g,st.d), mg=model(p,st.g,st.d,true,false), md=model(p,st.g,st.d,false,true);
+    k.push([X(lx),Y(Math.min(m.K,YMAX*1.05))]);
+    kg.push([X(lx), mg.K<YMAX*1.05? Y(mg.K):NaN]);
+    kd.push([X(lx), md.K<YMAX*1.05? Y(md.K):NaN]); }
+  ctx.save(); ctx.beginPath(); ctx.rect(L,T,W-L-R,H-T-B); ctx.clip();
+  line(ctx,kg,css('--gap'),1.8,[6,4]); line(ctx,kd,css('--des'),1.8,[6,4]); line(ctx,k,css('--text'),2.8);
+  ctx.restore();
+  // Chambers points
+  ctx.strokeStyle=css('--accent'); ctx.lineWidth=1.8;
+  TBL.p.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(X(Math.log10(p)),Y(TBL.K[i]),5,0,2*Math.PI); ctx.stroke(); });
+  // labels
+  ctx.font=FONT; ctx.textAlign='left';
+  const kg0=model(1e-3,st.g,st.d,true,false).K, kd0=model(1e-3,st.g,st.d,false,true).K;
+  if(kg0<YMAX){ ctx.fillStyle=css('--gap'); ctx.fillText('틈새 역류만 있을 때', X(-2.9), Y(kg0)-6); }
+  if(kd0<YMAX){ ctx.fillStyle=css('--des'); ctx.fillText('탈착 역류만 있을 때', X(-2.9), Y(kd0)-8); }
+  // current marker
+  const m=model(st.po,st.g,st.d), x=X(Math.log10(st.po));
+  ctx.strokeStyle=css('--accent'); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,H-B); ctx.stroke();
+  ctx.fillStyle=css('--accent'); ctx.beginPath(); ctx.arc(x,Y(Math.min(m.K,YMAX)),6,0,2*Math.PI); ctx.fill();
+  ctx.textAlign= x>W-150? 'right':'left'; ctx.fillText('K₀ = '+fmtK(m.K), x+(x>W-150?-9:9), Y(Math.min(m.K,YMAX))-8);
+  // legend
+  ctx.textAlign='right'; ctx.fillStyle=css('--muted'); ctx.fillText('○ Chambers 표 8.2', W-R-8, T+14);
+}
+
+function drawStages(){
+  const ctx=mctx, W=MP._w, H=MP._h; ctx.clearRect(0,0,W,H);
+  const text=css('--text'), muted=css('--muted'), border=css('--border');
+  const L=64, R=150, T=16, B=40, n=st.n;
+  const chain=[]; let p=1013.25;
+  for(let i=0;i<n;i++){ const m=model(p,st.g,st.d); const tot=m.qgap+m.qdes||1; chain.push({po:p, pi:m.pi, K:m.K, fg:m.qgap/tot}); p=m.pi; }
+  const lmin=Math.min(-4, Math.floor(Math.log10(Math.max(chain[n-1].pi,1e-9)))), lmax=3.3;
+  const Y=v=>T+(H-T-B)*(lmax-Math.log10(v))/(lmax-lmin);
+  const X=i=>L+(W-L-R)*(i+0.5)/n;
+  ctx.font=FONT;
+  // peak band of K0 (where K0 > 0.8*max)
+  let kmax=0; for(let lx=-3;lx<=2;lx+=0.02) kmax=Math.max(kmax, model(Math.pow(10,lx),st.g,st.d).K);
+  let b0=null,b1=null; for(let lx=-4;lx<=3.2;lx+=0.02){ const k=model(Math.pow(10,lx),st.g,st.d).K; if(k>0.8*kmax){ if(b0===null) b0=lx; b1=lx; } }
+  if(b0!==null){ ctx.fillStyle=css('--accent'); ctx.globalAlpha=0.07; ctx.fillRect(L,Y(Math.pow(10,b1)),W-L-R,Y(Math.pow(10,b0))-Y(Math.pow(10,b1))); ctx.globalAlpha=1;
+    ctx.fillStyle=muted; ctx.textAlign='left'; ctx.fillText('K₀ 봉우리 구간', W-R+8, (Y(Math.pow(10,b0))+Y(Math.pow(10,b1)))/2+4); }
+  // grid
+  ctx.strokeStyle=border; ctx.lineWidth=1; ctx.fillStyle=muted; ctx.textAlign='right';
+  for(let e=lmin;e<=3;e++){ const y=Y(Math.pow(10,e)); ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); ctx.fillText(e>=0?String(Math.pow(10,e)):'10'+sup(e), L-6, y+4); }
+  const ya=Y(1013.25); ctx.strokeStyle=text; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(L,ya); ctx.lineTo(W-R,ya); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=text; ctx.textAlign='left'; ctx.fillText('대기압 (배기)', W-R+8, ya+4);
+  ctx.save(); ctx.translate(15,T+(H-T-B)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText('압력 (mbar)',0,0); ctx.restore();
+  // stages
+  chain.forEach((c,i)=>{
+    const x=X(i), y0=Y(c.po), y1=Y(c.pi);
+    const col = c.fg>0.7? css('--gap') : c.fg<0.3? css('--des') : css('--accent');
+    if(i<n-1){ ctx.strokeStyle=muted; ctx.setLineDash([3,3]); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(X(i+1),y1); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=6; ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1-4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-8,y1-10); ctx.lineTo(x+8,y1-10); ctx.lineTo(x,y1+2); ctx.closePath(); ctx.fill();
+    ctx.font='bold 13px "Malgun Gothic","Apple SD Gothic Neo",sans-serif'; ctx.textAlign='left';
+    ctx.fillText('÷'+fmtK(c.K), x+10, (y0+y1)/2+4);
+    ctx.font=FONT; ctx.fillStyle=muted; ctx.textAlign='center';
+    ctx.fillText((i+1)+'단'+(i===0?' (배기 쪽)':''), x, H-B+16);
+  });
+  const last=chain[n-1];
+  ctx.fillStyle=text; ctx.textAlign='left'; ctx.font='bold 13px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
+  ctx.fillText('p_in = '+fmt(last.pi)+' mbar', W-R+8, Y(last.pi)+4);
+  const tot=1013.25/last.pi; ctx.font=FONT; ctx.fillStyle=muted;
+  ctx.fillText('전체 '+(tot<1e4? tot.toFixed(0) : (tot/Math.pow(10,Math.floor(Math.log10(tot)))).toFixed(1)+'×10'+sup(Math.floor(Math.log10(tot))))+'배', W-R+8, Y(last.pi)+20);
+  $('nstv').textContent = n+'단';
+}
+
+// ---------- readouts ----------
+function readouts(){
+  const m=model(st.po,st.g,st.d), mg=model(st.po,st.g,st.d,true,false), md=model(st.po,st.g,st.d,false,true);
+  const tot=m.qgap+m.qdes||1, fg=m.qgap/tot, fd=m.qdes/tot;
+  $('sg').style.width=(fg*100)+'%'; $('sd').style.width=(fd*100)+'%';
+  $('splitTxt').textContent = '되돌아오는 기체의 몫: 틈새 '+(fg*100).toFixed(0)+' %, 표면 탈착 '+(fd*100).toFixed(0)+' %';
+  const rows=[
+    ['출구 압력 p<sub>o</sub>', fmt(st.po)+' mbar'],
+    ['막힌 입구의 압력 p<sub>i</sub>', fmt(m.pi)+' mbar'],
+    ['K₀ = p<sub>o</sub>/p<sub>i</sub>', fmtK(m.K)],
+    ['틈새 역류만 있다면 K<sub>gap</sub>', fmtK(mg.K)],
+    ['탈착 역류만 있다면 K<sub>des</sub>', fmtK(md.K)],
+  ];
+  $('tbl').innerHTML='<tr><th>항목</th><th>값</th></tr>'+rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('');
+  $('verdict').textContent = fg>0.7 ? '고압 쪽: 틈새로 새는 점성 역류가 K₀를 결정합니다.' : fd>0.7 ? '저압 쪽: 회전자 표면에서 탈착되는 기체가 K₀를 결정합니다.' : '두 역류가 비슷한 영역: K₀가 최대 부근입니다.';
+  $('pov').textContent = fmt(st.po)+' mbar ('+fmt(st.po*0.750062)+' torr)';
+  $('gapv').textContent = st.g.toFixed(2)+'×'; $('desv').textContent = st.d.toFixed(2)+'×';
+}
+
+function refreshAll(){ readouts(); rebuildDots(); drawK(); drawStages(); drawAnim(); }
+
+// ---------- loop ----------
+function frame(ts){
+  if(last===null) last=ts; const dt=Math.min(0.05,(ts-last)/1000); last=ts;
+  if(playing){ ang+=OMEGA*dt; stepParticles(dt); jiggle(inDots,1); jiggle(outDots,-1); drawAnim(); }
+  requestAnimationFrame(frame);
+}
+
+// ---------- events ----------
+$('po').addEventListener('input',e=>{ st.po=Math.pow(10,+e.target.value); refreshAll(); });
+$('gap').addEventListener('input',e=>{ st.g=+e.target.value; refreshAll(); });
+$('des').addEventListener('input',e=>{ st.d=+e.target.value; refreshAll(); });
+$('nst').addEventListener('input',e=>{ st.n=+e.target.value; drawStages(); });
+$('reset').addEventListener('click',()=>{ st.g=1; st.d=1; $('gap').value=1; $('des').value=1; refreshAll(); });
+$('play').addEventListener('click',()=>{ playing=!playing; $('play').textContent=playing?'일시정지':'재생'; });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ drawK(); drawStages(); drawAnim(); });
+if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){ playing=false; $('play').textContent='재생'; }
+
+refreshAll(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
