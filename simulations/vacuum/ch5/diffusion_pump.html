@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>유확산펌프 — 증기 제트와 배기속도 곡선</title>
+<style>
+  :root{--bg:#101211;--card:#1a1d1b;--border:#2c302d;--text:#e8ece9;--muted:#a8b0aa;--accent:#6aa6f2;--hot:#f28b62;--gas:#6aa6f2;--oil:#f3bb45;--ok:#3fcf98;
+        --metal:#3a403c;--metal2:#5a625d;--water:#3f6f99;--btn:#222623;--btnh:#2c302d;color-scheme:dark}
+  *{box-sizing:border-box}
+  :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 24px 6px}
+  h1{margin:0 0 4px;font-size:22px;color:var(--accent)}
+  .sub{margin:0;color:var(--muted);font-size:14px;max-width:115ch}
+  .wrap{padding:10px 24px 28px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .grid{display:grid;grid-template-columns:minmax(0,0.85fr) minmax(0,1.4fr);gap:14px}
+  @media (max-width:1050px){.grid{grid-template-columns:1fr}}
+  canvas{display:block;width:100%;height:auto}
+  h2{font-size:16px;margin:0 0 8px;color:var(--accent)}
+  .bar{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:3px}
+  .ctl label{font-size:13px;color:var(--muted)}
+  .ctl .v{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:190px}
+  select,button{padding:6px 10px;border:1px solid var(--border);background:var(--btn);color:var(--text);border-radius:8px;font-size:14px;font-family:inherit}
+  button{cursor:pointer} button:hover{background:var(--btnh)}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .chk{display:flex;align-items:center;gap:6px;font-size:14px}
+  .cap{font-size:13px;color:var(--muted);margin:8px 2px 0}
+  .big{font-size:17px;font-weight:700;margin:0 0 8px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  th{font-weight:600;color:var(--muted);font-size:13px}
+  td:first-child,th:first-child{text-align:left}
+  .note{font-size:14px}
+  .note b{color:var(--accent)}
+  .eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:17px;margin:6px 0 10px;overflow-x:auto}
+  .flag{font-size:13px;color:var(--muted)}
+  nav.crumb{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border)}
+  nav.crumb a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+  nav.crumb span{margin:0 7px;color:var(--border)}
+  footer{padding:14px 24px 28px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+  .counts{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums}
+  .counts b{color:var(--text)}
+  .res{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px}
+  @media (max-width:1050px){.res{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 5</a><span>/</span>유확산펌프</nav>
+  <h1>유확산펌프: 증기 제트와 배기속도 곡선</h1>
+  <p class="sub">5.5 유확산펌프 (슬라이드 69–74) · Chambers 6.3.4. 왼쪽은 증기 제트가 기체를 아래로 밀어내는 모습(정성적), 오른쪽은 입구 압력에 따른 배기속도(Chambers Fig. 6.31 재구성)입니다. 두 그림은 같은 입구 압력·기체·운전 조건을 공유합니다.</p>
+</header>
+<div class="wrap">
+  <div class="card">
+    <div class="bar">
+      <div class="ctl"><label for="pi">입구 압력 p<sub>i</sub></label><input type="range" id="pi" min="-11" max="0" step="0.01" value="-5"><span class="v" id="piv"></span></div>
+      <div class="ctl"><label for="gas">기체</label><select id="gas"><option value="N2">N₂</option><option value="Ar">Ar</option><option value="H2">H₂</option><option value="He">He</option></select></div>
+      <div class="ctl"><label for="oil">작동유</label><select id="oil"><option value="dc705">DC705 (실리콘유)</option><option value="sv5">Santovac 5 (폴리페닐에테르)</option></select></div>
+      <label class="chk"><input type="checkbox" id="cap" checked> 콜드캡</label>
+      <label class="chk"><input type="checkbox" id="baf"> 수냉 배플</label>
+      <div class="ctl"><label for="pw">보일러 출력 (기준 대비)</label><input type="range" id="pw" min="0.5" max="1.5" step="0.05" value="1"><span class="v" id="pwv"></span></div>
+      <div class="ctl"><label for="sb">배압(회전)펌프 속도 S<sub>B</sub></label><input type="range" id="sb" min="0.3" max="20" step="0.1" value="5"><span class="v" id="sbv"></span></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>B. 증기 제트 단면 (정성적)</h2>
+      <canvas id="anim" width="460" height="600" aria-label="유확산펌프 단면 애니메이션"></canvas>
+      <div class="counts" id="counts"></div>
+      <p class="cap"><span style="color:var(--gas)">●</span> 기체 분자 &nbsp;<span style="color:var(--oil)">●</span> 오일 증기 분자 (벽에서 응축해 흘러내림) &nbsp;<span style="color:var(--hot)">●</span> 위로 튀어나가는 오일(백스트리밍). 1단 펌프로 단순화했고(실제는 3단 이상, Chambers Fig. 6.30), 분자 수·속도·포획 확률은 보여주기용 값입니다.</p>
+    </div>
+    <div class="card">
+      <h2>A. 배기속도 vs 입구 압력</h2>
+      <canvas id="plot" width="760" height="470" aria-label="배기속도 그래프"></canvas>
+      <div class="bar" style="margin-top:6px">
+        <div class="ctl"><label for="D">입구 직경</label><input type="range" id="D" min="50" max="300" step="5" value="100"><span class="v" id="Dv"></span></div>
+        <div class="ctl"><label for="H">Ho 계수 (포획 확률)</label><input type="range" id="H" min="0.2" max="0.55" step="0.01" value="0.3"><span class="v" id="Hv"></span></div>
+      </div>
+      <p class="cap">굵은 선: 선택한 기체의 배기속도(선형 축, 왼쪽). 점선: 처리량 Q = S·p(로그 축, 오른쪽). 다른 기체를 고르면 N₂ 곡선이 연하게 함께 그려집니다.</p>
+    </div>
+  </div>
+
+  <div class="res">
+    <div class="card">
+      <p class="big" id="verdict"></p>
+      <table id="tbl"></table>
+    </div>
+    <div class="card note">
+      <p style="margin-top:0"><b>평탄 구간</b> (대략 10⁻⁸–10⁻³ mbar). 제트의 포획 확률(Ho 계수 H)이 압력과 무관하므로, 배기속도 = H × 입구로 들어오는 분자 도달률입니다(2장 식 3.13):</p>
+      <div class="eq">S<sub>max</sub> = H · A · c̄ / 4</div>
+      <p><b>고압 쪽.</b> 보일러 출력이 정하는 최대 처리량 Q<sub>max</sub>에 걸려 S ≈ Q<sub>max</sub>/p로 떨어집니다(제트 과부하). ~0.1 mbar 근처에서는 기체가 너무 조밀해 제트가 깨집니다(stall). 출구 쪽 배압이 임계 배압(0.3–1 mbar)을 넘어도 제트가 밀려 작동이 멈춥니다.</p>
+      <p><b>저압 쪽.</b> 포획 효율은 떨어지지 않습니다. 대신 (1) 역류한 오일 증기가 펌핑량과 같아지는 점에서 순 배기속도가 0이 되고, (2) 압축비 한계 K₀에 걸립니다. 루츠에서 본 맞교환 관계 그대로</p>
+      <div class="eq">S ≈ S<sub>max</sub> (1 − p<sub>fore</sub> / (K₀ p<sub>i</sub>))</div>
+      <p>N₂는 K₀ ≳ 10⁸이라 거의 보이지 않지만, H₂·He는 K₀ ~ 10⁶이라 10⁻⁸ mbar 아래에서 속도가 꺾입니다. 가벼운 기체는 도달률이 3–4배 크지만 운동량을 덜 받아서, 배기속도는 N₂보다 H₂ 50%, He 30%만 큽니다.</p>
+      <p class="flag">값의 출처: Ho 계수 0.3–0.5, H₂/He 속도비(1.5, 1.3), K₀(H₂·He ~10⁶, 무거운 기체 ≳10⁸), 평탄 구간 상한 ~10⁻³ mbar, 임계 배압 0.3–1 mbar, 1차 배기 ~0.1 mbar, 배플 ×0.3은 Chambers 6.3.4입니다. Q<sub>max</sub> 곡선 꼴(꺾임점 2×10⁻³ mbar), stall 모양, 오일별 한계압(DC705 1×10⁻⁹, Santovac 5 1×10⁻¹⁰ mbar), 배플이 오일 한계를 1/10로 낮춘다는 설정, 회전펌프 도달압 5×10⁻³ mbar는 Fig. 6.31의 모양을 따른 교육용 대표값입니다.</p>
+    </div>
+  </div>
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const GAS={N2:{M:28,ratio:1.0,K0:1e8,label:'N₂'}, Ar:{M:40,ratio:1.0,K0:1e8,label:'Ar'}, H2:{M:2,ratio:1.5,K0:1e6,label:'H₂'}, He:{M:4,ratio:1.3,K0:1e6,label:'He'}};
+const OIL={dc705:1e-9, sv5:1e-10};
+const st={pi:1e-5, gas:'N2', oil:'dc705', cap:true, baf:false, pw:1, SB:5, D:100, H:0.3};
+const PB0=5e-3, PCRIT=0.5, PKNEE=2e-3, PSTALL=0.1;
+
+function sup(e){ const m={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'}; return String(e).split('').map(c=>m[c]).join(''); }
+function fmt(p){ if(!isFinite(p)) return '∞'; if(p===0) return '0'; if(p>=100) return p.toFixed(0); if(p>=10) return p.toFixed(1); if(p>=1) return p.toFixed(2);
+  const e=Math.floor(Math.log10(p)); return (p/Math.pow(10,e)).toFixed(1)+'×10'+sup(e); }
+function css(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+// ---------------- A: model ----------------
+function cbar(M){ return Math.sqrt(8*8.314*293/(Math.PI*M/1000)); }
+function Smax(gas){ const A=Math.PI*Math.pow(st.D/1000,2)/4; return st.H*A*cbar(28)/4*1000*GAS[gas].ratio*(st.baf?0.3:1); } // L/s
+function speed(p, gas){
+  const S0=Smax(gas), SN2=Smax('N2');
+  const Qmax = SN2*PKNEE*st.pw;                 // mbar L/s, set by boiler power
+  const pOil = OIL[st.oil]*(st.baf?0.1:1);
+  let pf=PB0, S=0, ok=true;
+  for(let it=0; it<40; it++){
+    let Sc = 1/(1/S0 + p/Qmax);                   // overload
+    Sc *= 1/(1+Math.pow(p/PSTALL,4));             // jet breaks up
+    const crit = 1/(1+Math.pow(pf/PCRIT,8));      // critical backing pressure
+    const fK = Math.max(0, 1 - pf/(GAS[gas].K0*p));
+    const fO = Math.max(0, 1 - pOil/p);
+    const Sn = Sc*crit*fK*fO;
+    const pfn = PB0 + Sn*p/st.SB;
+    S = Sn; pf = 0.5*pf + 0.5*pfn;
+  }
+  return {S, pf, Q:S*p, S0, Qmax, pOil, crit:pf>PCRIT*0.8};
+}
+
+const P=$('plot'), A=$('anim');
+function setup(c){ const dpr=window.devicePixelRatio||1; c._w=c._w||c.width; c._h=c._h||c.height; c.width=c._w*dpr; c.height=c._h*dpr;
+  const x=c.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); return x; }
+const pctx=setup(P), actx=setup(A);
+const FONT='12px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
+
+function drawPlot(){
+  const ctx=pctx, W=P._w, H=P._h; ctx.clearRect(0,0,W,H);
+  const L=58, R=62, T=16, B=46, X0=-11, X1=0;
+  const curves={}; const gl=[st.gas]; if(st.gas!=='N2') gl.push('N2');
+  let ymax=0;
+  for(const g of gl){ const arr=[]; for(let lx=X0; lx<=X1+1e-9; lx+=0.02){ const r=speed(Math.pow(10,lx),g); arr.push([lx,r.S,r.Q]); ymax=Math.max(ymax,r.S); } curves[g]=arr; }
+  ymax = Math.max(ymax, Smax(st.gas))*1.15;
+  const step = ymax>2000?500: ymax>800?200: ymax>400?100: ymax>150?50: 20;
+  const X=lx=>L+(W-L-R)*(lx-X0)/(X1-X0), Y=s=>T+(H-T-B)*(1-s/ymax);
+  const QL0=-8, QL1=1, YQ=q=>T+(H-T-B)*(QL1-Math.log10(Math.max(q,1e-30)))/(QL1-QL0);
+  const text=css('--text'), muted=css('--muted'), border=css('--border');
+  ctx.font=FONT; ctx.lineWidth=1;
+  // regime shading
+  const shade=(a,b,col,label)=>{ ctx.fillStyle=col; ctx.globalAlpha=0.08; ctx.fillRect(X(a),T,X(b)-X(a),H-T-B); ctx.globalAlpha=1;
+    ctx.fillStyle=muted; ctx.textAlign='center'; ctx.fillText(label,(X(a)+X(b))/2,T+12); };
+  shade(-3,-1,css('--hot'),'과부하 (Q_max)'); shade(-1,0,css('--hot'),'stall');
+  // grid
+  ctx.strokeStyle=border;
+  for(let e=X0;e<=X1;e++){ const x=X(e); ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,H-B); ctx.stroke(); ctx.fillStyle=muted; ctx.textAlign='center'; ctx.fillText(e===0?'1':'10'+sup(e),x,H-B+16); }
+  for(let s=0;s<=ymax;s+=step){ const y=Y(s); ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); ctx.fillStyle=muted; ctx.textAlign='right'; ctx.fillText(s,L-6,y+4); }
+  for(let e=QL0;e<=QL1;e+=2){ ctx.fillStyle=muted; ctx.textAlign='left'; ctx.fillText(e===0?'1':'10'+sup(e), W-R+6, YQ(Math.pow(10,e))+4); }
+  ctx.fillStyle=text; ctx.textAlign='center'; ctx.fillText('입구 압력 p_i (mbar)', L+(W-L-R)/2, H-10);
+  ctx.save(); ctx.translate(14,T+(H-T-B)/2); ctx.rotate(-Math.PI/2); ctx.fillText('배기속도 S (L/s)',0,0); ctx.restore();
+  ctx.save(); ctx.translate(W-10,T+(H-T-B)/2); ctx.rotate(Math.PI/2); ctx.fillText('처리량 Q (mbar·L/s), 점선',0,0); ctx.restore();
+  // curves
+  const draw=(arr,idx,col,w,dash,yf)=>{ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash(dash); ctx.beginPath(); let s=false;
+    for(const r of arr){ const v=r[idx]; if(!(v>0)){ s=false; continue; } const x=X(r[0]), y=yf(v); s?ctx.lineTo(x,y):ctx.moveTo(x,y); s=true; } ctx.stroke(); ctx.setLineDash([]); };
+  ctx.save(); ctx.beginPath(); ctx.rect(L,T,W-L-R,H-T-B); ctx.clip();
+  if(st.gas!=='N2'){ ctx.globalAlpha=0.4; draw(curves.N2,1,muted,2,[],Y); ctx.globalAlpha=1; }
+  draw(curves[st.gas],2,css('--accent'),1.6,[5,4],YQ);
+  draw(curves[st.gas],1,text,3,[],Y);
+  // S_max line
+  ctx.strokeStyle=muted; ctx.setLineDash([2,4]); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(L,Y(Smax(st.gas))); ctx.lineTo(W-R,Y(Smax(st.gas))); ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore();
+  ctx.fillStyle=muted; ctx.textAlign='left'; ctx.fillText('S_max = H·A·c̄/4 = '+Smax(st.gas).toFixed(0)+' L/s', X(-10.9), Y(Smax(st.gas))-6);
+  if(st.gas!=='N2'){ ctx.fillText('(연한 선: N₂)', X(-10.9), Y(Smax(st.gas))+14); }
+  // marker
+  const r=speed(st.pi,st.gas), x=X(Math.log10(st.pi));
+  ctx.strokeStyle=css('--accent'); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,T); ctx.lineTo(x,H-B); ctx.stroke();
+  ctx.fillStyle=css('--accent'); ctx.beginPath(); ctx.arc(x,Y(r.S),6,0,2*Math.PI); ctx.fill();
+  ctx.textAlign = x>W-200?'right':'left'; ctx.font='bold 13px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
+  ctx.fillText('S = '+(r.S>=10?r.S.toFixed(0):r.S.toFixed(1))+' L/s', x+(x>W-200?-10:10), Math.max(T+30,Y(r.S)-10));
+}
+
+function readouts(){
+  const r=speed(st.pi,st.gas), g=GAS[st.gas];
+  const frac=r.S/Smax(st.gas);
+  let v;
+  if(r.crit) v='배압이 임계값(~0.5 mbar)에 닿아 제트가 출구 쪽에서 밀립니다 — 배압 펌프가 부족합니다.';
+  else if(st.pi>=0.05) v='입구 기체가 너무 조밀해 제트가 깨집니다(stall). 1차 펌프로 ~0.1 mbar 아래까지 먼저 빼야 합니다.';
+  else if(st.pi>=PKNEE*0.3 && frac<0.8) v='제트 과부하: 처리량이 Q_max에 묶여 S ≈ Q_max/p로 줄어듭니다.';
+  else if(frac>0.8) v='평탄 구간: S = H·A·c̄/4, 압력과 무관합니다.';
+  else if(st.pi < 100*r.pOil && (1-r.pOil/st.pi) < (1-r.pf/(g.K0*st.pi))) v='저압 한계: 역류한 오일 증기가 펌핑량을 상쇄합니다(작동유가 결정).';
+  else v='저압 한계: 압축비 K₀에 걸려 p_i → p_fore/K₀로 수렴합니다('+g.label+').';
+  $('verdict').textContent=v;
+  const rows=[
+    ['입구 압력 p<sub>i</sub>', fmt(st.pi)+' mbar ('+fmt(st.pi*0.750062)+' torr)'],
+    ['평탄 구간 배기속도 S<sub>max</sub> ('+g.label+')', Smax(st.gas).toFixed(0)+' L/s'],
+    ['현재 배기속도 S', (r.S>=10?r.S.toFixed(0):r.S.toPrecision(2))+' L/s ('+(frac*100).toFixed(0)+' %)'],
+    ['처리량 Q = S·p<sub>i</sub>', fmt(r.Q)+' mbar·L/s'],
+    ['최대 처리량 Q<sub>max</sub> (보일러 출력)', fmt(r.Qmax)+' mbar·L/s'],
+    ['배압 (포라인) p<sub>fore</sub>', fmt(r.pf)+' mbar (임계 ~0.5)'],
+    ['압축비 한계로 정해지는 최저압 p<sub>fore</sub>/K₀', fmt(r.pf/g.K0)+' mbar'],
+    ['오일 역류로 정해지는 최저압', fmt(r.pOil)+' mbar'],
+  ];
+  $('tbl').innerHTML='<tr><th>항목</th><th>값</th></tr>'+rows.map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td></tr>').join('');
+  $('piv').textContent=fmt(st.pi)+' mbar';
+  $('pwv').textContent=st.pw.toFixed(2)+'×'; $('sbv').textContent=st.SB.toFixed(1)+' L/s ('+(st.SB*3.6).toFixed(0)+' m³/h)';
+  $('Dv').textContent=st.D+' mm'; $('Hv').textContent=st.H.toFixed(2);
+}
+
+// ---------------- B: animation ----------------
+const SC=150, OX=205, OY=12;
+const S=(x,y)=>[OX+SC*x, OY+SC*(0.35-y)];
+const LIP={x:0.30,y:-0.74}, CAPY=-0.50, CAPW=0.45, FL=[-2.5,-2.15];
+// jet skirt edges at |x|: upper and lower y
+const jetUp = ax => -0.74 + (ax-0.30)*(-0.40/0.70);
+const jetLo = ax => -0.82 + (ax-0.24)*(-0.78/0.76);
+function inJet(x,y){ const ax=Math.abs(x); if(ax<0.24||ax>1.0) return false; return y<=jetUp(Math.max(ax,0.30)) && y>=jetLo(ax); }
+let gasP=[], oilP=[], drops=[], cnt={arr:0,pumped:0,back:0,bs:0,bsCap:0,bsWall:0}, capHist=[], tAcc=0, spawnAcc=0, oilAcc=0;
+let seed=7; const rnd=()=>{ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; };
+function stalled(){ const r=speed(st.pi,st.gas); return st.pi>=0.05 || r.crit; }
+function vgas(){ return 0.9*Math.pow(28/GAS[st.gas].M,0.3); }
+function pCap(){ return {N2:0.95,Ar:0.97,H2:0.62,He:0.68}[st.gas]; }
+function pBackLeak(){ return {N2:0.004,Ar:0.003,H2:0.06,He:0.05}[st.gas]; }
+function arrivalRate(){ const l=Math.log10(st.pi); return Math.max(1.2, Math.min(110, 26*st.pw*Math.pow(10,(l+3)/2.6))); }
+function capacity(){ return 26*st.pw; }
+
+function spawnGas(){ const a=(rnd()-0.5)*Math.PI*0.8, v=vgas();
+  gasP.push({x:(rnd()*2-1)*0.95, y:0.34, vx:v*Math.sin(a), vy:-v*Math.cos(a), st:'up'}); cnt.arr++; }
+function diffuse(p, nx, ny){ // random cosine-ish re-emission about normal (nx,ny)
+  const a=(rnd()-0.5)*Math.PI*0.9, v=Math.hypot(p.vx,p.vy)||vgas();
+  const c=Math.cos(a), s=Math.sin(a); p.vx=v*(nx*c - ny*s); p.vy=v*(nx*s + ny*c); }
+function stepGas(dt){
+  const stall=stalled(); const now=tAcc;
+  capHist=capHist.filter(t=>now-t<1);
+  spawnAcc+=dt*arrivalRate(); while(spawnAcc>1){ spawnGas(); spawnAcc-=1; }
+  if(stall){ // backflow from foreline when jet fails
+    if(rnd()<dt*arrivalRate()*0.5){ const v=vgas(); gasP.push({x:0.97,y:FL[0]+rnd()*(FL[1]-FL[0]),vx:-v*0.6,vy:v*0.8,st:'up'}); } }
+  for(const p of gasP){
+    const sub=3; for(let k=0;k<sub;k++){
+      const h=dt/sub; p.x+=p.vx*h; p.y+=p.vy*h;
+      // exits
+      if(p.y>0.35){ p.dead=true; if(p.counted) cnt.pumped--; cnt.back++; break; }
+      if(p.x>=0.99 && p.y<FL[1] && p.y>FL[0]){ p.dead=true; if(!p.counted) cnt.pumped++; break; }
+      if(!p.counted && p.st==='down' && p.y<-1.7){ p.counted=true; cnt.pumped++; }
+      // walls
+      if(p.x>0.99){ p.x=0.99; diffuse(p,-1,0); } if(p.x<-0.99){ p.x=-0.99; diffuse(p,1,0); }
+      if(p.y<-2.98){ p.y=-2.98; diffuse(p,0,1); }
+      // chimney & nozzle cap
+      if(Math.abs(p.x)<0.2 && p.y<-0.78){ p.x=Math.sign(p.x||1)*0.2; diffuse(p,Math.sign(p.x),0); }
+      const capTop = -0.56 - Math.abs(p.x)*0.55;
+      if(Math.abs(p.x)<0.32 && p.y<capTop && p.y>-0.8){ p.y=capTop+0.005; diffuse(p,0,1); }
+      if(st.cap && Math.abs(p.x)<CAPW && Math.abs(p.y-CAPY)<0.02){ p.y = p.vy<0? CAPY+0.021 : CAPY-0.021; diffuse(p,0,p.vy<0?1:-1); }
+      // jet interaction
+      if(inJet(p.x,p.y)){
+        const side=Math.sign(p.x)||1, jdx=side*0.75, jdy=-0.66, v=vgas()*2.2;
+        if(p.st==='up'){
+          if(!stall && capHist.length<capacity() && rnd()<pCap()){ p.st='down'; p.vx=v*jdx; p.vy=v*jdy; capHist.push(now); cnt.cap=(cnt.cap||0)+1; }
+          else { p.y=jetUp(Math.max(Math.abs(p.x),0.30))+0.01; diffuse(p,-side*0.3,0.95); }
+        } else if(p.vy>0){ // trying to go back up through the jet
+          if(!stall && rnd()>pBackLeak()){ p.vx=v*jdx; p.vy=v*jdy; }
+          else { p.st='up'; p.y=jetUp(Math.max(Math.abs(p.x),0.30))+0.01; }
+        }
+      }
+      if(p.st==='down' && p.y>jetUp(Math.max(Math.abs(p.x),0.30))+0.05 && Math.abs(p.x)>0.3 && p.y>-1.2) p.st='up';
+    }
+  }
+  gasP=gasP.filter(p=>!p.dead);
+  if(gasP.length>500) gasP.splice(0,gasP.length-500);
+}
+function stepOil(dt){
+  const stall=stalled();
+  oilAcc+=dt*(stall?18:42)*st.pw;
+  while(oilAcc>1){ oilAcc-=1;
+    const side=rnd()<0.5?-1:1;
+    if(rnd()<0.08){ // backstreaming: leaves nozzle lip going upward (angle from vertical, + = outward)
+      const ph=(-45+rnd()*90)*Math.PI/180, v=2.2;
+      oilP.push({x:side*LIP.x, y:LIP.y+0.02, vx:side*v*Math.sin(ph), vy:v*Math.cos(ph), bs:true});
+    } else {
+      const th=(-32+(rnd()-0.5)*14)*Math.PI/180, v=3.2*(stall?0.5:1);
+      oilP.push({x:side*LIP.x, y:LIP.y-0.03, vx:side*v*Math.cos(th), vy:v*Math.sin(th), bs:false});
+    }
+  }
+  for(const o of oilP){
+    o.x+=o.vx*dt; o.y+=o.vy*dt;
+    if(Math.abs(o.x)>=0.99){ o.dead=true; if(o.bs||rnd()<0.3) drops.push({x:Math.sign(o.x)*0.975, y:o.y, life:0}); if(o.bs) cnt.bsWall++; }
+    else if(o.bs && st.cap && o.vy>0 && o.y>=CAPY-0.02 && o.y<=CAPY+0.04 && Math.abs(o.x)<CAPW){ o.dead=true; cnt.bsCap++; drops.push({x:o.x,y:CAPY-0.03,life:0,onCap:true}); }
+    else if(o.y>0.35){ o.dead=true; if(o.bs) cnt.bs++; }
+  }
+  oilP=oilP.filter(o=>!o.dead);
+  for(const d of drops){ d.life+=dt; if(d.onCap){ if(d.life>1.2) d.dead=true; } else { d.y-=0.45*dt; if(d.y<-2.98) d.dead=true; } }
+  drops=drops.filter(d=>!d.dead); if(drops.length>400) drops.splice(0,drops.length-400);
+}
+
+function drawAnim(){
+  const ctx=actx, W=A._w, H=A._h; ctx.clearRect(0,0,W,H);
+  const metal=css('--metal'), metal2=css('--metal2'), text=css('--text'), muted=css('--muted'), card=css('--card'), water=css('--water');
+  const stall=stalled();
+  // casing walls with water cooling
+  const wall=(x0,y0,x1,y1,c)=>{ const [a,b]=S(x0,y0),[c2,d]=S(x1,y1); ctx.fillStyle=c; ctx.fillRect(Math.min(a,c2),Math.min(b,d),Math.abs(c2-a),Math.abs(d-b)); };
+  wall(-1.12,0.35,-1.0,-3.3,metal); wall(1.0,0.35,1.12,-3.3,metal);
+  wall(1.0,FL[1],1.12,FL[0],card); wall(1.0,FL[1]+0.03,1.45,FL[1],metal); wall(1.0,FL[0],1.45,FL[0]-0.03,metal);
+  // cooling coil dots
+  ctx.fillStyle=water; for(let y=-0.2;y>-2.9;y-=0.22){ if(y<FL[1]+0.05 && y>FL[0]-0.05) continue; for(const sx of [-1.18,1.18]){ const [a,b]=S(sx,y); ctx.beginPath(); ctx.arc(a,b,4,0,2*Math.PI); ctx.fill(); } }
+  // boiler
+  wall(-1.12,-3.0,1.12,-3.3,metal); wall(-1.0,-2.98,1.0,-3.0,css('--oil'));
+  const [hx,hy]=S(-0.6,-3.35); ctx.fillStyle=css('--hot'); ctx.fillRect(hx,hy,SC*1.2,6);
+  ctx.font=FONT; ctx.fillStyle=muted; ctx.textAlign='center'; ctx.fillText('보일러 (가열, ~200 °C)', S(0,-3.45)[0], S(0,-3.45)[1]);
+  // chimney + nozzle cap
+  wall(-0.18,-0.8,0.18,-2.98,metal2);
+  ctx.fillStyle=metal2; ctx.beginPath(); let q=S(-0.33,-0.75); ctx.moveTo(q[0],q[1]); q=S(0,-0.56); ctx.lineTo(q[0],q[1]); q=S(0.33,-0.75); ctx.lineTo(q[0],q[1]); q=S(0.27,-0.8); ctx.lineTo(q[0],q[1]); q=S(-0.27,-0.8); ctx.lineTo(q[0],q[1]); ctx.closePath(); ctx.fill();
+  // cold cap
+  if(st.cap){ wall(-CAPW,CAPY+0.015,CAPW,CAPY-0.015,water); }
+  // jet skirts
+  for(const sd of [-1,1]){
+    ctx.fillStyle=css('--oil'); ctx.globalAlpha= stall? 0.07 : 0.16; ctx.beginPath();
+    let a=S(sd*0.30,jetUp(0.30)); ctx.moveTo(a[0],a[1]); a=S(sd*1.0,jetUp(1.0)); ctx.lineTo(a[0],a[1]); a=S(sd*1.0,jetLo(1.0)); ctx.lineTo(a[0],a[1]); a=S(sd*0.24,jetLo(0.24)); ctx.lineTo(a[0],a[1]);
+    ctx.closePath(); ctx.fill(); ctx.globalAlpha=1;
+  }
+  // labels
+  ctx.fillStyle=muted; ctx.textAlign='left';
+  ctx.fillText('입구 (챔버 쪽, p_i)', S(-0.95,0.3)[0], S(0,0.3)[1]-0);
+  ctx.textAlign='left'; ctx.fillText('포라인 →', S(1.14,0)[0], S(0,FL[0]-0.16)[1]); ctx.fillText('배압 펌프로', S(1.14,0)[0], S(0,FL[0]-0.28)[1]);
+  if(st.cap){ ctx.textAlign='left'; ctx.fillText('← 콜드캡', S(CAPW+0.04,0)[0], S(0,CAPY)[1]+4); }
+  ctx.textAlign='left'; ctx.fillText('← 수냉 벽 (오일 응축)', S(-0.93,0)[0], S(0,-2.0)[1]);
+  if(stall){ ctx.fillStyle=css('--hot'); ctx.font='bold 14px "Malgun Gothic","Apple SD Gothic Neo",sans-serif'; ctx.fillText('제트 붕괴 (stall)', S(0,-1.6)[0], S(0,-1.6)[1]); ctx.font=FONT; }
+  else if(capHist.length>=capacity()-1){ ctx.fillStyle=css('--hot'); ctx.font='bold 13px "Malgun Gothic","Apple SD Gothic Neo",sans-serif'; ctx.fillText('제트 과부하', S(0,-1.6)[0], S(0,-1.6)[1]); ctx.font=FONT; }
+  // particles
+  ctx.fillStyle=css('--oil');
+  for(const o of oilP){ if(o.bs) continue; const [a,b]=S(o.x,o.y); ctx.fillRect(a-1.3,b-1.3,2.6,2.6); }
+  for(const d of drops){ const [a,b]=S(d.x,d.y); ctx.beginPath(); ctx.arc(a,b,2,0,2*Math.PI); ctx.fill(); }
+  ctx.fillStyle=css('--hot');
+  for(const o of oilP){ if(!o.bs) continue; const [a,b]=S(o.x,o.y); ctx.beginPath(); ctx.arc(a,b,3.2,0,2*Math.PI); ctx.fill(); }
+  ctx.fillStyle=css('--gas');
+  for(const p of gasP){ const [a,b]=S(p.x,p.y); ctx.beginPath(); ctx.arc(a,b,3,0,2*Math.PI); ctx.fill(); }
+  const tot=cnt.pumped+cnt.back;
+  $('counts').innerHTML = '포획되어 배출된 비율(측정 Ho) <b>'+(stalled()?'– (제트 붕괴)': tot>20?Math.max(0,cnt.pumped/tot).toFixed(2):'측정 중')+'</b> &nbsp; 백스트리밍 오일: 챔버 도달 <b>'+cnt.bs+'</b> · 콜드캡 포집 <b>'+cnt.bsCap+'</b> · 벽 응축 <b>'+cnt.bsWall+'</b>';
+}
+
+// ---------------- loop & events ----------------
+let last=null;
+function frame(ts){ if(last===null) last=ts; const dt=Math.min(0.04,(ts-last)/1000); last=ts; tAcc+=dt;
+  stepGas(dt); stepOil(dt); drawAnim(); requestAnimationFrame(frame); }
+function resetCounts(){ cnt={arr:0,pumped:0,back:0,bs:0,bsCap:0,bsWall:0}; }
+function refresh(){ readouts(); drawPlot(); }
+$('pi').addEventListener('input',e=>{ st.pi=Math.pow(10,+e.target.value); resetCounts(); refresh(); });
+$('gas').addEventListener('change',e=>{ st.gas=e.target.value; gasP=[]; resetCounts(); refresh(); });
+$('oil').addEventListener('change',e=>{ st.oil=e.target.value; refresh(); });
+$('cap').addEventListener('change',e=>{ st.cap=e.target.checked; resetCounts(); refresh(); });
+$('baf').addEventListener('change',e=>{ st.baf=e.target.checked; refresh(); });
+$('pw').addEventListener('input',e=>{ st.pw=+e.target.value; refresh(); });
+$('sb').addEventListener('input',e=>{ st.SB=+e.target.value; refresh(); });
+$('D').addEventListener('input',e=>{ st.D=+e.target.value; refresh(); });
+$('H').addEventListener('input',e=>{ st.H=+e.target.value; refresh(); });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',refresh);
+refresh(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
