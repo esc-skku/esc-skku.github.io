@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5.6 터보 분자 펌프: 날개 단의 통과 확률</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#101211; --card:#1a1d1b; --border:#2c302d; --text:#e8ece9; --muted:#a8b0aa;
+    --accent:#6aa6f2; --top:#6aa6f2; --bot:#f28b62; --blade:#9aa39d; --ok:#3fcf98; --btn:#222623; --btnh:#2c302d; --hl:#3a2f22;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 24px 6px}
+  h1{margin:0 0 4px;font-size:22px;color:var(--accent)}
+  .sub{margin:0;color:var(--muted);font-size:14px;max-width:72em}
+  .wrap{padding:10px 24px 28px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .controls{display:flex;flex-wrap:wrap;gap:16px 26px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:4px;min-width:200px}
+  .ctl label,.ctl .lab{font-size:13px;color:var(--muted)}
+  .ctl .val{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:210px;accent-color:var(--accent)}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{padding:7px 14px;border:1px solid var(--border);background:var(--btn);color:var(--text);border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+  button:hover{background:var(--btnh)}
+  button[aria-pressed=true]{background:var(--accent);color:var(--card);border-color:var(--accent)}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--bot);outline-offset:2px}
+  .grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}
+  @media (max-width:980px){.grid{grid-template-columns:1fr}}
+  canvas{display:block;width:100%}
+  .cap{font-size:13px;color:var(--muted);margin:8px 2px 0}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 5px 0 2px;vertical-align:-1px}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .spd{display:inline-flex;gap:4px}
+  .spd button{padding:7px 10px;min-width:42px}
+  .live{font-size:13.5px;margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  td:first-child{text-align:left;color:var(--muted)}
+  tr.hl td{background:var(--hl);font-weight:600;color:var(--text)}
+  .note{font-size:14px}
+  .note b{color:var(--accent)}
+  nav.crumb{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border)}
+  nav.crumb a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+  nav.crumb span{margin:0 7px;color:var(--border)}
+  footer{padding:14px 24px 28px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+  .note ul{margin:6px 0 0;padding-left:20px}
+  .eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:16px;white-space:nowrap}
+</style>
+</head>
+<body>
+<header>
+  <nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 5</a><span>/</span>터보 분자 펌프 날개 단</nav>
+  <h1>5.6 터보 분자 펌프: 회전자·고정자 단의 통과 확률</h1>
+  <p class="sub">회전자와 고정자를 번갈아 쌓은 날개 단에 위(흡기구)와 아래(배기구)에서 같은 수의 분자를 쏩니다. 위→아래로 통과하는 분자가 아래→위보다 많으면 그 차이가 배기이고, 두 확률의 비가 압축비입니다.</p>
+</header>
+
+<div class="wrap">
+  <div class="card controls">
+    <div class="ctl">
+      <span class="lab">기체 (20 ℃ 평균 속력 c̄)</span>
+      <div class="btns" id="gasBtns"></div>
+    </div>
+    <div class="ctl">
+      <label for="vSl">날개 속도 v</label>
+      <input id="vSl" type="range" min="0" max="500" step="5" value="420">
+      <div class="val" id="vVal"></div>
+    </div>
+    <div class="ctl">
+      <label for="aSl">경사각 α (회전면 기준)</label>
+      <input id="aSl" type="range" min="10" max="60" step="1" value="30">
+      <div class="val" id="aVal"></div>
+    </div>
+    <div class="ctl">
+      <label for="sSl">날개 간격 / 날개 길이 (t/b)</label>
+      <input id="sSl" type="range" min="0.5" max="1.5" step="0.05" value="1">
+      <div class="val" id="sVal"></div>
+    </div>
+    <div class="ctl">
+      <label for="nSl">단 수 N (회전자 + 고정자)</label>
+      <input id="nSl" type="range" min="1" max="12" step="1" value="6">
+      <div class="val" id="nVal"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="bar">
+        <button type="button" id="frameBtn" aria-pressed="false">회전자 기준 좌표계로 보기</button>
+        <button type="button" id="pauseBtn" aria-pressed="false">일시정지</button>
+        <span class="spd" id="spdBtns" role="group" aria-label="재생 속도"></span>
+        <span class="live" id="live"></span>
+      </div>
+      <canvas id="anim" height="540" role="img" aria-label="움직이는 날개 열을 통과하는 분자 애니메이션"></canvas>
+      <p class="cap"><span class="sw" style="background:var(--top)"></span>위(흡기구)에서 온 분자 <span class="sw" style="background:var(--bot)"></span>아래(배기구)에서 온 분자. 양쪽 압력이 같은 상황이며, 분자는 날개 면에서 난반사(코사인 법칙)합니다.</p>
+    </div>
+    <div class="card">
+      <table>
+        <tr><td>한 단(회전자 1개) 통과 확률 M↓ / M↑</td><td id="oM1"></td></tr>
+        <tr><td>한 단 압축비 K₁ = M↓ / M↑</td><td id="oK"></td></tr>
+        <tr><td>한 단 알짜 통과 W₁ = M↓ − M↑</td><td id="oW"></td></tr>
+        <tr><td>N단 전체 통과 확률 M↓ / M↑</td><td id="oMN"></td></tr>
+        <tr class="hl"><td>N단 전체 압축비 (직접 계산)</td><td id="oKN"></td></tr>
+        <tr><td>비교: K₁ᴺ 어림</td><td id="oKe"></td></tr>
+        <tr class="hl"><td>N단 전체 배기속도 W·c̄/4</td><td id="oS"></td></tr>
+        <tr><td>슬라이드 식(한 단) exp(v / g c̄ sin α), g = 1~3</td><td id="oF"></td></tr>
+      </table>
+      <canvas id="plot" height="230" style="margin-top:12px" role="img" aria-label="경사각에 따른 압축비와 알짜 통과 확률 그래프"></canvas>
+      <p class="cap">한 단(회전자 1개)에 대해 같은 기체·날개 속도에서 경사각만 바꾼 결과. α가 작으면(닫힌 날개) 압축비가 크고, α가 크면(열린 날개) 알짜 통과가 큽니다. 세로선이 현재 α.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <canvas id="plotN" height="270" role="img" aria-label="경사각에 따른 N단 전체 압축비와 배기속도 그래프"></canvas>
+    <p class="cap" id="capN"></p>
+  </div>
+
+  <div class="card note">
+    <span class="eq">K₁ = M↓ / M↑</span> (유량 0일 때의 압력비),&nbsp; <span class="eq">S/A = W · c̄/4</span> (압력차 0일 때의 배기속도)
+    <ul>
+      <li><b>회전자 기준 좌표계</b>로 바꿔 보세요. 회전자가 멈춘 대신 모든 분자에 −v의 "바람"이 더해집니다. 위에서 온 분자는 통로와 나란히 들어와 그대로 빠져나가고, 아래에서 온 분자는 날개 면에 부딪혀 되돌아갑니다. 이것이 배기 방향(고진공 → 저진공)을 정합니다.</li>
+      <li><b>고정자</b>는 회전자와 거울상으로 기울어 있습니다. 회전자에 맞고 나온 분자는 회전 방향 속도(+v)를 얻으므로, 고정자 입장에서는 반대 방향 바람을 받는 셈이라 같은 원리로 아래로 보냅니다.</li>
+      <li>단을 늘리면 아래에서 온 분자(주황)가 위쪽 단까지 올라오지 못하는 것이 보입니다. 가벼운 기체는 c̄가 커서 v/c̄가 작아지고 주황 분자가 끝까지 올라옵니다. H₂ 버튼으로 비교해 보세요.</li>
+      <li>계산 방법: 2차원 얇은 평판 날개, 분자류(분자끼리 충돌 없음), 날개 면에서 완전 난반사를 가정한 몬테카를로입니다. 조건당 분자 수만 개를 쏜 결과라 마지막 자리는 조금씩 흔들립니다. 여러 단의 아래→위 통과는 매우 드문 사건이라, 한 단씩 올라간 분자들만 모아 다시 쏘는 방식(다단계 분할)으로 확률을 곱해 구합니다. 단이 많을수록 압축비의 오차가 커져 10~20 % 정도 흔들릴 수 있습니다.</li>
+      <li><b>실제 펌프와의 차이</b>: 모든 단의 α와 간격을 같게 두었고 날개 반지름에 따른 속도 차이도 없습니다. 실제 펌프는 단마다 각도가 다르고 드래그 단이 붙기도 해서 사양표 압축비와 일치하지 않습니다. 슬라이드 식과의 차이도 그대로 표시했습니다.</li>
+    </ul>
+  </div>
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+
+<script>
+(function(){
+  'use strict';
+  var GASES=[{id:'H2',name:'H₂',c:1754},{id:'He',name:'He',c:1245},{id:'N2',name:'N₂',c:470},{id:'Ar',name:'Ar',c:394}];
+  var gas=GASES[2], GAP=0.28;
+  var $=function(id){return document.getElementById(id);};
+  var vSl=$('vSl'),aSl=$('aSl'),sSl=$('sSl'),nSl=$('nSl');
+  var SUP={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  function sup(n){return String(n).split('').map(function(c){return SUP[c];}).join('');}
+  function sci(x,d){
+    if(!isFinite(x)) return '∞';
+    if(d===undefined) d=1;
+    if(x<1000) return x<10?x.toFixed(2):x.toFixed(d>0?1:0);
+    var e=Math.floor(Math.log10(x)), m=x/Math.pow(10,e);
+    if(+m.toFixed(d)>=10){m/=10;e+=1;}
+    return m.toFixed(d)+'×10'+sup(e);
+  }
+  function small(x){
+    if(x>=0.001||x===0) return x.toFixed(3);
+    var e=Math.floor(Math.log10(x)); return (x/Math.pow(10,e)).toFixed(1)+'×10'+sup(e);
+  }
+  function gauss(){var u=1-Math.random(),w=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*w);}
+  function rayleigh(){return Math.sqrt(-Math.log(1-Math.random()));}
+
+  // ---------- one blade row, in its own frame. y=0 top, y=-h bottom; blade k: xi = x - y*cot = k*t ----------
+  function geom(alphaDeg,sb){
+    var a=alphaDeg*Math.PI/180;
+    return {sin:Math.sin(a),cos:Math.cos(a),cot:Math.cos(a)/Math.sin(a),h:Math.sin(a),t:sb}; // chord b = 1
+  }
+  function reflect(g,leftWall){ // diffuse: normal Rayleigh, tangential Gaussian (units of vp)
+    var vn=rayleigh(), vt=gauss()/Math.SQRT2, s=leftWall?1:-1;
+    return {vx:s*vn*g.sin - vt*g.cos, vy:-s*vn*g.cos - vt*g.sin};
+  }
+  // traverse one row with given row-frame velocity; returns exit side and exit velocity
+  function traverse(g,fromTop,v){
+    var y=fromTop?0:-g.h, xi=Math.random()*g.t;
+    for(var n=0;n<5000;n++){
+      var dxi=v.vx - v.vy*g.cot, tw=Infinity, left=false, te=Infinity, exitTop=false;
+      if(dxi<0){tw=-xi/dxi;left=true;} else if(dxi>0){tw=(g.t-xi)/dxi;}
+      if(v.vy>0){te=-y/v.vy;exitTop=true;} else if(v.vy<0){te=(-g.h-y)/v.vy;}
+      if(te<=tw) return {top:exitTop,v:v};
+      y+=v.vy*tw; xi=left?0:g.t; v=reflect(g,left);
+    }
+    return {top:fromTop,v:v};
+  }
+  // stack of N rows (even = rotor moving +vb, odd = mirrored stator). true if molecule crosses the whole stack
+  function stackPass(g,N,vb,fromTop){
+    var i=fromTop?0:N-1, vy=rayleigh(), v={vx:gauss()/Math.SQRT2, vy:fromTop?-vy:vy}, dirTop=fromTop;
+    for(var n=0;n<20000;n++){
+      var rotor=(i%2===0), u=rotor?vb:0, m=rotor?1:-1;
+      var r=traverse(g,dirTop,{vx:m*(v.vx-u),vy:v.vy});
+      v={vx:m*r.v.vx+u, vy:r.v.vy};
+      if(r.top){ i--; if(i<0) return !fromTop; dirTop=false; }
+      else { i++; if(i>=N) return fromTop; dirTop=true; }
+    }
+    return false;
+  }
+  // Upward (exhaust -> inlet) transmission by multilevel splitting, so very small probabilities stay resolvable.
+  // Level m = first exit through the top of row N-m. Each level restarts M molecules from the states that reached it.
+  function stackUpSplit(g,N,vb,M){
+    var ens=null, prob=1;
+    for(var m=1;m<=N;m++){
+      var rT=N-m, succ=[];
+      for(var s=0;s<M;s++){
+        var v;
+        if(ens){ var e=ens[(Math.random()*ens.length)|0]; v={vx:e.vx,vy:e.vy}; }
+        else v={vx:gauss()/Math.SQRT2, vy:rayleigh()};
+        var i=rT, dirTop=false;
+        for(var n=0;n<20000;n++){
+          var rotor=(i%2===0), u=rotor?vb:0, mm=rotor?1:-1;
+          var r=traverse(g,dirTop,{vx:mm*(v.vx-u),vy:v.vy});
+          v={vx:mm*r.v.vx+u, vy:r.v.vy};
+          if(r.top){ if(i===rT){succ.push(v);break;} i--; dirTop=false; }
+          else { i++; if(i>=N) break; dirTop=true; }
+        }
+      }
+      prob*=succ.length/M; if(succ.length===0) return 0; ens=succ;
+    }
+    return prob;
+  }
+  function mc(alphaDeg,sb,vb,N,rows){
+    var g=geom(alphaDeg,sb),d=0; rows=rows||1;
+    for(var i=0;i<N;i++){ if(stackPass(g,rows,vb,true)) d++; }
+    return {Md:d/N,Mu:stackUpSplit(g,rows,vb,Math.max(2000,Math.round(N/rows*1.5)))};
+  }
+
+  function P(){
+    var v=+vSl.value, vp=gas.c*Math.sqrt(Math.PI)/2;
+    return {v:v,alpha:+aSl.value,sb:+sSl.value,N:+nSl.value,c:gas.c,vp:vp,vb:v/vp};
+  }
+
+  // ---------- animation ----------
+  var parts=[],offset=0,rotorFrame=false,paused=false,cnt={dIn:0,dOut:0,uIn:0,uOut:0};
+  var cv=$('anim'),W=0,H=540,MARG=58,g0=null,PXB=100,VS=0.16,NR=6,hpx=0,tpx=0,pitchY=0,stackBot=0;
+  function layout(){
+    var p=P(); g0=geom(p.alpha,p.sb); NR=p.N; W=cv.clientWidth;
+    PXB=Math.min(110,(H-2*MARG)/(NR*(g0.h+GAP)-GAP));
+    VS=0.19*PXB/120;
+    hpx=g0.h*PXB; tpx=g0.t*PXB; pitchY=hpx+GAP*PXB; stackBot=-(NR-1)*pitchY-hpx;
+  }
+  function spawn(q,fromTop,p){
+    var k=p.vp*VS, vy=rayleigh();
+    q.top=fromTop; q.vx=gauss()/Math.SQRT2*k; q.vy=(fromTop?-vy:vy)*k;   // lab frame, y up, px/s
+    q.x=Math.random()*W*3; q.y=fromTop?MARG:stackBot-MARG;
+    q.row=-1; q.k=0; q.entered=false; q.fin=false;
+  }
+  function reset(){
+    layout(); var p=P(); parts=[];
+    var NP=90+26*NR;
+    for(var i=0;i<NP;i++){var q={};spawn(q,i%2===0,p); q.y+=(q.top?-1:1)*Math.random()*MARG; parts.push(q);}
+    cnt={dIn:0,dOut:0,uIn:0,uOut:0};
+  }
+  function enterRow(q,r,off,U){
+    var rotor=(r%2===0), m=rotor?1:-1;
+    q.x=m*(q.x-(rotor?off:0)); q.vx=m*(q.vx-(rotor?U:0)); q.row=r;
+    q.k=Math.floor((q.x-(q.y+r*pitchY)*g0.cot)/tpx);
+  }
+  function exitRow(q,off,U){
+    var rotor=(q.row%2===0), m=rotor?1:-1;
+    q.x=m*q.x+(rotor?off:0); q.vx=m*q.vx+(rotor?U:0); q.row=-1;
+  }
+  function stepPart(q,dt,p,off0,U){
+    var used=0, guard=0;
+    while(dt>1e-9 && guard++<200){
+      if(q.row<0){
+        var r=-1, yt=0, te=Infinity;
+        if(q.vy<0){ r=Math.max(0,Math.ceil(-q.y/pitchY-1e-9)); if(r<NR){yt=-r*pitchY; te=(yt-q.y)/q.vy;} else r=-1; }
+        else if(q.vy>0){ r=Math.min(NR-1,Math.floor((-q.y-hpx)/pitchY+1e-9)); if(r>=0){yt=-r*pitchY-hpx; te=(yt-q.y)/q.vy;} }
+        if(r>=0 && te<=dt){
+          if(te<0) te=0;
+          q.x+=q.vx*te; q.y=yt; dt-=te; used+=te;
+          if(!q.entered){ if((q.top&&r===0&&q.vy<0)||(!q.top&&r===NR-1&&q.vy>0)) q.entered=true; }
+          enterRow(q,r,off0+U*used,U);
+        } else {
+          q.x+=q.vx*dt; q.y+=q.vy*dt; dt=0;
+          if(q.y>MARG+4||q.y<stackBot-MARG-4) spawn(q,Math.random()<0.5,p);
+        }
+      } else {
+        var rt=-q.row*pitchY, xi=q.x-(q.y-rt)*g0.cot, dxi=q.vx-q.vy*g0.cot, tw=Infinity,left=false,tx=Infinity,exitTop=false;
+        if(dxi<0){tw=(q.k*tpx-xi)/dxi;left=true;} else if(dxi>0){tw=((q.k+1)*tpx-xi)/dxi;}
+        if(tw<0) tw=0;
+        if(q.vy>0){tx=(rt-q.y)/q.vy;exitTop=true;} else if(q.vy<0){tx=(rt-hpx-q.y)/q.vy;}
+        if(tx<0) tx=0;
+        if(Math.min(tw,tx)>dt){ q.x+=q.vx*dt; q.y+=q.vy*dt; dt=0; }
+        else if(tx<=tw){
+          q.x+=q.vx*tx; dt-=tx; used+=tx; q.y=exitTop?rt:rt-hpx;
+          var r0=q.row; exitRow(q,off0+U*used,U);
+          if(q.entered&&!q.fin){
+            if((exitTop&&r0===0)||(!exitTop&&r0===NR-1)){
+              q.fin=true;
+              if(q.top){cnt.dIn++; if(!exitTop) cnt.dOut++;} else {cnt.uIn++; if(exitTop) cnt.uOut++;}
+            }
+          }
+        } else {
+          q.x+=q.vx*tw; q.y+=q.vy*tw; dt-=tw; used+=tw;
+          var rf=reflect(g0,left), k=p.vp*VS; q.vx=rf.vx*k; q.vy=rf.vy*k;
+        }
+      }
+    }
+  }
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+  function prep(c,h){
+    var dpr=window.devicePixelRatio||1,w=c.clientWidth;
+    c.style.height=h+'px';
+    if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);}
+    var x=c.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
+    x.font='13px "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif';
+    return {c:x,w:w,h:h};
+  }
+  function drawAnim(){
+    var o=prep(cv,H),c=o.c,p=P(); if(Math.abs(o.w-W)>1){reset();}
+    var view=rotorFrame?-offset:0;                 // shift applied to everything on screen
+    var Wwrap=Math.ceil(W/tpx+2)*tpx, y0=MARG, lw=Math.max(2,PXB/30);
+    var cRot=css('--accent'),cSta=css('--blade'),cM=css('--muted'),cT=css('--text'),cCard=css('--card');
+    c.fillStyle=cM; c.textBaseline='top'; c.textAlign='left'; c.fillText('흡기구 쪽 (고진공)',8,6);
+    c.textBaseline='bottom'; c.fillText('배기구 쪽 (저진공)',8,H-6);
+    c.lineCap='round'; c.lineWidth=lw;
+    for(var r=0;r<NR;r++){
+      var rotor=(r%2===0), sh=(rotor?offset:0)+view, o0=((sh%tpx)+tpx)%tpx, yt=y0+r*pitchY, dx=(rotor?-1:1)*g0.cos*PXB;
+      c.strokeStyle=rotor?cRot:cSta;
+      for(var k=-3;k*tpx<W+tpx*3;k++){ var x0=k*tpx+o0; c.beginPath(); c.moveTo(x0,yt); c.lineTo(x0+dx,yt+hpx); c.stroke(); }
+    }
+    // particles
+    var ct=css('--top'),cb=css('--bot'),rad=Math.max(2.2,Math.min(3.4,PXB/30));
+    for(var i=0;i<parts.length;i++){
+      var q=parts[i], xl=q.x;
+      if(q.row>=0){ var rot=(q.row%2===0); xl=(rot?1:-1)*q.x+(rot?offset:0); }
+      var xd=(((xl+view)%Wwrap)+Wwrap)%Wwrap - tpx, yd=y0-q.y;
+      if(xd<-6||xd>W+6) continue;
+      c.fillStyle=q.top?ct:cb; c.beginPath(); c.arc(xd,yd,rad,0,2*Math.PI); c.fill();
+    }
+    // row labels
+    c.textAlign='left'; c.textBaseline='middle'; c.font='12px "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif';
+    for(r=0;r<NR;r++){
+      var lab=(r%2===0)?'회전자':'고정자', ym=y0+r*pitchY+hpx/2, tw2=c.measureText(lab).width;
+      c.globalAlpha=0.85; c.fillStyle=cCard; c.fillRect(2,ym-9,tw2+8,18); c.globalAlpha=1;
+      c.fillStyle=(r%2===0)?cRot:cM; c.fillText(lab,6,ym);
+    }
+    c.font='13px "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif';
+    // motion arrow
+    c.fillStyle=cT; c.strokeStyle=cT; c.lineWidth=1.5; c.textAlign='right'; c.textBaseline='top';
+    var ax=W-14, ay=10;
+    if(rotorFrame){
+      c.fillText('회전자 정지, 기체와 고정자에 −v = '+p.v+' m/s',ax-58,6);
+      c.beginPath(); c.moveTo(ax,ay+7); c.lineTo(ax-50,ay+7); c.stroke();
+      c.beginPath(); c.moveTo(ax-50,ay+7); c.lineTo(ax-42,ay+2); c.lineTo(ax-42,ay+12); c.closePath(); c.fill();
+    } else {
+      c.fillText('회전자 이동 v = '+p.v+' m/s',ax-58,6);
+      c.beginPath(); c.moveTo(ax-50,ay+7); c.lineTo(ax,ay+7); c.stroke();
+      c.beginPath(); c.moveTo(ax,ay+7); c.lineTo(ax-8,ay+2); c.lineTo(ax-8,ay+12); c.closePath(); c.fill();
+    }
+    var f=function(a,b){return b?a+'/'+b+' ('+(100*a/b).toFixed(0)+' %)':'–';};
+    $('live').textContent='화면 속 집계 (전체 통과)  ↓ '+f(cnt.dOut,cnt.dIn)+'   ↑ '+f(cnt.uOut,cnt.uIn);
+  }
+  var last=null, speed=1;
+  function frame(ts){
+    if(last===null) last=ts;
+    var dt=Math.min(0.05,(ts-last)/1000); last=ts;
+    if(!paused){
+      var p=P(), U=p.v*VS, left=dt*speed;
+      while(left>1e-6){
+        var h=Math.min(0.04,left); left-=h;
+        for(var i=0;i<parts.length;i++) stepPart(parts[i],h,p,offset,U);
+        offset+=U*h;
+      }
+    }
+    drawAnim();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- statistics + plot ----------
+  var sweep=[];
+  function compute(){
+    var p=P();
+    var one=mc(p.alpha,p.sb,p.vb,40000,1);
+    var all=p.N===1?one:mc(p.alpha,p.sb,p.vb,60000,p.N);
+    sweep=[];
+    for(var a=10;a<=60;a+=5){var r=mc(a,p.sb,p.vb,10000,1);sweep.push({a:a,K:r.Mu>0?r.Md/r.Mu:NaN,W:r.Md-r.Mu});}
+    var K1=one.Mu>0?one.Md/one.Mu:Infinity;
+    $('oM1').textContent=one.Md.toFixed(3)+' / '+one.Mu.toFixed(3);
+    $('oK').textContent=sci(K1,1);
+    $('oW').textContent=(one.Md-one.Mu).toFixed(3);
+    $('oMN').textContent=all.Md.toFixed(3)+' / '+small(all.Mu);
+    $('oKN').textContent=all.Mu>0?sci(all.Md/all.Mu,1):'∞';
+    $('oKe').textContent=sci(Math.pow(K1,p.N),1)+'  (N = '+p.N+')';
+    $('oS').textContent=((all.Md-all.Mu)*p.c/4*0.1).toFixed(2)+' L/s per cm²';
+    var s=Math.sin(p.alpha*Math.PI/180);
+    $('oF').textContent=sci(Math.exp(p.v/(3*p.c*s)),1)+' ~ '+sci(Math.exp(p.v/(p.c*s)),1);
+    drawPlot(); startSweepN();
+  }
+  function drawPlot(){
+    var o=prep($('plot'),230),c=o.c,w=o.w,h=o.h,p=P();
+    var L=46,R=46,T=22,B=36,pw=w-L-R,ph=h-T-B;
+    var cK=css('--accent'),cW=css('--ok'),cB=css('--border'),cM=css('--muted'),cT=css('--text');
+    var kmax=1; sweep.forEach(function(d){if(isFinite(d.K)&&d.K>kmax)kmax=d.K;});
+    var e1=Math.max(1,Math.ceil(Math.log10(kmax*1.05)));
+    var X=function(a){return L+(a-10)/50*pw;}, YK=function(K){return T+(1-Math.log10(Math.max(K,1))/e1)*ph;}, YW=function(x){return T+(1-x/0.6)*ph;};
+    c.strokeStyle=cB; c.lineWidth=1; c.textBaseline='middle';
+    for(var e=0;e<=e1;e++){
+      var y=YK(Math.pow(10,e)); c.beginPath(); c.moveTo(L,y); c.lineTo(L+pw,y); c.stroke();
+      c.fillStyle=cK; c.textAlign='right'; c.fillText(e===0?'1':'10'+(e===1?'':sup(e)),L-6,y);
+    }
+    c.fillStyle=cW; c.textAlign='left';
+    for(var q=0;q<=6;q++) c.fillText((q/10).toFixed(1),L+pw+6,YW(q/10));
+    c.fillStyle=cM; c.textAlign='center'; c.textBaseline='top';
+    for(var a=10;a<=60;a+=10) c.fillText(a+'°',X(a),T+ph+5);
+    c.fillStyle=cT; c.fillText('경사각 α',L+pw/2,T+ph+19);
+    c.textBaseline='bottom'; c.textAlign='left'; c.fillStyle=cK; c.fillText('한 단 압축비 K₁ (로그)',L-40,T-5);
+    c.textAlign='right'; c.fillStyle=cW; c.fillText('한 단 알짜 통과 W₁',w-2,T-5);
+    function line(fn,col){
+      c.strokeStyle=col; c.lineWidth=2; c.beginPath();
+      sweep.forEach(function(d,i){var y=fn(d); if(i===0)c.moveTo(X(d.a),y); else c.lineTo(X(d.a),y);}); c.stroke();
+      c.fillStyle=col; sweep.forEach(function(d){c.beginPath();c.arc(X(d.a),fn(d),2.6,0,2*Math.PI);c.fill();});
+    }
+    line(function(d){return YK(isFinite(d.K)?d.K:Math.pow(10,e1));},cK);
+    line(function(d){return YW(Math.max(0,Math.min(0.6,d.W)));},cW);
+    c.strokeStyle=css('--bot'); c.lineWidth=1.5; c.setLineDash([4,3]);
+    c.beginPath(); c.moveTo(X(p.alpha),T); c.lineTo(X(p.alpha),T+ph); c.stroke(); c.setLineDash([]);
+  }
+
+  // ---------- N-stage sweep over blade angle (computed in chunks so the page stays responsive) ----------
+  var sweepN=[], runId=0;
+  function startSweepN(){
+    var p=P(), id=++runId, a=10; sweepN=[]; drawPlotN();
+    (function next(){
+      if(id!==runId) return;
+      var r=mc(a,p.sb,p.vb,20000,p.N);
+      sweepN.push({a:a,K:r.Mu>0?r.Md/r.Mu:1e30,low:false,S:(r.Md-r.Mu)*p.c/4*0.1});
+      drawPlotN(); a+=5;
+      if(a<=60) setTimeout(next,0);
+    })();
+  }
+  function drawPlotN(){
+    var o=prep($('plotN'),270),c=o.c,w=o.w,h=o.h,p=P();
+    var L=54,R=54,T=26,B=38,pw=w-L-R,ph=h-T-B;
+    var cK=css('--accent'),cW=css('--ok'),cB=css('--border'),cM=css('--muted'),cT=css('--text'),cCard=css('--card');
+    var kmax=10,smax=0.5; sweepN.forEach(function(d){if(d.K>kmax)kmax=d.K; if(d.S>smax)smax=d.S;});
+    var e1=Math.max(1,Math.ceil(Math.log10(kmax*1.05))), st=smax>6?2:(smax>2.5?1:0.5), s1=Math.ceil(smax*1.05/st)*st;
+    var X=function(a){return L+(a-10)/50*pw;}, YK=function(K){return T+(1-Math.log10(Math.max(K,1))/e1)*ph;}, YS=function(x){return T+(1-Math.max(0,x)/s1)*ph;};
+    c.strokeStyle=cB; c.lineWidth=1; c.textBaseline='middle';
+    var es=e1>6?2:1;
+    for(var e=0;e<=e1;e+=es){
+      var y=YK(Math.pow(10,e)); c.beginPath(); c.moveTo(L,y); c.lineTo(L+pw,y); c.stroke();
+      c.fillStyle=cK; c.textAlign='right'; c.fillText(e===0?'1':'10'+(e===1?'':sup(e)),L-6,y);
+    }
+    c.fillStyle=cW; c.textAlign='left';
+    for(var q=0;q<=s1+1e-9;q+=st) c.fillText(st<1?q.toFixed(1):q.toFixed(0),L+pw+6,YS(q));
+    c.fillStyle=cM; c.textAlign='center'; c.textBaseline='top';
+    for(var a=10;a<=60;a+=10) c.fillText(a+'°',X(a),T+ph+5);
+    c.fillStyle=cT; c.fillText('경사각 α (모든 단이 같은 각도)',L+pw/2,T+ph+20);
+    c.textBaseline='bottom'; c.textAlign='left'; c.fillStyle=cK; c.fillText('N = '+p.N+'단 전체 압축비 (로그)',4,T-7);
+    c.textAlign='right'; c.fillStyle=cW; c.fillText('N = '+p.N+'단 전체 배기속도 (L/s per cm²)',w-2,T-7);
+    function line(fn,col){
+      c.strokeStyle=col; c.lineWidth=2; c.beginPath();
+      sweepN.forEach(function(d,i){var y=fn(d); if(i===0)c.moveTo(X(d.a),y); else c.lineTo(X(d.a),y);}); c.stroke();
+    }
+    line(function(d){return YK(d.K);},cK);
+    sweepN.forEach(function(d){
+      var x=X(d.a),y=YK(d.K);
+      if(d.low){ // lower bound: hollow triangle pointing up
+        c.fillStyle=cCard; c.strokeStyle=cK; c.lineWidth=2;
+        c.beginPath(); c.moveTo(x,y-7); c.lineTo(x-6,y+4); c.lineTo(x+6,y+4); c.closePath(); c.fill(); c.stroke();
+      } else { c.fillStyle=cK; c.beginPath(); c.arc(x,y,3.2,0,2*Math.PI); c.fill(); }
+    });
+    line(function(d){return YS(d.S);},cW);
+    c.fillStyle=cW; sweepN.forEach(function(d){c.beginPath();c.arc(X(d.a),YS(d.S),3.2,0,2*Math.PI);c.fill();});
+    c.strokeStyle=css('--bot'); c.lineWidth=1.5; c.setLineDash([4,3]);
+    c.beginPath(); c.moveTo(X(p.alpha),T); c.lineTo(X(p.alpha),T+ph); c.stroke(); c.setLineDash([]);
+    var best=null; sweepN.forEach(function(d){if(!best||d.S>best.S)best=d;});
+    var anyLow=sweepN.some(function(d){return d.low;});
+    $('capN').textContent=(sweepN.length<11?'계산 중… ':'')+'N단 전체를 통과시켜 직접 계산한 결과입니다. '
+      +(best&&sweepN.length===11?'배기속도는 α ≈ '+best.a+'° 부근에서 가장 크고, 압축비는 α가 작을수록 큽니다. ':'')
+      +'두 조건을 한 각도로 동시에 만족할 수 없어서, 실제 펌프는 흡기구 쪽 단은 α를 크게(배기속도), 배기구 쪽 단은 α를 작게(압축비) 만듭니다.';
+  }
+
+  // ---------- UI ----------
+  var timer=null;
+  function changed(){
+    var p=P();
+    $('vVal').textContent='v = '+p.v+' m/s  (v/c̄ = '+(p.v/p.c).toFixed(2)+')';
+    $('aVal').textContent='α = '+p.alpha+'°';
+    $('sVal').textContent='t/b = '+p.sb.toFixed(2);
+    $('nVal').textContent='N = '+p.N+'  (회전자 '+Math.ceil(p.N/2)+', 고정자 '+Math.floor(p.N/2)+')';
+    reset();
+    clearTimeout(timer); timer=setTimeout(compute,120);
+  }
+  function pickGas(g){
+    gas=g;
+    Array.prototype.forEach.call($('gasBtns').children,function(b){b.setAttribute('aria-pressed',b.dataset.id===g.id?'true':'false');});
+    changed();
+  }
+  GASES.forEach(function(g){
+    var b=document.createElement('button'); b.type='button'; b.textContent=g.name+' '+g.c; b.dataset.id=g.id;
+    b.addEventListener('click',function(){pickGas(g);});
+    $('gasBtns').appendChild(b);
+  });
+  [vSl,aSl,sSl,nSl].forEach(function(el){el.addEventListener('input',changed);});
+  $('frameBtn').addEventListener('click',function(){rotorFrame=!rotorFrame;this.setAttribute('aria-pressed',rotorFrame);});
+  $('pauseBtn').addEventListener('click',function(){paused=!paused;this.setAttribute('aria-pressed',paused);this.textContent=paused?'다시 재생':'일시정지';});
+  window.addEventListener('resize',function(){reset();drawPlot();drawPlotN();});
+  if(window.matchMedia){
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){drawPlot();drawPlotN();});
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('pauseBtn').setAttribute('aria-pressed','true');$('pauseBtn').textContent='다시 재생';}
+  }
+  [1,2,4,8].forEach(function(x){
+    var b=document.createElement('button'); b.type='button'; b.textContent=x+'×'; b.setAttribute('aria-pressed',x===1?'true':'false');
+    b.addEventListener('click',function(){
+      speed=x; Array.prototype.forEach.call($('spdBtns').children,function(o){o.setAttribute('aria-pressed',o===b?'true':'false');});
+    });
+    $('spdBtns').appendChild(b);
+  });
+  window.__mc=mc;
+  pickGas(GASES[2]);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
