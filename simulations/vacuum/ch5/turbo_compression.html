@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5.6 터보 분자 펌프: 압축비와 실효 배기속도</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#101211; --card:#1a1d1b; --border:#2c302d; --text:#e8ece9; --muted:#a8b0aa;
+    --accent:#6aa6f2; --pt:#f28b62; --fam:#4a514c; --ok:#3fcf98; --btn:#222623; --btnh:#2c302d; --hl:#3a2f22;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 24px 6px}
+  h1{margin:0 0 4px;font-size:22px;color:var(--accent)}
+  .sub{margin:0;color:var(--muted);font-size:14px;max-width:70em}
+  .wrap{padding:10px 24px 28px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .controls{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:4px;min-width:230px}
+  .ctl label,.ctl .lab{font-size:13px;color:var(--muted)}
+  .ctl .val{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:240px;accent-color:var(--accent)}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{padding:7px 14px;border:1px solid var(--border);background:var(--btn);color:var(--text);border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+  button:hover{background:var(--btnh)}
+  button[aria-pressed=true]{background:var(--accent);color:var(--card);border-color:var(--accent)}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--pt);outline-offset:2px}
+  .qscale{position:relative;width:240px;height:8px}
+  .qscale .tick{position:absolute;top:0;width:3px;height:8px;background:var(--pt);border-radius:1px}
+  .qscale .band{position:absolute;top:2px;height:4px;background:var(--ok);border-radius:2px}
+  .btns.small button{padding:3px 9px;font-size:12.5px}
+  .chk{display:flex;align-items:center;gap:8px;font-size:14px;padding-bottom:4px}
+  .chk input{width:17px;height:17px;accent-color:var(--accent)}
+  .grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px}
+  @media (max-width:980px){.grid{grid-template-columns:1fr}}
+  canvas{display:block;width:100%}
+  .cap{font-size:13px;color:var(--muted);margin:8px 2px 0}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+  th,td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  td:first-child{text-align:left;color:var(--muted)}
+  tr.hl td{background:var(--hl);font-weight:600;color:var(--text)}
+  .msg{margin-top:10px;font-size:14px;min-height:44px}
+  .msg b{color:var(--pt)}
+  .note{font-size:14px}
+  .note b{color:var(--accent)}
+  .note .eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:16px;white-space:nowrap}
+  nav.crumb{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border)}
+  nav.crumb a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+  nav.crumb span{margin:0 7px;color:var(--border)}
+  footer{padding:14px 24px 28px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+  .note ul{margin:6px 0 0;padding-left:20px}
+</style>
+</head>
+<body>
+<header>
+  <nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 5</a><span>/</span>터보 분자 펌프 압축비</nav>
+  <h1>5.6 터보 분자 펌프: 압축비와 실효 배기속도</h1>
+  <p class="sub">최대 압축비 K₀가 작은 기체(수소)는 왜 배기가 잘 안 될까요? 기체 종류, 뒷단(foreline) 분압, 기체 부하를 바꿔 가며 실효 배기속도 S<sub>eff</sub> = S₀(1 − K/K₀)가 어떻게 움직이는지 봅니다.</p>
+</header>
+
+<div class="wrap">
+  <div class="card controls">
+    <div class="ctl">
+      <span class="lab">기체 (HiPace 80 사양값으로 K₀, S₀ 설정)</span>
+      <div class="btns" id="gasBtns"></div>
+    </div>
+    <div class="ctl">
+      <label for="kSl">최대 압축비 K₀ (직접 조절)</label>
+      <input id="kSl" type="range" min="1" max="12" step="0.01">
+      <div class="val" id="kVal"></div>
+    </div>
+    <div class="ctl">
+      <label for="pSl">backing pump가 만드는 이 기체의 분압 p<sub>b</sub></label>
+      <input id="pSl" type="range" min="-7" max="0" step="0.01" value="-3">
+      <div class="val" id="pVal"></div>
+    </div>
+    <div class="ctl">
+      <label for="qSl">이 기체의 부하 Q (맨 왼쪽 = 0)</label>
+      <input id="qSl" type="range" min="-13" max="-2" step="0.01" value="-7">
+      <div class="qscale" aria-hidden="true"><span class="band" id="qBand"></span><span class="tick" id="qTick"></span></div>
+      <div class="val" id="qVal"></div>
+      <div class="btns small">
+        <button type="button" data-q="-3">baking 안 함 ~10⁻³</button>
+        <button type="button" data-q="-7">baking 함 10⁻⁶~10⁻⁸</button>
+      </div>
+    </div>
+    <label class="chk"><input type="checkbox" id="tandem"> 같은 TMP 2개 직렬 연결</label>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <canvas id="plot" height="400" role="img" aria-label="최대 압축비 K₀에 따른 실효 배기속도 비율 그래프"></canvas>
+      <p class="cap">회색 곡선: 실제 압력비 K가 고정일 때의 S<sub>eff</sub>/S₀ (슬라이드 그림과 같은 곡선족). 주황 점: 현재 운전점 (챔버 쪽 TMP 기준).</p>
+    </div>
+    <div class="card">
+      <canvas id="ladder" height="230" role="img" aria-label="챔버에서 backing pump까지의 분압 계단 그림"></canvas>
+      <table>
+        <tr><td>실제 압력비 K = p<sub>out</sub>/p<sub>in</sub></td><td id="oK"></td></tr>
+        <tr><td>K / K₀</td><td id="oKr"></td></tr>
+        <tr class="hl"><td>S<sub>eff</sub> / S₀</td><td id="oS"></td></tr>
+        <tr><td>S<sub>eff</sub></td><td id="oSe"></td></tr>
+        <tr class="hl"><td>챔버 쪽 분압 p<sub>in</sub></td><td id="oPin"></td></tr>
+        <tr><td>&nbsp;&nbsp;부하 항 Q/S₀</td><td id="oA"></td></tr>
+        <tr><td>&nbsp;&nbsp;역류 항 p<sub>out</sub>/K₀</td><td id="oB"></td></tr>
+      </table>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+
+  <div class="card note">
+    <span class="eq">S<sub>eff</sub> = S₀ (1 − K/K₀)</span>,&nbsp; <span class="eq">K = p<sub>out</sub>/p<sub>in</sub></span>
+    &nbsp;⇒&nbsp; <span class="eq">p<sub>in</sub> = Q/S₀ + p<sub>out</sub>/K₀</span>
+    <ul>
+      <li><b>K₀는 유량이 0일 때의 최대 압력비</b>입니다. K = K₀이면 순방향 흐름과 역류가 균형을 이뤄 S<sub>eff</sub> = 0이고, 이때의 p<sub>in</sub> = p<sub>out</sub>/K₀가 그 기체의 도달 분압입니다.</li>
+      <li>K₀, S₀ 값은 Pfeiffer HiPace 80 사양표(강의 슬라이드)의 값입니다. N₂와 Ar은 사양표에 "&gt; 10¹¹"로만 나와 있어 10¹¹로 두었습니다.</li>
+      <li>backing pump는 배기속도 1 L/s의 단순 모형(<span class="eq">p<sub>out</sub> = p<sub>b</sub> + Q/S<sub>b</sub></span>)이며, 이 값과 p<sub>b</sub>는 실제 펌프 데이터가 아닌 설명용 가정입니다.</li>
+      <li><b>기체 부하의 기준값</b>은 내표면적 1 m²(10⁴ cm²)인 스테인리스 챔버를 가정한 전체 기체방출량입니다. baking 안 함: 수 시간 배기 후 약 10⁻⁷ mbar·L/s/cm² → 약 10⁻³ mbar·L/s이고 대부분 H₂O입니다(다른 기체는 합쳐서 10 % 정도, Chambers 4장). baking 함: 10³배 이상 감소 → 10⁻⁶ mbar·L/s 이하이며 대부분 H₂입니다(Chambers 4장). 잘 bake된 스테인리스의 일반적인 문헌값(약 10⁻¹² mbar·L/s/cm²)으로는 10⁻⁸ 수준입니다. 슬라이더 아래 주황 눈금과 초록 띠가 이 값들입니다.</li>
+      <li>분자류 영역만 다룹니다. foreline 전체 압력이 높아지면 K₀ 자체가 떨어지는 효과는 넣지 않았습니다.</li>
+    </ul>
+  </div>
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+
+<script>
+(function(){
+  'use strict';
+  var GASES=[
+    {id:'H2',name:'H₂',K0:1.4e5,S0:48},
+    {id:'He',name:'He',K0:1.3e7,S0:58},
+    {id:'N2',name:'N₂',K0:1e11,S0:67},
+    {id:'Ar',name:'Ar',K0:1e11,S0:66}
+  ];
+  var SB=1;            // backing pump speed (L/s), schematic
+  var gas=GASES[0];
+  var $=function(id){return document.getElementById(id);};
+  var kSl=$('kSl'),pSl=$('pSl'),qSl=$('qSl'),tandem=$('tandem');
+
+  var SUP={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  function sup(n){return String(n).split('').map(function(c){return SUP[c];}).join('');}
+  function sci(x,d){
+    if(x===0) return '0';
+    if(d===undefined) d=1;
+    var e=Math.floor(Math.log10(x)), m=x/Math.pow(10,e);
+    if(+m.toFixed(d)>=10){m/=10;e+=1;}
+    if(e>=0&&e<3) return (+x.toPrecision(d+1)).toString();
+    return m.toFixed(d)+'×10'+sup(e);
+  }
+  function pct(r){
+    var p=r*100;
+    if(p===0) return '0 %';
+    if(p<0.01) return sci(p,1)+' %';
+    if(p>99.99&&p<100) return '> 99.99 %';
+    return p.toFixed(p<10?2:1)+' %';
+  }
+
+  function state(){
+    var K0=Math.pow(10,+kSl.value);
+    var pb=Math.pow(10,+pSl.value);
+    var Q=(+qSl.value<=+qSl.min)?0:Math.pow(10,+qSl.value);
+    var S0=gas.S0, A=Q/S0;
+    var pFore=pb+Q/SB;                 // foreline, at backing pump inlet
+    var pMid=null, pOut=pFore;
+    if(tandem.checked){ pMid=A+pFore/K0; pOut=pMid; }
+    var B=pOut/K0, pin=A+B;
+    var K=pOut/pin, r=A/pin;           // r = 1-K/K0, computed without cancellation
+    return {K0:K0,pb:pb,Q:Q,S0:S0,A:A,B:B,pFore:pFore,pMid:pMid,pOut:pOut,pin:pin,K:K,r:r};
+  }
+
+  // ---------- canvas helpers ----------
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+  function setup(cv){
+    var dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute('height');
+    cv.style.height=h+'px';
+    cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+    var c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,w,h);
+    c.font='13px "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif';
+    return {c:c,w:w,h:h};
+  }
+
+  function drawPlot(s){
+    var o=setup($('plot')),c=o.c,w=o.w,h=o.h;
+    var L=52,R=16,T=26,B=44, pw=w-L-R, ph=h-T-B, X0=1, X1=12;
+    var X=function(lg){return L+(lg-X0)/(X1-X0)*pw;}, Y=function(r){return T+(1-r)*ph;};
+    var cText=css('--text'),cMut=css('--muted'),cBor=css('--border'),cFam=css('--fam'),cPt=css('--pt'),cAcc=css('--accent');
+    c.lineWidth=1; c.strokeStyle=cBor; c.fillStyle=cMut; c.textAlign='center'; c.textBaseline='top';
+    for(var e=1;e<=12;e++){
+      c.beginPath(); c.moveTo(X(e),T); c.lineTo(X(e),T+ph); c.stroke();
+      if(e%2===0||w>520) c.fillText('10'+sup(e),X(e),T+ph+6);
+    }
+    c.textAlign='right'; c.textBaseline='middle';
+    for(var p=0;p<=100;p+=20){
+      c.beginPath(); c.moveTo(L,Y(p/100)); c.lineTo(L+pw,Y(p/100)); c.stroke();
+      c.fillText(p+'',L-8,Y(p/100));
+    }
+    c.textAlign='center'; c.textBaseline='alphabetic'; c.fillStyle=cText;
+    c.fillText('펌프의 최대 압축비 K₀',L+pw/2,h-6);
+    c.save(); c.translate(14,T+ph/2); c.rotate(-Math.PI/2); c.fillText('S_eff / S₀ (%)',0,0); c.restore();
+
+    function curve(lgK,col,lw,dash){
+      c.beginPath(); c.strokeStyle=col; c.lineWidth=lw; c.setLineDash(dash||[]);
+      var first=true;
+      for(var lg=Math.max(lgK,X0); lg<=X1+1e-9; lg+=0.02){
+        var r=1-Math.pow(10,lgK-lg); if(r<0) r=0;
+        if(first){c.moveTo(X(lg),Y(r));first=false;} else c.lineTo(X(lg),Y(r));
+      }
+      c.stroke(); c.setLineDash([]);
+    }
+    c.fillStyle=cMut; c.textAlign='left'; c.textBaseline='bottom';
+    for(var k=1;k<=11;k++){
+      curve(k,cFam,1.2);
+      if(w>520||k%2===1) c.fillText((k===1?'K=':'')+'10'+sup(k), X(k)+3, Y(0)-2);
+    }
+    var lgK=Math.log10(s.K), lgK0=Math.log10(s.K0);
+    curve(lgK,cAcc,2,[6,4]);
+    // operating point
+    var px=X(lgK0), py=Y(s.r);
+    c.strokeStyle=cPt; c.lineWidth=1; c.setLineDash([3,3]);
+    c.beginPath(); c.moveTo(px,py); c.lineTo(px,T+ph); c.moveTo(px,py); c.lineTo(L,py); c.stroke(); c.setLineDash([]);
+    c.fillStyle=cPt; c.beginPath(); c.arc(px,py,6.5,0,2*Math.PI); c.fill();
+    c.strokeStyle=css('--card'); c.lineWidth=2; c.stroke();
+    c.fillStyle=cText; c.textBaseline='bottom';
+    var lab=gas.name+': '+pct(s.r);
+    var right=px+12+c.measureText(lab).width<L+pw;
+    var lw2=c.measureText(lab).width, lx=px+(right?11:-11-lw2), ly2=Math.max(py-10,T+20);
+    c.fillStyle=css('--card'); c.fillRect(lx-4,ly2-18,lw2+8,21);
+    c.strokeStyle=cPt; c.lineWidth=1; c.strokeRect(lx-4,ly2-18,lw2+8,21);
+    c.fillStyle=cText; c.textAlign='left';
+    c.fillText(lab, lx, ly2);
+    c.textAlign='left'; c.textBaseline='top'; c.fillStyle=cAcc;
+    c.fillText('파란 점선: 현재 K = '+sci(s.K,1)+' 인 곡선',L+4,4);
+  }
+
+  function drawLadder(s){
+    var o=setup($('ladder')),c=o.c,w=o.w,h=o.h;
+    var cText=css('--text'),cMut=css('--muted'),cBor=css('--border'),cPt=css('--pt'),cAcc=css('--accent');
+    var L=50,R=10,T=30,B=14, pw=w-L-R, ph=h-T-B, E0=-15, E1=1;
+    var Y=function(p){var lg=Math.max(E0,Math.min(E1,Math.log10(p)));return T+(E1-lg)/(E1-E0)*ph;};
+    c.strokeStyle=cBor; c.lineWidth=1; c.fillStyle=cMut; c.textAlign='right'; c.textBaseline='middle';
+    for(var e=E0+1;e<=E1;e+=2){
+      var y=T+(E1-e)/(E1-E0)*ph;
+      c.beginPath(); c.moveTo(L,y); c.lineTo(L+pw,y); c.stroke();
+      c.fillText('10'+sup(e),L-6,y);
+    }
+    c.textAlign='left'; c.textBaseline='top'; c.fillText('분압 (mbar)',4,4);
+    var nodes=[{n:'챔버',p:s.pin,hot:true}];
+    if(s.pMid!==null) nodes.push({n:'TMP 사이',p:s.pMid});
+    nodes.push({n:'foreline',p:s.pFore});
+    var n=nodes.length, seg=pw/n;
+    c.textAlign='center';
+    for(var i=0;i<n;i++){
+      var x0=L+i*seg, x1=x0+seg, y2=Y(nodes[i].p);
+      c.strokeStyle=nodes[i].hot?cPt:cAcc; c.lineWidth=3;
+      c.beginPath(); c.moveTo(x0+8,y2); c.lineTo(x1-8,y2); c.stroke();
+      if(i<n-1){ // pump between node i and i+1
+        var yn=Y(nodes[i+1].p);
+        c.strokeStyle=cMut; c.lineWidth=1.2; c.setLineDash([4,3]);
+        c.beginPath(); c.moveTo(x1-8,y2); c.lineTo(x1+8,yn); c.stroke(); c.setLineDash([]);
+        c.fillStyle=cMut; c.textBaseline='bottom';
+        c.fillText('TMP',x1,T-4);
+      }
+      c.fillStyle=cText; c.textBaseline='bottom';
+      var ly=y2-5; if(ly<T+14) {c.textBaseline='top'; ly=y2+5;}
+      c.fillText(nodes[i].n+'  '+(nodes[i].p>0?sci(nodes[i].p,1):'0'),(x0+x1)/2,ly);
+    }
+    c.fillStyle=cMut; c.textBaseline='bottom'; c.textAlign='right';
+    c.fillText('→ backing pump',L+pw,T-4);
+  }
+
+  function render(){
+    var s=state();
+    $('kVal').textContent='K₀ = '+sci(s.K0,1);
+    $('pVal').textContent='p_b = '+sci(s.pb,1)+' mbar';
+    $('qVal').textContent=s.Q===0?'Q = 0 (기체 유입 없음)':'Q = '+sci(s.Q,1)+' mbar·L/s';
+    $('oK').textContent=sci(s.K,2);
+    $('oKr').textContent=(1-s.r)>=0.9999&&s.r>0?'≈ 1':(1-s.r<1e-3?sci(1-s.r,1):(1-s.r).toFixed(4));
+    $('oS').textContent=pct(s.r);
+    $('oSe').textContent=(s.S0*s.r<0.1&&s.r>0?sci(s.S0*s.r,1):(s.S0*s.r).toFixed(1))+' / '+s.S0+' L/s';
+    $('oPin').textContent=sci(s.pin,2)+' mbar';
+    $('oA').textContent=(s.A===0?'0':sci(s.A,2))+' mbar';
+    $('oB').textContent=sci(s.B,2)+' mbar';
+    var m;
+    if(s.Q===0) m='<b>Q = 0</b>이므로 K = K₀, S<sub>eff</sub> = 0입니다. 펌프가 고장 난 것이 아니라, 이 분압이 '+gas.name+'의 도달 분압(p<sub>out</sub>/K₀)입니다.';
+    else if(s.r<0.5) m='<b>역류 항이 지배</b>합니다. 뒷단에서 되돌아오는 '+gas.name+'가 챔버 분압을 결정하고 있어, 배기속도가 사양값의 '+pct(s.r)+'밖에 나오지 않습니다. 뒷단 분압을 낮추거나 TMP를 직렬로 연결해 보세요.';
+    else if(s.r<0.9) m='부하 항과 역류 항이 비슷한 크기입니다. K₀가 K의 10배가 되어야 90 %가 나옵니다.';
+    else m='<b>부하 항이 지배</b>합니다. K₀ ≫ K이므로 뒷단 조건과 거의 무관하게 사양 배기속도가 나옵니다.';
+    $('msg').innerHTML=m;
+    drawPlot(s); drawLadder(s);
+  }
+
+  function pickGas(g){
+    gas=g; kSl.value=Math.log10(g.K0).toFixed(2);
+    Array.prototype.forEach.call($('gasBtns').children,function(b){b.setAttribute('aria-pressed',b.dataset.id===g.id?'true':'false');});
+    render();
+  }
+  GASES.forEach(function(g){
+    var b=document.createElement('button'); b.type='button'; b.textContent=g.name; b.dataset.id=g.id;
+    b.addEventListener('click',function(){pickGas(g);});
+    $('gasBtns').appendChild(b);
+  });
+  (function(){ // reference marks under the Q slider (thumb ≈16 px wide)
+    var lo=+qSl.min, hi=+qSl.max, X=function(v){return 8+(v-lo)/(hi-lo)*224;};
+    $('qTick').style.left=(X(-3)-1.5)+'px';
+    $('qBand').style.left=X(-8)+'px'; $('qBand').style.width=(X(-6)-X(-8))+'px';
+  })();
+  Array.prototype.forEach.call(document.querySelectorAll('button[data-q]'),function(b){
+    b.addEventListener('click',function(){qSl.value=b.dataset.q; render();});
+  });
+  [kSl,pSl,qSl].forEach(function(el){el.addEventListener('input',render);});
+  tandem.addEventListener('change',render);
+  window.addEventListener('resize',render);
+  if(window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+  pickGas(GASES[0]);
+})();
+</script>
+</body>
+</html>
