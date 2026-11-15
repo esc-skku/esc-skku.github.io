@@ -172,7 +172,7 @@
   // ---------- canvas helpers ----------
   function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
   function setup(cv){
-    var dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute('height');
+    var dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=cv._h||(cv._h=+cv.getAttribute('height'));
     cv.style.height=h+'px';
     cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
     var c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,w,h);
