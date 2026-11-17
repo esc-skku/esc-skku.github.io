@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5.7 티타늄 승화 펌프: Ti 공급과 기체 도달의 균형</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#101211; --card:#1a1d1b; --border:#2c302d; --text:#e8ece9; --muted:#a8b0aa;
+    --accent:#6aa6f2; --top:#6aa6f2; --bot:#f28b62; --blade:#6f7772; --fam:#5a625d; --ok:#3fcf98; --btn:#222623; --btnh:#2c302d; --hl:#3a2f22;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 24px 6px}
+  h1{margin:0 0 4px;font-size:22px;color:var(--accent)}
+  .sub{margin:0;color:var(--muted);font-size:14px;max-width:72em}
+  .wrap{padding:10px 24px 28px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .controls{display:flex;flex-wrap:wrap;gap:16px 26px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:4px;min-width:200px}
+  .ctl label,.ctl .lab{font-size:13px;color:var(--muted)}
+  .ctl .val{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:210px;accent-color:var(--accent)}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{padding:7px 14px;border:1px solid var(--border);background:var(--btn);color:var(--text);border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+  button:hover{background:var(--btnh)}
+  button[aria-pressed=true]{background:var(--accent);color:var(--card);border-color:var(--accent)}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--bot);outline-offset:2px}
+  .grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}
+  @media (max-width:980px){.grid{grid-template-columns:1fr}}
+  canvas{display:block;width:100%}
+  .cap{font-size:13px;color:var(--muted);margin:8px 2px 0}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 5px 0 2px;vertical-align:-1px}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .spd{display:inline-flex;gap:4px}
+  .spd button{padding:7px 10px;min-width:42px}
+  .live{font-size:13.5px;margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  td:first-child{text-align:left;color:var(--muted)}
+  tr.hl td{background:var(--hl);font-weight:600;color:var(--text)}
+  .note{font-size:14px}
+  .note b{color:var(--accent)}
+  nav.crumb{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border)}
+  nav.crumb a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+  nav.crumb span{margin:0 7px;color:var(--border)}
+  footer{padding:14px 24px 28px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+  .note ul{margin:6px 0 0;padding-left:20px}
+  .eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:16px;white-space:nowrap}
+</style>
+<style>.msg{margin-top:10px;font-size:14px;min-height:44px}.msg b{color:var(--bot)}</style>
+</head>
+<body>
+<header>
+  <nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 5</a><span>/</span>티타늄 승화 펌프</nav>
+  <h1>5.7 티타늄 승화 펌프(TSP): Ti 공급과 기체 도달의 균형</h1>
+  <p class="sub">TSP의 배기속도는 낮은 압력에서는 일정하다가 어느 압력부터 떨어집니다. 새로 깔리는 Ti보다 도달하는 기체가 많아져서 깨끗한 Ti 면이 남지 않기 때문입니다. 압력과 Ti 승화량을 바꿔 가며 확인해 보세요.</p>
+</header>
+
+<div class="wrap">
+  <div class="card controls">
+    <div class="ctl">
+      <span class="lab">기체</span>
+      <div class="btns" id="gasBtns"></div>
+    </div>
+    <div class="ctl">
+      <span class="lab">펌프면 온도</span>
+      <div class="btns" id="tBtns"></div>
+    </div>
+    <div class="ctl">
+      <label for="pSl">압력 p</label>
+      <input id="pSl" type="range" min="-11" max="-3" step="0.02" value="-8">
+      <div class="val" id="pVal"></div>
+    </div>
+    <div class="ctl">
+      <label for="rSl">Ti 승화량</label>
+      <input id="rSl" type="range" min="-3" max="-0.5" step="0.02" value="-1.3">
+      <div class="val" id="rVal"></div>
+    </div>
+    <div class="ctl">
+      <label for="aSl">펌프면 넓이 A</label>
+      <input id="aSl" type="range" min="200" max="6000" step="50" value="2850">
+      <div class="val" id="aVal"></div>
+    </div>
+    <div class="ctl">
+      <label for="dSl">입구 지름 d</label>
+      <input id="dSl" type="range" min="4" max="40" step="1" value="25">
+      <div class="val" id="dVal"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="bar">
+        <button type="button" id="pauseBtn" aria-pressed="false">일시정지</button>
+        <span class="live" id="live"></span>
+      </div>
+      <canvas id="anim" height="330" role="img" aria-label="필라멘트에서 나온 Ti와 기체 분자가 펌프면에 도달하는 애니메이션"></canvas>
+      <p class="cap"><span class="sw" style="background:var(--bot)"></span>Ti 원자 <span class="sw" style="background:var(--top)"></span>기체 분자 <span class="sw" style="background:var(--ok);border-radius:2px"></span>새 Ti 면 <span class="sw" style="background:var(--blade);border-radius:2px"></span>기체로 덮인 면. 기체는 새 Ti 면에서만 붙고, 덮인 면에서는 튕겨 나갑니다. 화면 속 시간은 실제와 다르고, 두 도달량의 비만 맞췄습니다.</p>
+    </div>
+    <div class="card">
+      <table>
+        <tr><td>깨끗한 면의 배기속도 S₀ = s·A</td><td id="oS0"></td></tr>
+        <tr><td>입구 컨덕턴스 C</td><td id="oC"></td></tr>
+        <tr><td>Ti 공급이 감당하는 기체량 Q<sub>Ti</sub></td><td id="oQ"></td></tr>
+        <tr><td>깨끗할 때 실효 배기속도 (S₀와 C 직렬)</td><td id="oSc"></td></tr>
+        <tr><td>전환 압력 p* = Q<sub>Ti</sub> / (깨끗할 때 실효 배기속도)</td><td id="oPs"></td></tr>
+        <tr><td>새 Ti 면 비율</td><td id="oF"></td></tr>
+        <tr><td>펌프면의 배기속도 (현재 압력)</td><td id="oSs"></td></tr>
+                <tr class="hl"><td>입구에서 본 실효 배기속도</td><td id="oSn"></td></tr>
+        <tr class="hl"><td>필라멘트를 끈 뒤 포화까지</td><td id="oT"></td></tr>
+      </table>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <canvas id="plot" height="300" role="img" aria-label="압력에 따른 TSP 배기속도 그래프"></canvas>
+    <p class="cap">실선: 입구에서 본 실효 배기속도. 점선: 펌프면 자체의 배기속도. 옅은 실선: 다른 펌프면 온도일 때의 실효 배기속도. 세로 점선은 현재 압력, 색이 칠해진 오른쪽 영역은 Ti 공급이 부족한 구간(p &gt; p*)입니다.</p>
+  </div>
+
+  <div class="card note">
+    <span class="eq">1/S<sub>면</sub> = 1/S₀ + p<sub>면</sub>/Q<sub>Ti</sub></span>,&nbsp; <span class="eq">1/S<sub>실효</sub> = 1/S<sub>면</sub> + 1/C</span> &nbsp;(p<sub>면</sub>: 입구를 지나 펌프면 앞에서의 압력)
+    <ul>
+      <li><b>낮은 압력 (p ≪ p*)</b>: Ti가 남아돌아 면이 늘 깨끗합니다. 배기속도는 면의 부착 성능과 입구 컨덕턴스가 정하고 압력과 무관합니다.</li>
+      <li><b>높은 압력 (p ≫ p*)</b>: 도달하는 기체가 Ti보다 많아 면이 덮입니다. 처리할 수 있는 기체량이 Q<sub>Ti</sub>로 고정되므로 배기속도는 1/p로 떨어집니다. 평균자유거리와는 관계가 없습니다.</li>
+      <li><b>입구 컨덕턴스</b>: 펌프면이 아무리 넓어도 입구를 통과한 분자만 잡을 수 있습니다. 강의 슬라이드의 예(면 0.285 m², 입구 지름 25 cm, N₂)가 기본값입니다.</li>
+      <li><b>포화 시간</b>: 압력이 낮으면 Ti를 계속 올릴 필요가 없습니다. 한 번 올린 면이 한 층 덮일 때까지의 시간을 보여 주며, 그 간격으로만 필라멘트를 켜면 됩니다.</li>
+      <li>깨끗한 면의 단위 넓이당 배기속도는 Chambers 표 6.1의 값(L/s per cm²)을 썼습니다. 입구 컨덕턴스는 N₂ 11.8 L/s per cm²에 √(28/M)을 곱했습니다.</li>
+      <li><b>설명용 가정</b>: Ti 원자 1개가 기체 분자 1개를 잡는다고 두었고, 덮인 비율에 비례해 부착이 줄어든다고 보았습니다. 면 한 층의 자리 수는 5×10¹⁴ 개/cm²로 두었습니다. Ti 승화량의 범위도 대략적인 값이라, 전환 압력과 포화 시간은 자릿수 정도로만 보세요.</li>
+    </ul>
+  </div>
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+<script>
+(function(){
+  'use strict';
+  // Clean-film speeds per unit area, L/s per cm² (Chambers Table 6.1): [295 K, 77 K]
+  var GASES=[
+    {id:'N2',name:'N₂',M:28,s:[4,10]},
+    {id:'H2',name:'H₂',M:2,s:[3,10]},
+    {id:'O2',name:'O₂',M:32,s:[9,11]},
+    {id:'CO',name:'CO',M:28,s:[8,9]},
+    {id:'H2O',name:'H₂O',M:18,s:[3,14]}
+  ];
+  var TEMPS=[{label:'상온 295 K',i:0},{label:'액체질소 77 K',i:1}];
+  var NPER=2.456e19;     // molecules per mbar·L at 295 K
+  var NSITE=5e14;        // sites per cm² (one layer), assumption
+  var gas=GASES[0], ti=0;
+  var $=function(id){return document.getElementById(id);};
+  var pSl=$('pSl'),rSl=$('rSl'),aSl=$('aSl'),dSl=$('dSl');
+  var SUP={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  function sup(n){return String(n).split('').map(function(c){return SUP[c];}).join('');}
+  function sci(x,d){
+    if(x===0) return '0'; if(d===undefined) d=1;
+    var e=Math.floor(Math.log10(x)), m=x/Math.pow(10,e);
+    if(+m.toFixed(d)>=10){m/=10;e+=1;}
+    return m.toFixed(d)+'×10'+sup(e);
+  }
+  function num(x){return x>=100?Math.round(x).toLocaleString('en-US'):(x>=10?x.toFixed(1):x.toFixed(2));}
+  function dur(t){
+    if(t<1) return '1초 미만'; if(t<90) return Math.round(t)+'초';
+    if(t<5400) return Math.round(t/60)+'분'; if(t<172800) return (t/3600).toFixed(1)+'시간';
+    if(t<3.2e7) return Math.round(t/86400)+'일'; return (t/3.156e7).toFixed(1)+'년';
+  }
+
+  function model(p,tIdx){
+    var A=+aSl.value, d=+dSl.value, gph=Math.pow(10,+rSl.value);
+    var si=gas.s[tIdx], S0=si*A;                         // L/s
+    var Ci=11.8*Math.sqrt(28/gas.M);                      // L/s per cm² (flux)
+    var C=Ci*Math.PI*d*d/4;
+    var Q=gph/3600/47.87*6.022e23/NPER;                   // mbar·L/s, one molecule per Ti atom
+    // pressure x in front of the film: C(p-x) = S0*x*Q/(Q+S0*x)  (inlet flow = uptake by partly covered film)
+    var b=C*Q+S0*Q-C*S0*p, x=(-b+Math.sqrt(b*b+4*C*S0*C*p*Q))/(2*C*S0);
+    var q=S0*x*Q/(Q+S0*x), Sn=q/p, Ss=q/x, Sc=1/(1/S0+1/C);
+    return {A:A,d:d,gph:gph,si:si,S0:S0,Ci:Ci,C:C,Q:Q,Sc:Sc,ps:Q/Sc,Ss:Ss,Sn:Sn,f:Ss/S0,x:x,
+            s0:Math.min(1,si/Ci), tsat:NSITE*A/(Sc*p*NPER)};
+  }
+  function P(){return Math.pow(10,+pSl.value);}
+
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+  function prep(c,h){
+    var dpr=window.devicePixelRatio||1,w=c.clientWidth;
+    c.style.height=h+'px';
+    if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);}
+    var x=c.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
+    x.font='13px "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif';
+    return {c:x,w:w,h:h};
+  }
+
+  // ---------- plot ----------
+  function drawPlot(){
+    var o=prep($('plot'),300),c=o.c,w=o.w,h=o.h,p=P(),m=model(p,ti);
+    var L=62,R=18,T=24,B=40,pw=w-L-R,ph=h-T-B,E0=-11,E1=-3;
+    var cA=css('--accent'),cB=css('--border'),cM=css('--muted'),cT=css('--text'),cP=css('--bot'),cF=css('--fam'),cHl=css('--hl');
+    var other=1-ti, ymax=Math.max(model(1e-12,ti).Sn,model(1e-12,other).Sn,Math.min(m.S0,m.C*2.2))*1.12;
+    var mag=Math.pow(10,Math.floor(Math.log10(ymax))), st=[1,2,5,10].map(function(k){return k*mag/2;}).filter(function(v){return ymax/v<=6;})[0];
+    var X=function(lg){return L+(lg-E0)/(E1-E0)*pw;}, Y=function(s){return T+(1-Math.min(s,ymax)/ymax)*ph;};
+    var lps=Math.log10(m.ps);
+    if(lps<E1){ c.fillStyle=cHl; var x0=Math.max(X(lps),L); c.fillRect(x0,T,L+pw-x0,ph); }
+    c.strokeStyle=cB; c.lineWidth=1; c.fillStyle=cM; c.textAlign='center'; c.textBaseline='top';
+    for(var e=E0;e<=E1;e++){ c.beginPath(); c.moveTo(X(e),T); c.lineTo(X(e),T+ph); c.stroke(); c.fillText('10'+sup(e),X(e),T+ph+6); }
+    c.textAlign='right'; c.textBaseline='middle';
+    for(var v=0;v<=ymax;v+=st){ c.beginPath(); c.moveTo(L,Y(v)); c.lineTo(L+pw,Y(v)); c.stroke(); c.fillText(Math.round(v).toLocaleString('en-US'),L-8,Y(v)); }
+    c.fillStyle=cT; c.textAlign='center'; c.textBaseline='alphabetic'; c.fillText('압력 p (mbar)',L+pw/2,h-6);
+    c.textAlign='left'; c.textBaseline='bottom'; c.fillText('배기속도 (L/s), '+gas.name,4,T-7);
+    function curve(fn,col,lw,dash){
+      c.beginPath(); c.strokeStyle=col; c.lineWidth=lw; c.setLineDash(dash||[]);
+      var pen=false;
+      for(var lg=E0;lg<=E1+1e-9;lg+=0.04){var val=fn(Math.pow(10,lg)); if(val>ymax){pen=false;continue;} var y=Y(val); if(!pen){c.moveTo(X(lg),y);pen=true;} else c.lineTo(X(lg),y);}
+      c.stroke(); c.setLineDash([]);
+    }
+    curve(function(q){return model(q,other).Sn;},cF,2);
+    curve(function(q){return model(q,ti).Ss;},cA,1.5,[6,4]);
+    curve(function(q){return model(q,ti).Sn;},cA,2.6);
+    // labels
+    c.fillStyle=cM; c.textAlign='left';
+    var yo=Y(model(1e-12,other).Sn), up=model(1e-12,other).Sn>model(1e-12,ti).Sn;
+    c.textBaseline=up?'bottom':'top'; c.fillText(TEMPS[other].label,X(E0)+6,yo+(up?-5:5));
+    if(lps>E0+0.5&&lps<E1-0.2){ c.fillStyle=cT; c.textAlign='left'; c.textBaseline='top'; c.fillText('Ti 공급 부족 (S ∝ 1/p)',X(lps)+6,T+4); c.textAlign='right'; c.fillText('p*',X(lps)-4,T+4); }
+    // operating point
+    var px=X(Math.log10(p)), py=Y(m.Sn);
+    c.strokeStyle=cP; c.lineWidth=1.5; c.setLineDash([4,3]); c.beginPath(); c.moveTo(px,T); c.lineTo(px,T+ph); c.stroke(); c.setLineDash([]);
+    c.fillStyle=cP; c.beginPath(); c.arc(px,py,6,0,2*Math.PI); c.fill(); c.strokeStyle=css('--card'); c.lineWidth=2; c.stroke();
+  }
+
+  // ---------- animation ----------
+  var NS=44, cells=[], dots=[], paused=false, accT=0, accG=0, cv=$('anim'), AH=330, RT=12;
+  function resetAnim(){ cells=[]; for(var i=0;i<NS;i++) cells.push({fresh:true,flash:0}); dots=[]; }
+  function step(dt){
+    var m=model(P(),ti), w=cv.clientWidth;
+    var ratio=Math.max(0.03,Math.min(14,m.Ci*m.A*m.x/m.Q));   // gas arrivals per Ti arrival
+    accT+=RT*dt; accG+=RT*ratio*dt;
+    var fx=w/2, fy=46, sy=AH-40;
+    while(accT>=1){ accT-=1; var k=(Math.random()*NS)|0; dots.push({ti:true,x:fx+(Math.random()-0.5)*70,y:fy,k:k,t:0,T:0.55}); }
+    var guard=0;
+    while(accG>=1&&guard++<60){ accG-=1; var k2=(Math.random()*NS)|0; dots.push({ti:false,x:Math.random()*w,y:-6,k:k2,t:0,T:0.75}); }
+    if(accG>60) accG=0;
+    for(var i=dots.length-1;i>=0;i--){
+      var d=dots[i]; d.t+=dt;
+      if(d.out){ if(d.t>d.T){dots.splice(i,1);} continue; }
+      if(d.t>=d.T){
+        var c=cells[d.k];
+        if(d.ti){ c.fresh=true; c.flash=0.25; dots.splice(i,1); }
+        else if(c.fresh&&Math.random()<m.s0){ c.fresh=false; c.flash=0.25; dots.splice(i,1); }
+        else { d.out=true; d.t=0; d.T=0.7; d.x0=(d.k+0.5)*w/NS; d.x1=d.x0+(Math.random()-0.5)*w*0.6; }
+      }
+    }
+    for(i=0;i<NS;i++) if(cells[i].flash>0) cells[i].flash-=dt;
+  }
+  function drawAnim(){
+    var o=prep(cv,AH),c=o.c,w=o.w,m=model(P(),ti);
+    var fx=w/2, fy=46, sy=AH-40, cw=w/NS;
+    var cTi=css('--bot'),cG=css('--top'),cOk=css('--ok'),cOcc=css('--blade'),cM=css('--muted'),cT=css('--text');
+    // filament
+    c.strokeStyle=cTi; c.lineWidth=3; c.lineJoin='round'; c.beginPath();
+    for(var i=0;i<=12;i++){ var x=fx-48+i*8, y=fy-12+(i%2?-7:7); if(i===0)c.moveTo(x,y); else c.lineTo(x,y); } c.stroke();
+    c.fillStyle=cM; c.textAlign='center'; c.textBaseline='bottom'; c.fillText('Ti 필라멘트',fx,fy-24);
+    // surface
+    for(i=0;i<NS;i++){
+      var cl=cells[i]; c.globalAlpha=cl.flash>0?0.6:1; c.fillStyle=cl.fresh?cOk:cOcc;
+      c.fillRect(i*cw+1,sy,cw-2,16); c.globalAlpha=1;
+    }
+    c.fillStyle=cM; c.textBaseline='top'; c.fillText('펌프면 ('+TEMPS[ti].label+')',fx,sy+20);
+    // dots
+    for(i=0;i<dots.length;i++){
+      var d=dots[i], u=Math.min(1,d.t/d.T), x2,y2;
+      if(d.out){ x2=d.x0+(d.x1-d.x0)*u; y2=sy-4-(sy+10)*u; }
+      else { var tx=(d.k+0.5)*cw; x2=d.x+(tx-d.x)*u; y2=d.y+(sy-4-d.y)*u; }
+      c.fillStyle=d.ti?cTi:cG; c.beginPath(); c.arc(x2,y2,d.ti?2.6:3.4,0,2*Math.PI); c.fill();
+    }
+    var fr=cells.filter(function(q){return q.fresh;}).length/NS;
+    $('live').textContent='새 Ti 면: 화면 '+Math.round(fr*100)+' %,  계산 '+(m.f*100<1?(m.f*100).toFixed(1):Math.round(m.f*100))+' %';
+  }
+  var last=null;
+  function frame(ts){
+    if(last===null) last=ts; var dt=Math.min(0.05,(ts-last)/1000); last=ts;
+    if(!paused) step(dt);
+    drawAnim(); requestAnimationFrame(frame);
+  }
+
+  // ---------- UI ----------
+  function render(){
+    var p=P(), m=model(p,ti);
+    $('pVal').textContent='p = '+sci(p,1)+' mbar';
+    $('rVal').textContent=(m.gph<0.01?m.gph.toFixed(4):m.gph.toFixed(m.gph<0.1?3:2))+' g/h';
+    $('aVal').textContent='A = '+m.A.toLocaleString('en-US')+' cm²  ('+(m.A/1e4).toFixed(3)+' m²)';
+    $('dVal').textContent='d = '+m.d+' cm';
+    $('oS0').textContent=m.si+' × '+m.A.toLocaleString('en-US')+' = '+num(m.S0)+' L/s';
+    $('oSc').textContent=num(m.Sc)+' L/s';
+    $('oQ').textContent=sci(m.Q,1)+' mbar·L/s';
+    $('oPs').textContent=sci(m.ps,1)+' mbar';
+    $('oF').textContent=(m.f*100<1?(m.f*100).toFixed(2):(m.f*100).toFixed(m.f>0.995?1:0))+' %';
+    $('oSs').textContent=num(m.Ss)+' L/s';
+    $('oC').textContent=num(m.C)+' L/s';
+    $('oSn').textContent=num(m.Sn)+' L/s';
+    $('oT').textContent=dur(m.tsat);
+    var msg;
+    if(p>m.ps*3) msg='<b>Ti 공급이 부족</b>합니다. 도달하는 기체가 새로 깔리는 Ti보다 많아 면이 덮여 있고, 배기속도는 압력에 반비례해 떨어집니다. Ti 승화량을 늘리면 회복됩니다.';
+    else if(p>m.ps/3) msg='전환 압력 근처입니다. 기체 도달량과 Ti 공급량이 비슷해 면의 일부가 덮여 있습니다.';
+    else if(m.S0>m.C*2) msg='면은 깨끗하고 <b>입구 컨덕턴스가 배기속도를 제한</b>합니다. 펌프면을 더 넓혀도 실효 배기속도는 거의 늘지 않습니다.';
+    else msg='면은 깨끗하고 <b>면의 부착 성능이 배기속도를 제한</b>합니다. 펌프면을 넓히거나 식히면 배기속도가 늘어납니다.';
+    $('msg').innerHTML=msg;
+    drawPlot();
+  }
+  function mark(box,sel){Array.prototype.forEach.call(box.children,function(b){b.setAttribute('aria-pressed',b===sel?'true':'false');});}
+  GASES.forEach(function(g,i){
+    var b=document.createElement('button'); b.type='button'; b.textContent=g.name; b.setAttribute('aria-pressed',i===0?'true':'false');
+    b.addEventListener('click',function(){gas=g; mark($('gasBtns'),b); resetAnim(); render();});
+    $('gasBtns').appendChild(b);
+  });
+  TEMPS.forEach(function(t,i){
+    var b=document.createElement('button'); b.type='button'; b.textContent=t.label; b.setAttribute('aria-pressed',i===0?'true':'false');
+    b.addEventListener('click',function(){ti=t.i; mark($('tBtns'),b); render();});
+    $('tBtns').appendChild(b);
+  });
+  [pSl,rSl,aSl,dSl].forEach(function(el){el.addEventListener('input',render);});
+  $('pauseBtn').addEventListener('click',function(){paused=!paused;this.setAttribute('aria-pressed',paused);this.textContent=paused?'다시 재생':'일시정지';});
+  window.addEventListener('resize',render);
+  if(window.matchMedia){
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('pauseBtn').setAttribute('aria-pressed','true');$('pauseBtn').textContent='다시 재생';}
+  }
+  window.__model=function(p,t){return model(p,t);};
+  resetAnim(); render(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
