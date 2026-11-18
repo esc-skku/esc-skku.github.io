@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5.8 스퍼터 이온 펌프: 페닝 셀</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#101211; --card:#1a1d1b; --border:#2c302d; --text:#e8ece9; --muted:#a8b0aa;
+    --accent:#6aa6f2; --top:#6aa6f2; --bot:#f28b62; --blade:#6f7772; --ok:#3fcf98; --btn:#222623; --btnh:#2c302d; --hl:#3a2f22;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+  header{padding:18px 24px 6px}
+  h1{margin:0 0 4px;font-size:22px;color:var(--accent)}
+  .sub{margin:0;color:var(--muted);font-size:14px;max-width:72em}
+  .wrap{padding:10px 24px 28px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .controls{display:flex;flex-wrap:wrap;gap:16px 26px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:4px;min-width:200px}
+  .ctl label,.ctl .lab{font-size:13px;color:var(--muted)}
+  .ctl .val{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:210px;accent-color:var(--accent)}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{padding:7px 14px;border:1px solid var(--border);background:var(--btn);color:var(--text);border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+  button:hover{background:var(--btnh)}
+  button[aria-pressed=true]{background:var(--accent);color:var(--card);border-color:var(--accent)}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--bot);outline-offset:2px}
+  .grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}
+  @media (max-width:980px){.grid{grid-template-columns:1fr}}
+  canvas{display:block;width:100%}
+  .cap{font-size:13px;color:var(--muted);margin:8px 2px 0}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 5px 0 2px;vertical-align:-1px}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .spd{display:inline-flex;gap:4px}
+  .spd button{padding:7px 10px;min-width:42px}
+  .live{font-size:13.5px;margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  td:first-child{text-align:left;color:var(--muted)}
+  tr.hl td{background:var(--hl);font-weight:600;color:var(--text)}
+  .note{font-size:14px}
+  .note b{color:var(--accent)}
+  nav.crumb{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  nav.crumb a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border)}
+  nav.crumb a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+  nav.crumb span{margin:0 7px;color:var(--border)}
+  footer{padding:14px 24px 28px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+  .note ul{margin:6px 0 0;padding-left:20px}
+  .eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:16px;white-space:nowrap}
+</style><style>
+  :root{--ti:#f3bb45;--el:#a596f5;--ar:#e07ac6}
+  .msg{margin-top:10px;font-size:14px;min-height:60px}.msg b{color:var(--bot)}
+  .spd{display:inline-flex;gap:4px}.spd button{padding:7px 10px;min-width:42px}
+  td.ref{color:var(--muted);font-weight:400}
+</style>
+</head>
+<body>
+<header>
+  <nav class="crumb"><a href="../../">시뮬레이션</a><span>/</span><a href="../">첨단 진공 물리 및 기술</a><span>/</span><a href="./">Chapter 5</a><span>/</span>스퍼터 이온 펌프</nav>
+  <h1>5.8 스퍼터 이온 펌프: 페닝 셀 안에서 일어나는 일</h1>
+  <p class="sub">전자 구름이 기체를 이온화하고, 이온이 음극을 때려 Ti를 튀겨 냅니다. 기체 종류와 펌프 구조를 바꿔 가며, 기체가 어디에 어떻게 붙잡히는지, 그리고 Ar이 왜 이극 펌프에서 다시 튀어나오는지 살펴보세요.</p>
+</header>
+
+<div class="wrap">
+  <div class="card controls">
+    <div class="ctl">
+      <span class="lab">펌프 구조</span>
+      <div class="btns" id="modeBtns"></div>
+    </div>
+    <div class="ctl">
+      <span class="lab">기체</span>
+      <div class="btns" id="gasBtns"></div>
+    </div>
+    <div class="ctl">
+      <label for="qSl">기체 유입량</label>
+      <input id="qSl" type="range" min="1" max="10" step="1" value="4">
+      <div class="val" id="qVal"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="bar">
+        <button type="button" id="pauseBtn" aria-pressed="false">일시정지</button>
+        <span class="spd" id="spdBtns" role="group" aria-label="재생 속도"></span>
+        <button type="button" id="resetBtn">초기화</button>
+      </div>
+      <canvas id="anim" height="380" role="img" aria-label="페닝 셀 단면 애니메이션"></canvas>
+      <p class="cap"><span class="sw" style="background:var(--top)"></span>기체 분자 <span class="sw" style="background:var(--bot)"></span>이온 <span class="sw" style="background:var(--el)"></span>전자 <span class="sw" style="background:var(--ti)"></span>튀어나온 Ti <span class="sw" style="background:var(--ok);border-radius:2px"></span>새 Ti 막 <span class="sw" style="background:var(--ar)"></span>음극에 얕게 박힌 Ar. 자기장은 좌우 방향(셀의 축 방향)입니다.</p>
+    </div>
+    <div class="card">
+      <table>
+        <tr><td>셀 안의 자유 기체 분자 수 (압력에 해당)</td><td id="oN"></td></tr>
+        <tr><td>새 Ti 막에 화학흡착된 분자</td><td id="oChem"></td></tr>
+        <tr><td id="lIon">이온으로 음극에 박힌 분자</td><td id="oIon"></td></tr>
+        <tr><td id="lReb">중성으로 튕겨 다른 면에 묻힌 분자</td><td id="oReb"></td></tr>
+        <tr class="hl"><td>음극 표면에 얕게 박혀 있는 Ar (불안정)</td><td id="oInv"></td></tr>
+        <tr class="hl"><td>다시 튀어나온 횟수 (재방출)</td><td id="oRel"></td></tr>
+        <tr><td>참고: 공기 대비 배기속도 (강의 표 5.7, Chambers)</td><td id="oRef" class="ref"></td></tr>
+      </table>
+      <canvas id="trace" height="150" style="margin-top:12px" role="img" aria-label="시간에 따른 자유 기체 분자 수"></canvas>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+
+  <div class="card note">
+    <ul style="margin-top:0">
+      <li><b>전자 가두기</b>: 전기장만 있으면 전자는 곧바로 양극으로 가 버립니다. 축 방향 자기장이 전자를 자기력선 둘레로 감아 돌게 하고, 전자는 두 음극 사이를 오가며 오래 머뭅니다. 그래서 낮은 압력에서도 이온화가 계속됩니다.</li>
+      <li><b>활성 기체 (N₂ 등)</b>: 이온이 음극 가운데를 때려 Ti를 튀겨 내고, 그 Ti가 양극 안쪽에 새 막을 만듭니다. 중성 분자가 이 막에 화학흡착되는 것이 주된 배기 경로이고, 이온이 음극에 직접 박히는 것이 그다음입니다.</li>
+      <li><b>수소</b>: 가벼워서 Ti를 거의 튀겨 내지 못하지만, Ti 속으로 깊이 확산해 들어갑니다. 음극이 스펀지처럼 수소를 머금습니다.</li>
+      <li><b>Ar과 이극 펌프</b>: Ar은 화학결합을 하지 않아 음극 표면에 얕게 박힐 뿐이고, 같은 자리를 다음 이온이 때리면 다시 튀어나옵니다. 그래서 압력이 내려가지 않습니다. 실제 펌프에서는 이것이 주기적인 압력 튐(불활성 기체 불안정성)으로 나타납니다.</li>
+      <li><b>삼극 펌프</b>: 음극이 격자입니다. 이온이 격자 옆면을 비스듬히 스치면서 Ti를 뒤쪽 케이스로 튀겨 보내고, 중성이 된 Ar은 에너지를 유지한 채 케이스에 묻힙니다. 케이스는 이온이 때리지 않는 면이라 다시 튀어나오지 않습니다.</li>
+      <li><b>Ta 음극 (noble diode)</b>: 한쪽 음극을 무거운 Ta로 바꾸면 Ar이 중성으로 세게 튕겨 나와 양극에 묻힐 확률이 커집니다. 대신 Ti 공급이 줄어 활성 기체 배기속도는 조금 떨어집니다.</li>
+      <li><b>이 화면은 도식입니다.</b> 입자의 속도, 이온화 빈도, 박히거나 튕겨 나올 확률은 설명을 위해 정한 값이며 실제 물리량을 계산한 것이 아닙니다. 그래서 분자 수 곡선은 경향만 보여 주고, 실제 배기속도 비는 표의 참고값을 보세요.</li>
+    </ul>
+  </div>
+</div>
+<footer>Electronic Structure Control Lab · Dept. of Physics, Sungkyunkwan University</footer>
+<script>
+(function(){
+  'use strict';
+  var MODES=[{id:'diode',name:'이극 (Ti 음극)'},{id:'noble',name:'이극 (한쪽 Ta 음극)'},{id:'triode',name:'삼극 (격자 음극)'}];
+  // schematic parameters (not physical quantities)
+  var GASES={
+    N2:{name:'N₂',v:110,Y:1.2,stick:0.6,ionKeep:0.5,cathAbs:0,active:true},
+    H2:{name:'H₂',v:210,Y:0.05,stick:0.3,ionKeep:1,cathAbs:0.45,active:true},
+    Ar:{name:'Ar',v:95,Y:2.0,stick:0,ionKeep:0,cathAbs:0,active:false}
+  };
+  var REF={diode:{N2:'1',H2:'1.5 ~ 2.5',Ar:'0.01'},noble:{N2:'이극보다 조금 작음',H2:'이극보다 작음',Ar:'약 0.2'},triode:{N2:'1',H2:'1.5 ~ 2.5',Ar:'0.25'}};
+  var RI=0.3, NA=20, NC=16, CAP=170;
+  var mode='diode', gasId='N2';
+  var $=function(id){return document.getElementById(id);};
+  var cv=$('anim'), AH=380, W=600;
+  var G={}, S;                   // geometry, state
+
+  function gauss(){var u=1-Math.random(),w=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*w);}
+  function layout(w){
+    W=w; var Lx=Math.max(260,Math.min(480,W-110));
+    G.x0=W/2-Lx/2; G.x1=W/2+Lx/2; G.yT=78; G.yB=AH-78; G.gap=40; G.cy=(G.yT+G.yB)/2; G.h=G.yB-G.yT;
+    G.gx0=G.x0+38; G.gx1=G.x1-38;            // triode grid planes
+    G.ax0=G.x0+G.gap+(mode==='triode'?30:0); G.ax1=G.x1-G.gap-(mode==='triode'?30:0);
+  }
+  function fresh(){
+    S={parts:[],t:0,acc:0,segT:new Array(NA).fill(0),segB:new Array(NA).fill(0),
+       cL:{er:new Array(NC).fill(0),ar:[],fr:new Array(NC).fill(0),st:new Array(NC).fill(0)},
+       cR:{er:new Array(NC).fill(0),ar:[],fr:new Array(NC).fill(0),st:new Array(NC).fill(0)},
+       stA:[],chem:0,ion:0,reb:0,rel:0,trace:[],trAcc:0,el:[]};
+    for(var i=0;i<16;i++) S.el.push({y:(Math.random()-0.5)*0.5,p1:Math.random()*6.28,p2:Math.random()*6.28,w1:2.2+Math.random()*1.6,w2:17+Math.random()*8,a:0.55+Math.random()*0.4});
+  }
+  function binOf(y){return Math.max(0,Math.min(NC-1,Math.floor((y-G.yT)/G.h*NC)));}
+  function segOf(x){return (x<G.ax0||x>G.ax1)?-1:Math.max(0,Math.min(NA-1,Math.floor((x-G.ax0)/(G.ax1-G.ax0)*NA)));}
+  function free(){var n=0;for(var i=0;i<S.parts.length;i++){var k=S.parts[i].k;if(k==='g'||k==='i')n++;}return n;}
+  function addGas(x,y,vx,vy){S.parts.push({k:'g',x:x,y:y,vx:vx,vy:vy});}
+  function inject(){
+    var g=GASES[gasId], top=Math.random()<0.5, left=Math.random()<0.5, a=(Math.random()-0.5)*1.6;
+    var x=left?G.x0+6+Math.random()*(G.gap-12):G.x1-6-Math.random()*(G.gap-12);
+    addGas(x,top?G.yT+2:G.yB-2,g.v*Math.sin(a),(top?1:-1)*g.v*Math.cos(a));
+  }
+  function diffuse(p,nx,ny){ // cosine-law reflection about inward normal (nx,ny)
+    var g=GASES[gasId], s=Math.random()*2-1, c=Math.sqrt(1-s*s);
+    p.vx=g.v*(c*nx - s*ny); p.vy=g.v*(c*ny + s*nx);
+  }
+  function tiAtom(x,y,dirx){ // sputtered Ti leaving a cathode/grid toward dirx
+    var a=(Math.random()-0.5)*2.4;
+    S.parts.push({k:'t',x:x,y:y,vx:dirx*330*Math.cos(a),vy:330*Math.sin(a)});
+  }
+  function impact(p){ // ion arrives at its target
+    var g=GASES[gasId], left=p.side<0, cath=left?S.cL:S.cR, b=binOf(p.y), i;
+    if(mode==='triode'){
+      var gx=left?G.gx0:G.gx1, n=Math.random()<g.Y*2%1?Math.ceil(g.Y*2):Math.floor(g.Y*2);
+      for(i=0;i<n;i++) S.parts.push({k:'t',x:gx,y:p.y,vx:(left?-1:1)*300,vy:(Math.random()-0.5)*260});
+      // neutralised particle carries on to the casing
+      var keep=gasId==='Ar'?0.25:(gasId==='H2'?1:0.6);
+      S.parts.push({k:'n',x:gx,y:p.y,vx:(left?-1:1)*520,vy:(Math.random()-0.5)*120,keep:keep,side:p.side});
+      return;
+    }
+    var isTa=(mode==='noble'&&!left);
+    cath.er[b]+=1;
+    // resputter shallow Ar near the impact point
+    for(i=cath.ar.length-1;i>=0;i--){
+      if(Math.abs(cath.ar[i].b-b)<=1&&Math.random()<0.5){
+        var q=cath.ar.splice(i,1)[0]; S.rel++;
+        addGas(left?G.x0+3:G.x1-3,q.y,(left?1:-1)*GASES.Ar.v*0.8,(Math.random()-0.5)*GASES.Ar.v);
+      }
+    }
+    if(!isTa){ var m=Math.floor(g.Y)+(Math.random()<g.Y%1?1:0); for(i=0;i<m;i++) tiAtom(left?G.x0+2:G.x1-2,p.y,left?1:-1); }
+    if(gasId==='Ar'){
+      var pr=isTa?0.5:0.04;
+      if(Math.random()<pr){ var a=(Math.random()-0.5)*2.2; S.parts.push({k:'n',x:left?G.x0+3:G.x1-3,y:p.y,vx:(left?1:-1)*520*Math.cos(a),vy:520*Math.sin(a),keep:1,side:0}); }
+      else cath.ar.push({b:b,y:p.y});
+    } else if(Math.random()<g.ionKeep){ S.ion++; if(gasId==='H2') S.parts.push({k:'h',x:left?G.x0:G.x1,y:p.y,vx:(left?-1:1)*30,vy:0,life:0.8}); }
+    else addGas(left?G.x0+3:G.x1-3,p.y,(left?1:-1)*g.v*0.9,(Math.random()-0.5)*g.v);
+  }
+  function step(dt){
+    var g=GASES[gasId], rate=+$('qSl').value, i, p;
+    S.t+=dt; S.acc+=rate*dt;
+    while(S.acc>=1){ S.acc-=1; if(free()<CAP) inject(); }
+    for(i=S.parts.length-1;i>=0;i--){
+      p=S.parts[i];
+      if(p.k==='g'){
+        if(Math.random()<RI*dt && p.x>G.x0+50 && p.x<G.x1-50 && Math.abs(p.y-G.cy)<G.h*0.36){
+          p.k='i'; p.side=p.x<W/2?-1:1; p.ty=Math.max(G.yT+6,Math.min(G.yB-6,G.cy+gauss()*G.h*0.11));
+          p.tx=mode==='triode'?(p.side<0?G.gx0:G.gx1):(p.side<0?G.x0:G.x1); p.sx=p.x; p.sy=p.y; p.u=0; continue;
+        }
+        p.x+=p.vx*dt; p.y+=p.vy*dt;
+        if(p.y<G.yT||p.y>G.yB){
+          var top=p.y<G.yT, s=segOf(p.x), arr=top?S.segT:S.segB;
+          p.y=top?G.yT+0.5:G.yB-0.5;
+          if(s>=0&&arr[s]>0&&Math.random()<g.stick){ if(gasId!=='H2') arr[s]--; S.chem++; S.parts.splice(i,1); continue; }
+          diffuse(p,0,top?1:-1);
+        } else if(p.x<G.x0||p.x>G.x1){
+          var left=p.x<G.x0, c=left?S.cL:S.cR, b=binOf(p.y);
+          p.x=left?G.x0+0.5:G.x1-0.5;
+          if(mode==='triode'){ if(c.fr[b]>0&&Math.random()<g.stick){ if(gasId!=='H2') c.fr[b]--; S.chem++; S.parts.splice(i,1); continue; } }
+          else if(!(mode==='noble'&&!left)&&Math.random()<g.cathAbs){ S.ion++; S.parts.splice(i,1); S.parts.push({k:'h',x:p.x,y:p.y,vx:(left?-1:1)*30,vy:0,life:0.8}); continue; }
+          diffuse(p,left?1:-1,0);
+        }
+      } else if(p.k==='i'){
+        p.u+=dt/0.24; var e=p.u*p.u;
+        p.x=p.sx+(p.tx-p.sx)*e; p.y=p.sy+(p.ty-p.sy)*e;
+        if(p.u>=1){ p.x=p.tx; p.y=p.ty; S.parts.splice(i,1); impact(p); }
+      } else if(p.k==='t'){
+        p.x+=p.vx*dt; p.y+=p.vy*dt;
+        if(p.y<G.yT||p.y>G.yB){ var s2=segOf(p.x), a2=p.y<G.yT?S.segT:S.segB; if(s2>=0) a2[s2]=Math.min(3,a2[s2]+1); S.parts.splice(i,1); }
+        else if(p.x<G.x0||p.x>G.x1){
+          var c2=p.x<G.x0?S.cL:S.cR, b2=binOf(p.y);
+          if(mode==='triode') c2.fr[b2]=Math.min(3,c2.fr[b2]+1);
+          S.parts.splice(i,1);
+        }
+      } else if(p.k==='n'){
+        p.x+=p.vx*dt; p.y+=p.vy*dt;
+        var hit=(p.y<G.yT||p.y>G.yB||p.x<G.x0||p.x>G.x1);
+        if(hit){
+          S.parts.splice(i,1);
+          var bx=Math.max(G.x0,Math.min(G.x1,p.x)), by=Math.max(G.yT,Math.min(G.yB,p.y));
+          if(Math.random()<p.keep){
+            if(gasId==='Ar'||mode==='triode'){ if(gasId==='Ar') S.reb++; else S.ion++; }
+            if(S.stA.length<400) S.stA.push({x:bx,y:by});
+          } else addGas(bx+(p.x<G.x0?3:(p.x>G.x1?-3:0)),by+(p.y<G.yT?3:(p.y>G.yB?-3:0)),(W/2-bx)/Math.abs(W/2-bx||1)*g.v*0.7,(G.cy-by)*0.5);
+        }
+      } else if(p.k==='h'){ p.x+=p.vx*dt; p.life-=dt; if(p.life<=0) S.parts.splice(i,1); }
+    }
+    S.trAcc+=dt; if(S.trAcc>=0.25){ S.trAcc=0; S.trace.push(free()); if(S.trace.length>320) S.trace.shift(); }
+  }
+
+  // ---------- drawing ----------
+  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+  function prep(c,h){
+    var dpr=window.devicePixelRatio||1,w=c.clientWidth;
+    c.style.height=h+'px';
+    if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);}
+    var x=c.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
+    x.font='13px "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif';
+    return {c:x,w:w,h:h};
+  }
+  function draw(){
+    var o=prep(cv,AH),c=o.c; if(Math.abs(o.w-W)>1){layout(o.w);}
+    var cM=css('--muted'),cT=css('--text'),cBl=css('--blade'),cOk=css('--ok'),cTi=css('--ti'),cEl=css('--el'),cG=css('--top'),cI=css('--bot'),cAr=css('--ar'),cAcc=css('--accent'),cCard=css('--card');
+    var tri=mode==='triode', i, bh=G.h/NC;
+    // electron cloud
+    c.globalAlpha=0.10; c.fillStyle=cEl; c.beginPath(); c.ellipse(W/2,G.cy,(tri?G.gx1-G.gx0:G.x1-G.x0)/2-22,G.h*0.30,0,0,2*Math.PI); c.fill(); c.globalAlpha=1;
+    // anode walls
+    c.fillStyle=cBl; c.fillRect(G.ax0,G.yT-12,G.ax1-G.ax0,12); c.fillRect(G.ax0,G.yB,G.ax1-G.ax0,12);
+    var sw=(G.ax1-G.ax0)/NA;
+    for(i=0;i<NA;i++){
+      if(S.segT[i]>0){c.globalAlpha=0.35+0.2*S.segT[i]; c.fillStyle=cOk; c.fillRect(G.ax0+i*sw,G.yT-4,sw-1,4);}
+      if(S.segB[i]>0){c.globalAlpha=0.35+0.2*S.segB[i]; c.fillStyle=cOk; c.fillRect(G.ax0+i*sw,G.yB,sw-1,4);}
+    }
+    c.globalAlpha=1;
+    // cathode plates / casing
+    [[-1,S.cL,G.x0],[1,S.cR,G.x1]].forEach(function(q){
+      var left=q[0]<0, ct=q[1], x=q[2], isTa=(mode==='noble'&&!left);
+      c.fillStyle=tri?cBl:(isTa?cM:cTi); c.globalAlpha=tri?1:0.8;
+      for(var b=0;b<NC;b++){
+        var er=tri?0:Math.min(9,ct.er[b]*0.22), wd=16-er;
+        c.fillRect(left?x-16:x+er,G.yT+b*bh,wd,bh+0.5);
+      }
+      c.globalAlpha=1;
+      if(tri) for(b=0;b<NC;b++) if(ct.fr[b]>0){ c.globalAlpha=0.35+0.2*ct.fr[b]; c.fillStyle=cOk; c.fillRect(left?x-4:x,G.yT+b*bh,4,bh-1); c.globalAlpha=1; }
+      c.fillStyle=cAr; ct.ar.forEach(function(a){ c.beginPath(); c.arc(left?x-3:x+3,a.y,2.6,0,2*Math.PI); c.fill(); });
+    });
+    // triode grids
+    if(tri){ c.strokeStyle=cTi; c.lineWidth=5; c.setLineDash([12,10]);
+      [G.gx0,G.gx1].forEach(function(x){c.beginPath(); c.moveTo(x,G.yT+4); c.lineTo(x,G.yB-4); c.stroke();}); c.setLineDash([]); }
+    // stably buried atoms
+    c.fillStyle=cM; S.stA.forEach(function(a){ c.beginPath(); c.arc(a.x<=G.x0?a.x-5:(a.x>=G.x1?a.x+5:a.x),a.y<=G.yT?a.y-7:(a.y>=G.yB?a.y+7:a.y),1.8,0,2*Math.PI); c.fill(); });
+    // electrons
+    c.fillStyle=cEl; var hw=((tri?G.gx1-G.gx0:G.x1-G.x0)/2-26);
+    S.el.forEach(function(e){ var x=W/2+hw*e.a*Math.sin(S.t*e.w1+e.p1), y=G.cy+e.y*G.h*0.55+6*Math.sin(S.t*e.w2+e.p2); c.beginPath(); c.arc(x,y,2.4,0,2*Math.PI); c.fill(); });
+    // particles
+    S.parts.forEach(function(p){
+      if(p.k==='g'){c.fillStyle=cG; c.beginPath(); c.arc(p.x,p.y,3.3,0,2*Math.PI); c.fill();}
+      else if(p.k==='i'){c.fillStyle=cI; c.beginPath(); c.arc(p.x,p.y,3.6,0,2*Math.PI); c.fill(); c.strokeStyle=cI; c.lineWidth=1; c.beginPath(); c.arc(p.x,p.y,6,0,2*Math.PI); c.stroke();}
+      else if(p.k==='t'){c.fillStyle=cTi; c.beginPath(); c.arc(p.x,p.y,2.3,0,2*Math.PI); c.fill();}
+      else if(p.k==='n'){c.fillStyle=cG; c.beginPath(); c.arc(p.x,p.y,3.3,0,2*Math.PI); c.fill(); c.strokeStyle=cG; c.lineWidth=1.5; c.beginPath(); c.moveTo(p.x,p.y); c.lineTo(p.x-p.vx*0.035,p.y-p.vy*0.035); c.stroke();}
+      else if(p.k==='h'){c.globalAlpha=Math.max(0,p.life/0.8); c.fillStyle=cG; c.beginPath(); c.arc(p.x,p.y,2.6,0,2*Math.PI); c.fill(); c.globalAlpha=1;}
+    });
+    // labels
+    c.fillStyle=cT; c.textAlign='center'; c.textBaseline='bottom';
+    c.fillText(tri?'양극 (접지)':'양극 (+3~7 kV)',W/2,G.yT-16);
+    c.textBaseline='top';
+    if(tri){ c.fillText('케이스 (접지)',G.x0-4,G.yB+18); c.fillText('케이스 (접지)',G.x1+4,G.yB+18); c.fillStyle=cTi; c.fillText('Ti 격자 음극 (−kV)',W/2,G.yB+18); }
+    else { c.fillStyle=cTi; c.fillText('Ti 음극',G.x0-4,G.yB+18); c.fillStyle=mode==='noble'?cM:cTi; c.fillText(mode==='noble'?'Ta 음극':'Ti 음극',G.x1+4,G.yB+18); }
+    // B arrow
+    c.strokeStyle=cM; c.fillStyle=cM; c.lineWidth=1.5; c.beginPath(); c.moveTo(W/2-34,24); c.lineTo(W/2+34,24); c.stroke();
+    c.beginPath(); c.moveTo(W/2+34,24); c.lineTo(W/2+26,19); c.lineTo(W/2+26,29); c.closePath(); c.fill();
+    c.textAlign='left'; c.textBaseline='middle'; c.fillText('B',W/2+42,24);
+    c.textAlign='left'; c.textBaseline='top'; c.fillText('기체 유입',G.x0+2,G.yT-30);
+  }
+  function drawTrace(){
+    var o=prep($('trace'),150),c=o.c,w=o.w,h=o.h,L=38,R=8,T=20,B=18,pw=w-L-R,ph=h-T-B;
+    var mx=20; S.trace.forEach(function(v){if(v>mx)mx=v;}); mx=Math.ceil(mx/20)*20;
+    c.strokeStyle=css('--border'); c.fillStyle=css('--muted'); c.textAlign='right'; c.textBaseline='middle'; c.lineWidth=1;
+    for(var v=0;v<=mx;v+=mx/2){var y=T+(1-v/mx)*ph; c.beginPath(); c.moveTo(L,y); c.lineTo(L+pw,y); c.stroke(); c.fillText(v,L-6,y);}
+    c.textAlign='left'; c.textBaseline='bottom'; c.fillStyle=css('--text'); c.fillText('자유 기체 분자 수 (최근 80초)',4,T-5);
+    c.strokeStyle=css('--top'); c.lineWidth=2; c.beginPath();
+    S.trace.forEach(function(v,i){var x=L+i/319*pw,y=T+(1-v/mx)*ph; if(i===0)c.moveTo(x,y); else c.lineTo(x,y);}); c.stroke();
+  }
+  var tick=0;
+  function readout(){
+    var n=free(), inv=S.cL.ar.length+S.cR.ar.length;
+    $('oN').textContent=n+(n>=CAP?' (상한)':'');
+    $('oChem').textContent=S.chem; $('oIon').textContent=S.ion; $('oReb').textContent=S.reb;
+    $('oInv').textContent=inv; $('oRel').textContent=S.rel;
+    var msg;
+    if(gasId==='Ar'&&mode==='diode') msg=(S.rel>3?'<b>Ar이 다시 튀어나오고 있습니다.</b> ':'')+'Ar은 음극 가운데에 얕게 박힐 뿐이고, 같은 자리를 다음 이온이 때리면 다시 기체가 됩니다. 분자 수가 줄지 않고 쌓입니다.';
+    else if(gasId==='Ar'&&mode==='triode') msg='이온이 격자를 스치고 중성이 된 Ar이 <b>케이스에 묻힙니다.</b> 케이스는 이온이 때리지 않으므로 다시 튀어나오지 않습니다.';
+    else if(gasId==='Ar') msg='Ta 음극(오른쪽)에 맞은 Ar은 <b>중성으로 세게 튕겨 나와 양극에 묻힙니다.</b> Ti 음극(왼쪽)에 박힌 Ar은 여전히 다시 튀어나옵니다.';
+    else if(gasId==='H2') msg='수소는 Ti를 거의 튀겨 내지 못해 새 막(초록)이 잘 생기지 않습니다. 대신 <b>Ti 속으로 확산</b>해 들어가 붙잡힙니다.';
+    else msg='이온이 음극 가운데를 때려 Ti를 튀겨 내고(음극이 가운데부터 파임), 그 Ti가 '+(mode==='triode'?'케이스와 양극':'양극 안쪽')+'에 <b>새 막</b>을 만듭니다. 중성 분자가 이 막에 붙는 것이 주된 배기 경로입니다.';
+    $('msg').innerHTML=msg;
+  }
+  function labels(){
+    $('lIon').textContent=gasId==='H2'?'Ti 속으로 확산해 들어간 분자':(mode==='triode'?'이온화된 뒤 케이스·격자에 묻힌 분자':'이온으로 음극에 박힌 분자 (안정한 화합물)');
+    $('lReb').textContent=mode==='triode'?'중성이 되어 케이스에 묻힌 Ar':'중성으로 튕겨 양극에 묻힌 Ar';
+    $('oRef').textContent=GASES[gasId].name+': '+REF[mode][gasId];
+    $('qVal').textContent='초당 '+$('qSl').value+'개';
+  }
+  var last=null, speed=1, paused=false;
+  function frame(ts){
+    if(last===null) last=ts; var dt=Math.min(0.05,(ts-last)/1000); last=ts;
+    if(!paused){ var left=dt*speed; while(left>1e-6){var hstep=Math.min(0.02,left); left-=hstep; step(hstep);} }
+    draw(); if((tick++)%6===0){readout(); drawTrace();}
+    requestAnimationFrame(frame);
+  }
+  function restart(){ layout(cv.clientWidth); fresh(); labels(); readout(); }
+  function mark(box,sel){Array.prototype.forEach.call(box.children,function(b){b.setAttribute('aria-pressed',b===sel?'true':'false');});}
+  MODES.forEach(function(m,i){
+    var b=document.createElement('button'); b.type='button'; b.textContent=m.name; b.setAttribute('aria-pressed',i===0?'true':'false');
+    b.addEventListener('click',function(){mode=m.id; mark($('modeBtns'),b); restart();}); $('modeBtns').appendChild(b);
+  });
+  Object.keys(GASES).forEach(function(k,i){
+    var b=document.createElement('button'); b.type='button'; b.textContent=GASES[k].name; b.setAttribute('aria-pressed',i===0?'true':'false');
+    b.addEventListener('click',function(){gasId=k; mark($('gasBtns'),b); restart();}); $('gasBtns').appendChild(b);
+  });
+  [1,2,4,8].forEach(function(x){
+    var b=document.createElement('button'); b.type='button'; b.textContent=x+'×'; b.setAttribute('aria-pressed',x===1?'true':'false');
+    b.addEventListener('click',function(){speed=x; mark($('spdBtns'),b);}); $('spdBtns').appendChild(b);
+  });
+  $('qSl').addEventListener('input',labels);
+  $('resetBtn').addEventListener('click',restart);
+  $('pauseBtn').addEventListener('click',function(){paused=!paused;this.setAttribute('aria-pressed',paused);this.textContent=paused?'다시 재생':'일시정지';});
+  window.addEventListener('resize',function(){layout(cv.clientWidth);});
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('pauseBtn').setAttribute('aria-pressed','true');$('pauseBtn').textContent='다시 재생';}
+  // headless helper: run without drawing and report the averaged free count
+  window.__run=function(m,gk,T){
+    mode=m; gasId=gk; layout(600); fresh(); var sum=0,n=0;
+    for(var t=0;t<T;t+=0.02){ step(0.02); if(t>T*0.5){sum+=free();n++;} }
+    return {N:Math.round(sum/n*10)/10,chem:S.chem,ion:S.ion,reb:S.reb,rel:S.rel,inv:S.cL.ar.length+S.cR.ar.length};
+  };
+  restart(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
