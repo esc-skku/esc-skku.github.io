@@ -124,8 +124,8 @@ function drawSource(P,name,sel,on,sp,c1,c2,hov,wl){var tipx=P.x,tipy=P.y+18,dx=s
   if(on){ctx.save();ctx.globalCompositeOperation='lighter';
     [[34,0.045],[18,0.08],[8,0.14],[2.5,0.4]].forEach(function(b){var g2=ctx.createLinearGradient(tipx,tipy,sp.x,sp.y);g2.addColorStop(0,'rgba('+c1+','+b[1]+')');g2.addColorStop(1,'rgba('+c2+','+Math.min(1,b[1]*1.7)+')');ctx.fillStyle=g2;
       ctx.beginPath();ctx.moveTo(tipx-uy*2,tipy+ux*2);ctx.lineTo(sp.x-uy*b[0],sp.y+ux*b[0]);ctx.lineTo(sp.x+uy*b[0],sp.y-ux*b[0]);ctx.lineTo(tipx+uy*2,tipy-ux*2);ctx.closePath();ctx.fill()});
-    for(var wp=0;wp<3;wp++){var c0=((st.t*0.5+wp/3)%1)*L,first=true;ctx.beginPath();ctx.lineWidth=1.8;ctx.strokeStyle='rgba(255,246,220,0.95)';
-      for(var s=-36;s<=36;s+=1.5){var pos=c0+s;if(pos<6||pos>L-6)continue;var amp=7*Math.exp(-s*s/280)*Math.sin(s/wl),qx=tipx+ux*pos-uy*amp,qy=tipy+uy*pos+ux*amp;if(first){ctx.moveTo(qx,qy);first=false}else ctx.lineTo(qx,qy)}ctx.stroke()}
+    for(var wp=0;wp<3;wp++){var c0=((st.t*0.5+wp/3)%1)*L,first=true;ctx.beginPath();ctx.lineWidth=1.8;ctx.strokeStyle='rgba('+c2+',0.98)';
+      for(var s=-36;s<=36;s+=(wl<1.2?0.35:1.5)){var pos=c0+s;if(pos<6||pos>L-6)continue;var amp=(wl<1.2?5:7)*Math.exp(-s*s/280)*Math.sin(s/wl),qx=tipx+ux*pos-uy*amp,qy=tipy+uy*pos+ux*amp;if(first){ctx.moveTo(qx,qy);first=false}else ctx.lineTo(qx,qy)}ctx.stroke()}
     glow(tipx,tipy,24,'rgba('+c1+',0.95)',0.85);
     glow(sp.x,sp.y,50+6*Math.sin(st.t*7),'rgba('+c2+',0.95)',0.75);glow(sp.x,sp.y,15,'rgba(255,255,255,1)',0.9);
     for(var k2=0;k2<8;k2++){var rr2=20+28*((Math.sin(k2*12.9)+1)/2),a2=k2*2.4+st.t*0.25,tw=Math.max(0,Math.sin(st.t*3.1+k2*1.7));star(sp.x+Math.cos(a2)*rr2*1.6,sp.y+Math.sin(a2)*rr2*0.55,2+7*tw,tw)}
@@ -179,8 +179,8 @@ function draw(){
 
   /* photon sources: He lamp (ARPES) and X-ray (XPS) */
   var lit=st.light;
-  drawSource(LAMP,'He lamp',st.src==='he',lit&&st.src==='he',sp,'190,170,255','255,214,140','light',3.2);
-  drawSource(XRAY,'X-ray source',st.src==='xray',lit&&st.src==='xray',sp,'150,205,255','225,242,255','xray',1.5);
+  drawSource(LAMP,'He lamp',st.src==='he',lit&&st.src==='he',sp,'255,140,50','255,176,96','light',3.2);
+  drawSource(XRAY,'X-ray source',st.src==='xray',lit&&st.src==='xray',sp,'236,244,255','255,255,255','xray',0.7);
 
   /* analyzer (whole assembly tilted 45 degrees so the lens axis points at the sample) */
   var on=st.meas,R=AN.r+27;
@@ -254,12 +254,12 @@ function step(now){var dt=Math.min(0.05,(now-last)/1000||0.016);last=now;st.t+=d
   if(rheed.length>240)rheed.splice(0,rheed.length-240);
   for(var j=atoms.length-1;j>=0;j--){var a=atoms[j];a.u+=dt*1.9;if(a.u>=1){atoms.splice(j,1);continue}a.x=a.sx+(a.tx-a.sx)*a.u;a.y=a.sy+(a.ty-a.sy)*a.u*a.u}
   if(st.light&&st.grow<0){var s0=spot();
-    if(st.meas){if(st.src==='xray'){var be=sampleX();if(be>=XMIN&&be<XMAX)elec.push({s:s0,u:0,a:1,x:s0.x,y:s0.y,m:1,k:Math.random()*2-1,fx:(XMAX-be)/(XMAX-XMIN),fy:0.9});addXps(110)}
+    if(st.meas){if(st.src==='xray'){var be=sampleX();if(be>=XMIN&&be<XMAX)elec.push({s:s0,u:0,a:1,x:s0.x,y:s0.y,m:1,v:2,k:Math.random()*2-1,fx:(XMAX-be)/(XMAX-XMIN),fy:0.9});addXps(110)}
       else{var sm=sample(bottoms(st.layers));if(sm)elec.push({s:s0,u:0,a:1,x:s0.x,y:s0.y,m:1,k:sm.k,fx:(sm.k+1)/2,fy:(EMAX-sm.E)/(EMAX-EMIN)});addEvents(140)}}
-    for(var ne=0;ne<2;ne++)if(Math.random()<0.55){var an=-Math.PI*(0.05+0.9*Math.random());if(Math.abs(an+Math.PI/4)<0.15)continue;var sp0=190+90*Math.random();elec.push({s:s0,u:0,a:0.9,x:s0.x,y:s0.y,m:0,vx:Math.cos(an)*sp0,vy:Math.sin(an)*sp0})}}
+    for(var ne=0;ne<2;ne++)if(Math.random()<0.55){var an=-Math.PI*(0.05+0.9*Math.random());if(Math.abs(an+Math.PI/4)<0.15)continue;var xr=st.src==='xray',sp0=(190+90*Math.random())*(xr?2:1);elec.push({f:xr?1.7:1.05,s:s0,u:0,a:0.9,x:s0.x,y:s0.y,m:0,vx:Math.cos(an)*sp0,vy:Math.sin(an)*sp0})}}
   for(var k=elec.length-1;k>=0;k--){var e=elec[k];
-    if(e.m){e.u+=dt*0.8;if(e.u>=1){e.u=1;var qe=ePos(e);flashes.push({x:qe.x,y:qe.y,a:1});elec.splice(k,1);continue}var q=ePos(e);e.x=q.x;e.y=q.y}
-    else{e.x+=e.vx*dt;e.y+=e.vy*dt;e.a-=dt*1.05;if(e.a<=0)elec.splice(k,1)}}
+    if(e.m){e.u+=dt*0.8*(e.v||1);if(e.u>=1){e.u=1;var qe=ePos(e);flashes.push({x:qe.x,y:qe.y,a:1});elec.splice(k,1);continue}var q=ePos(e);e.x=q.x;e.y=q.y}
+    else{e.x+=e.vx*dt;e.y+=e.vy*dt;e.a-=dt*(e.f||1.05);if(e.a<=0)elec.splice(k,1)}}
   for(var fi=flashes.length-1;fi>=0;fi--){flashes[fi].a-=dt*2.4;if(flashes[fi].a<=0)flashes.splice(fi,1)}
   $('rCounts').textContent=(st.src==='xray'?st.xcounts:st.counts).toLocaleString('en-US');
   draw();if(host._alive)requestAnimationFrame(step);else running=false}
