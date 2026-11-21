@@ -22,11 +22,11 @@ var TEMPLATE = '<style>'
 +'</style>'
 +'<div class="panel">'
 +'<div><div class="eyebrow">Interactive · MBE + ARPES</div><h2>Grow it. Light it. <span>Read its electrons.</span></h2></div>'
-+'<p class="lede">박막을 한 층 쌓을 때마다 전자가 갇히는 방식이 바뀌고, ARPES에 보이는 밴드 개수가 달라집니다. 장면 안의 박막, 빛, 분석기를 직접 눌러 보세요.</p>'
++'<p class="lede">박막을 한 층 쌓을 때마다 전자가 갇히는 방식이 바뀌고, ARPES에 보이는 밴드 개수가 달라집니다. 광원을 X선으로 바꾸면 같은 분석기로 XPS를 잽니다. 장면 안의 박막, 광원, 분석기를 직접 눌러 보세요.</p>'
 +'<div class="stage"><canvas id="cv" width="1100" height="600" role="img" aria-label="MBE 박막 성장과 ARPES 측정 장면. 아래 버튼으로도 조작할 수 있습니다."></canvas></div>'
-+'<div class="controls"><button id="bGrow" type="button">박막 한 층 쌓기</button><button id="bLight" type="button" aria-pressed="true">빛 hν</button><button id="bMeas" type="button" aria-pressed="true">전자 측정</button><button id="bReset" type="button" class="ghost">처음부터</button><div class="status" id="status" aria-live="polite"></div></div>'
-+'<div class="readouts"><div class="ro"><b id="rLayers">2 u.c.</b><span>박막 두께 (unit cell)</span></div><div class="ro"><b id="rBands">2</b><span>페르미 준위 아래 양자우물 밴드</span></div><div class="ro"><b>21.2 eV</b><span>광자 에너지, He-Iα</span></div><div class="ro"><b id="rCounts">0</b><span>검출한 광전자 수</span></div></div>'
-+'<p class="note">밴드는 두께 N인 박막의 양자우물 준위를 단순한 tight-binding 모형으로 계산한 개념도입니다. 실제 측정 데이터가 아닙니다.</p>'
++'<div class="controls"><button id="bGrow" type="button">박막 한 층 쌓기</button><button id="bLight" type="button" aria-pressed="true">빛 hν</button><button id="bSrc" type="button">광원: He 램프</button><button id="bMeas" type="button" aria-pressed="true">전자 측정</button><button id="bReset" type="button" class="ghost">처음부터</button><div class="status" id="status" aria-live="polite"></div></div>'
++'<div class="readouts"><div class="ro"><b id="rLayers">2 u.c.</b><span>박막 두께 (unit cell)</span></div><div class="ro"><b id="rBands">2</b><span>페르미 준위 아래 양자우물 밴드</span></div><div class="ro"><b id="rHv">21.2 eV</b><span id="rHvL">광자 에너지, He-Iα</span></div><div class="ro"><b id="rCounts">0</b><span>검출한 광전자 수</span></div></div>'
++'<p class="note">밴드와 XPS 스펙트럼은 단순한 모형으로 계산한 개념도입니다. 실제 측정 데이터가 아닙니다.</p>'
 +'</div>';
 
 function boot(root, host){
@@ -36,7 +36,7 @@ var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches
 var C={bg:'#0a1c14',line:'#1d3a2c',ink:'#e8f1e9',muted:'#86a393',lime:'#a6e05a',amber:'#ffb84d',cyan:'#58d1c2'};
 var $=function(i){return root.getElementById(i)};
 
-var st={layers:2,grow:-1,light:true,meas:true,t:0,counts:0,hover:null};
+var st={layers:2,grow:-1,light:true,meas:true,t:0,counts:0,hover:null,src:'he',xcounts:0};
 var atoms=[],elec=[],rheed=[],flashes=[];
 var MAXL=6;
 
@@ -45,7 +45,14 @@ var GW=140,GH=120,grid=new Float32Array(GW*GH),gmax=1;
 var EMIN=-1.25,EMAX=0.18;
 var off=document.createElement('canvas');off.width=GW;off.height=GH;var octx=off.getContext('2d'),img=octx.createImageData(GW,GH);
 function bottoms(N){var b=[];for(var n=1;n<=N;n++){var e=-0.62*Math.cos(n*Math.PI/(N+1))-0.45;if(e<-0.02)b.push(e)}return b}
-function clearGrid(){grid.fill(0);gmax=1;st.counts=0}
+var XB=230,XMIN=100,XMAX=560,xps=new Float32Array(XB),xmax=1;
+var PEAKS=[{n:'O 1s',e:530.0,w:1.0,t:0},{n:'Ti 2p',e:458.6,w:0.62,t:1},{n:'Ti 2p',e:464.3,w:0.31,t:1,nl:1},{n:'Ru 3d',e:281.0,w:0.6,t:2},{n:'Ru 3d',e:285.2,w:0.4,t:2,nl:1},{n:'Sr 3d',e:133.4,w:0.9,t:0}];
+function pkW(p){var a=Math.exp(-0.25*st.layers);return p.w*(p.t===1?a:(p.t===2?(1-a)*1.3:1))}
+function gs(){return(Math.random()+Math.random()+Math.random()+Math.random()-2)*1.2}
+function sampleX(){var tot=0,i;for(i=0;i<PEAKS.length;i++)tot+=pkW(PEAKS[i]);var r=Math.random()*tot;for(i=0;i<PEAKS.length;i++){r-=pkW(PEAKS[i]);if(r<=0)break}
+  var p=PEAKS[Math.min(i,PEAKS.length-1)],be=p.e+gs()*2.6;if(Math.random()<0.3)be+=Math.random()*(XMAX-be);if(Math.random()<0.05)be=XMIN+Math.random()*(XMAX-XMIN);return be}
+function addXps(m){for(var i=0;i<m;i++){var be=sampleX();if(be<XMIN||be>=XMAX)continue;var b=((be-XMIN)/(XMAX-XMIN)*XB)|0,v=++xps[b];if(v>xmax)xmax=v;st.xcounts++}}
+function clearGrid(){grid.fill(0);gmax=1;st.counts=0;xps.fill(0);xmax=1;st.xcounts=0}
 function sample(b){var k=Math.random()*2-1,E;
   if(Math.random()<0.1){E=EMIN+Math.random()*(-EMIN)}
   else{var n=(Math.random()*b.length)|0,e0=b[n]+1.15*k*k,g=0.022+0.09*Math.abs(e0);E=e0+g*Math.tan(Math.PI*(Math.random()-0.5)*0.92)}
@@ -66,7 +73,7 @@ function topY(n){return FBASE-SUBT-n*LT}
 function spot(){var n=st.layers+(st.grow>=0?st.grow:0);return{x:FX+10,y:topY(n)-FD/2}}
 var SURF=336,AIM={x:FX+10,y:SURF-FD/2};
 var CELLS=[{x:150,y:170,c:C.cyan},{x:236,y:118,c:C.lime}];
-var LAMP={x:392,y:64};
+var LAMP={x:392,y:64},XRAY={x:566,y:76};
 var AN={cx:765,cy:161,r:58},ATH=Math.PI/4,ACS=Math.cos(ATH),ASN=Math.sin(ATH);
 function A2W(lx,ly){return{x:AN.cx+lx*ACS-ly*ASN,y:AN.cy+lx*ASN+ly*ACS}}
 var PANEL={x:806,y:268,w:262,h:286};
@@ -107,6 +114,25 @@ function filmLayer(i,a,frac){var y=topY(i+1),odd=i%2;
   slab(y,LT,odd?'rgba(70,190,178,0.26)':'rgba(110,200,110,0.26)',odd?'rgba(16,78,72,0.62)':'rgba(24,84,36,0.62)',odd?'rgba(12,58,54,0.7)':'rgba(18,62,26,0.7)',a);
   octaRow(y,LT,FSK*0.66,-FD*0.66,a*0.22,frac,odd);octaRow(y,LT,FSK*0.33,-FD*0.33,a*0.45,frac,odd);octaRow(y,LT,0,0,a,frac,odd);
   ctx.globalAlpha=a*0.55;ctx.strokeStyle='rgba(225,255,238,0.7)';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(FX-FW/2-FSK/2,y);ctx.lineTo(FX+FW/2-FSK/2,y);ctx.lineTo(FX+FW/2+FSK/2,y-FD);ctx.stroke();ctx.globalAlpha=1}
+
+function drawSource(P,name,sel,on,sp,c1,c2,hov,wl){var tipx=P.x,tipy=P.y+18,dx=sp.x-tipx,dy=sp.y-tipy,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L;
+  if(st.hover===hov){ctx.strokeStyle=C.amber;ctx.lineWidth=1.5;ctx.setLineDash([6,5]);ctx.beginPath();ctx.arc(P.x,P.y,40,0,7);ctx.stroke();ctx.setLineDash([])}
+  ctx.save();ctx.globalAlpha=sel?1:0.42;ctx.translate(tipx,tipy);ctx.rotate(Math.atan2(AIM.y-tipy,AIM.x-tipx));
+  var tg=ctx.createLinearGradient(0,-13,0,13);tg.addColorStop(0,'#26362f');tg.addColorStop(0.28,'#c6d4cb');tg.addColorStop(0.55,'#5d7168');tg.addColorStop(1,'#121c17');ctx.fillStyle=tg;
+  ctx.beginPath();ctx.roundRect(-84,-13,70,26,4);ctx.fill();ctx.beginPath();ctx.moveTo(-14,-13);ctx.lineTo(0,-4.5);ctx.lineTo(0,4.5);ctx.lineTo(-14,13);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(8,14,11,0.7)';ctx.fillRect(-64,-13,3,26);ctx.fillRect(-36,-13,3,26);ctx.restore();
+  if(on){ctx.save();ctx.globalCompositeOperation='lighter';
+    [[34,0.045],[18,0.08],[8,0.14],[2.5,0.4]].forEach(function(b){var g2=ctx.createLinearGradient(tipx,tipy,sp.x,sp.y);g2.addColorStop(0,'rgba('+c1+','+b[1]+')');g2.addColorStop(1,'rgba('+c2+','+Math.min(1,b[1]*1.7)+')');ctx.fillStyle=g2;
+      ctx.beginPath();ctx.moveTo(tipx-uy*2,tipy+ux*2);ctx.lineTo(sp.x-uy*b[0],sp.y+ux*b[0]);ctx.lineTo(sp.x+uy*b[0],sp.y-ux*b[0]);ctx.lineTo(tipx+uy*2,tipy-ux*2);ctx.closePath();ctx.fill()});
+    for(var wp=0;wp<3;wp++){var c0=((st.t*0.5+wp/3)%1)*L,first=true;ctx.beginPath();ctx.lineWidth=1.8;ctx.strokeStyle='rgba(255,246,220,0.95)';
+      for(var s=-36;s<=36;s+=1.5){var pos=c0+s;if(pos<6||pos>L-6)continue;var amp=7*Math.exp(-s*s/280)*Math.sin(s/wl),qx=tipx+ux*pos-uy*amp,qy=tipy+uy*pos+ux*amp;if(first){ctx.moveTo(qx,qy);first=false}else ctx.lineTo(qx,qy)}ctx.stroke()}
+    glow(tipx,tipy,24,'rgba('+c1+',0.95)',0.85);
+    glow(sp.x,sp.y,50+6*Math.sin(st.t*7),'rgba('+c2+',0.95)',0.75);glow(sp.x,sp.y,15,'rgba(255,255,255,1)',0.9);
+    for(var k2=0;k2<8;k2++){var rr2=20+28*((Math.sin(k2*12.9)+1)/2),a2=k2*2.4+st.t*0.25,tw=Math.max(0,Math.sin(st.t*3.1+k2*1.7));star(sp.x+Math.cos(a2)*rr2*1.6,sp.y+Math.sin(a2)*rr2*0.55,2+7*tw,tw)}
+    star(sp.x,sp.y,18+5*Math.sin(st.t*9),0.95);
+    ctx.restore()}
+  if(sel)label('hν',tipx+ux*L*0.42+18,tipy+uy*L*0.42-6,C.amber,'left',17);
+  label(name,P.x+30,P.y-14,sel?C.ink:C.muted,'left',12,true)}
 
 /* ---------- draw ---------- */
 function draw(){
@@ -151,25 +177,10 @@ function draw(){
   for(var j=0;j<n;j++){var px=x0+ww*j/Math.max(239,n-1),py=RH.y+RH.h-14-rheed[j]*(RH.h-48);j?ctx.lineTo(px,py):ctx.moveTo(px,py)}ctx.stroke();
   if(n){var lx=x0+ww*(n-1)/Math.max(239,n-1),ly=RH.y+RH.h-14-rheed[n-1]*(RH.h-48);glow(lx,ly,10,C.lime,0.7)}
 
-  /* photon beam */
-  var lit=st.light,tipx=LAMP.x,tipy=LAMP.y+18,dx=sp.x-tipx,dy=sp.y-tipy,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L;
-  if(st.hover==='light'){ctx.strokeStyle=C.amber;ctx.lineWidth=1.5;ctx.setLineDash([6,5]);ctx.beginPath();ctx.arc(LAMP.x,LAMP.y,40,0,7);ctx.stroke();ctx.setLineDash([])}
-  ctx.save();ctx.translate(tipx,tipy);ctx.rotate(Math.atan2(AIM.y-tipy,AIM.x-tipx));
-  var tg=ctx.createLinearGradient(0,-13,0,13);tg.addColorStop(0,'#26362f');tg.addColorStop(0.28,'#c6d4cb');tg.addColorStop(0.55,'#5d7168');tg.addColorStop(1,'#121c17');ctx.fillStyle=tg;
-  ctx.beginPath();ctx.roundRect(-84,-13,70,26,4);ctx.fill();ctx.beginPath();ctx.moveTo(-14,-13);ctx.lineTo(0,-4.5);ctx.lineTo(0,4.5);ctx.lineTo(-14,13);ctx.closePath();ctx.fill();
-  ctx.fillStyle='rgba(8,14,11,0.7)';ctx.fillRect(-64,-13,3,26);ctx.fillRect(-36,-13,3,26);ctx.restore();
-  if(lit){ctx.save();ctx.globalCompositeOperation='lighter';
-    [[34,0.045],[18,0.08],[8,0.14],[2.5,0.4]].forEach(function(b){var g2=ctx.createLinearGradient(tipx,tipy,sp.x,sp.y);g2.addColorStop(0,'rgba(190,170,255,'+b[1]+')');g2.addColorStop(1,'rgba(255,214,140,'+Math.min(1,b[1]*1.7)+')');ctx.fillStyle=g2;
-      ctx.beginPath();ctx.moveTo(tipx-uy*2,tipy+ux*2);ctx.lineTo(sp.x-uy*b[0],sp.y+ux*b[0]);ctx.lineTo(sp.x+uy*b[0],sp.y-ux*b[0]);ctx.lineTo(tipx+uy*2,tipy-ux*2);ctx.closePath();ctx.fill()});
-    for(var wp=0;wp<3;wp++){var c0=((st.t*0.5+wp/3)%1)*L,first=true;ctx.beginPath();ctx.lineWidth=1.8;ctx.strokeStyle='rgba(255,240,200,0.95)';
-      for(var s=-36;s<=36;s+=2){var pos=c0+s;if(pos<6||pos>L-6)continue;var amp=7*Math.exp(-s*s/280)*Math.sin(s/3.2),qx=tipx+ux*pos-uy*amp,qy=tipy+uy*pos+ux*amp;if(first){ctx.moveTo(qx,qy);first=false}else ctx.lineTo(qx,qy)}ctx.stroke()}
-    glow(tipx,tipy,24,'rgba(205,185,255,0.95)',0.85);
-    glow(sp.x,sp.y,50+6*Math.sin(st.t*7),'rgba(255,220,150,0.95)',0.75);glow(sp.x,sp.y,15,'rgba(255,255,255,1)',0.9);
-    for(var k2=0;k2<8;k2++){var rr2=20+28*((Math.sin(k2*12.9)+1)/2),a2=k2*2.4+st.t*0.25,tw=Math.max(0,Math.sin(st.t*3.1+k2*1.7));star(sp.x+Math.cos(a2)*rr2*1.6,sp.y+Math.sin(a2)*rr2*0.55,2+7*tw,tw)}
-    star(sp.x,sp.y,18+5*Math.sin(st.t*9),0.95);
-    ctx.restore()}
-  label('hν',tipx+ux*L*0.42+18,tipy+uy*L*0.42-6,C.amber,'left',17);
-  label('He lamp',LAMP.x+30,LAMP.y-14,C.muted,'left',12,true);
+  /* photon sources: He lamp (ARPES) and X-ray (XPS) */
+  var lit=st.light;
+  drawSource(LAMP,'He lamp',st.src==='he',lit&&st.src==='he',sp,'190,170,255','255,214,140','light',3.2);
+  drawSource(XRAY,'X-ray source',st.src==='xray',lit&&st.src==='xray',sp,'150,205,255','225,242,255','xray',1.5);
 
   /* analyzer (whole assembly tilted 45 degrees so the lens axis points at the sample) */
   var on=st.meas,R=AN.r+27;
@@ -197,17 +208,30 @@ function draw(){
   var ltip=A2W(-AN.r,134),lt1=A2W(-AN.r-6,134),lt2=A2W(-AN.r+6,134);
   if(st.light&&st.grow<0){ctx.fillStyle=on?'rgba(111,182,255,0.13)':'rgba(232,241,233,0.05)';ctx.beginPath();ctx.moveTo(sp.x,sp.y);ctx.lineTo(lt1.x,lt1.y);ctx.lineTo(lt2.x,lt2.y);ctx.closePath();ctx.fill()}ctx.setLineDash([5,6]);ctx.strokeStyle='rgba(232,241,233,0.22)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sp.x,sp.y);ctx.lineTo(ltip.x,ltip.y);ctx.stroke();ctx.setLineDash([]);
   label('Hemispherical analyzer',AN.cx+36,AN.cy-R-22,C.ink,'center',15);
-  var lp=A2W(-AN.r-30,84);label('electron lens',lp.x,lp.y,C.muted,'right',12,true);
+  var lp=A2W(-AN.r+30,100);label('lens',lp.x,lp.y,C.muted,'left',12,true);
   var dp=A2W(AN.r+46,-4);label('detector',dp.x,dp.y,C.muted,'left',12,true);
 
   /* ARPES panel */
   var p=PANEL,ix=p.x+44,iy=p.y+34,iw=p.w-62,ih=p.h-74;
   ctx.fillStyle='#07140e';ctx.strokeStyle=on?C.lime:C.line;ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(p.x,p.y,p.w,p.h,10);ctx.fill();ctx.stroke();
+  if(st.src==='xray'){
+    ctx.fillStyle='#06101c';ctx.fillRect(ix,iy,iw,ih);
+    var base=iy+ih-6,ptop=iy+20,xinv=1/Math.max(xmax,8),b;
+    ctx.beginPath();ctx.moveTo(ix,base);for(b=XB-1;b>=0;b--)ctx.lineTo(ix+(XB-1-b)/(XB-1)*iw,base-(base-ptop)*Math.min(1,xps[b]*xinv));ctx.lineTo(ix+iw,base);ctx.closePath();
+    var xg=ctx.createLinearGradient(0,ptop,0,base);xg.addColorStop(0,'rgba(120,190,255,0.55)');xg.addColorStop(1,'rgba(40,110,220,0.05)');ctx.fillStyle=xg;ctx.fill();
+    ctx.beginPath();for(b=XB-1;b>=0;b--){var x3=ix+(XB-1-b)/(XB-1)*iw,y3=base-(base-ptop)*Math.min(1,xps[b]*xinv);if(b===XB-1)ctx.moveTo(x3,y3);else ctx.lineTo(x3,y3)}ctx.strokeStyle='#9fd0ff';ctx.lineWidth=1.4;ctx.stroke();
+    ctx.strokeStyle='#3c6a52';ctx.lineWidth=1;ctx.strokeRect(ix,iy,iw,ih);
+    if(st.xcounts>600)PEAKS.forEach(function(pk){if(pk.nl||pkW(pk)<0.1)return;var bi=((pk.e-XMIN)/(XMAX-XMIN)*XB)|0,px2=ix+(XMAX-pk.e)/(XMAX-XMIN)*iw,py2=base-(base-ptop)*Math.min(1,xps[bi]*xinv);label(pk.n,Math.max(ix+18,px2),Math.max(iy+13,py2-7),C.ink,'center',11,true)});
+    [500,400,300,200].forEach(function(t){var tx=ix+(XMAX-t)/(XMAX-XMIN)*iw;ctx.fillStyle='#3c6a52';ctx.fillRect(tx,iy+ih,1,4);label(String(t),tx,iy+ih+15,C.muted,'center',10,true)});
+    label('XPS',p.x+14,p.y+22,C.ink,'left',15);label('Binding energy (eV)',ix+iw/2,iy+ih+31,C.muted,'center',11,true);
+    if(!st.xcounts)label(st.light?'분석기를 켜세요':'빛을 켜세요',ix+iw/2,iy+ih/2,C.muted,'center',14);
+  }else{
   paintGrid();ctx.imageSmoothingEnabled=true;ctx.drawImage(off,ix,iy,iw,ih);
   var yEF=iy+ih*(EMAX/(EMAX-EMIN));ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(232,241,233,0.55)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ix,yEF);ctx.lineTo(ix+iw,yEF);ctx.stroke();ctx.setLineDash([]);
   ctx.strokeStyle='#3c6a52';ctx.strokeRect(ix,iy,iw,ih);
   label('ARPES',p.x+14,p.y+22,C.ink,'left',15);label('E_{F}',ix-8,yEF+5,C.ink,'right',15);label('E',ix-8,iy+13,C.ink,'right',15);label('k_{∥}',ix+iw/2,iy+ih+24,C.ink,'center',15);
   if(!st.counts)label(st.light?'분석기를 켜세요':'빛을 켜세요',ix+iw/2,iy+ih/2,C.muted,'center',14);
+  }
   flashes.forEach(function(f){glow(f.x,f.y,11,'rgba(150,205,255,0.95)',f.a)});
   elec.forEach(function(e){glow(e.x,e.y,11,'rgba(80,160,255,0.95)',e.a*0.85);ctx.globalAlpha=e.a;ctx.fillStyle='#9fd0ff';ctx.beginPath();ctx.arc(e.x,e.y,2.8,0,7);ctx.fill();ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(e.x-0.8,e.y-0.8,1,0,7);ctx.fill();ctx.globalAlpha=1});
 }
@@ -218,7 +242,7 @@ function ePos(e){var sp=e.s,u=e.u,kk=e.k,rr=AN.r+kk*9;
   if(u<0.47){return A2W(-rr,8-(u-0.42)/0.05*8)}
   if(u<0.8){var a=Math.PI+(u-0.47)/0.33*Math.PI;return A2W(rr*Math.cos(a),rr*Math.sin(a))}
   if(u<0.87){return A2W(rr,(u-0.8)/0.07*60)}
-  var g=pgeo(),f2=Math.min(1,(u-0.87)/0.13),p1=A2W(rr,60),x2=g.ix+(kk+1)/2*g.iw,y2=g.iy+(EMAX-e.E)/(EMAX-EMIN)*g.ih,s2=f2*f2*(3-2*f2);
+  var g=pgeo(),f2=Math.min(1,(u-0.87)/0.13),p1=A2W(rr,60),x2=g.ix+e.fx*g.iw,y2=g.iy+e.fy*g.ih,s2=f2*f2*(3-2*f2);
   return{x:p1.x+(x2-p1.x)*s2,y:p1.y+(y2-p1.y)*s2}}
 var last=0;
 function step(now){var dt=Math.min(0.05,(now-last)/1000||0.016);last=now;st.t+=dt;
@@ -230,18 +254,21 @@ function step(now){var dt=Math.min(0.05,(now-last)/1000||0.016);last=now;st.t+=d
   if(rheed.length>240)rheed.splice(0,rheed.length-240);
   for(var j=atoms.length-1;j>=0;j--){var a=atoms[j];a.u+=dt*1.9;if(a.u>=1){atoms.splice(j,1);continue}a.x=a.sx+(a.tx-a.sx)*a.u;a.y=a.sy+(a.ty-a.sy)*a.u*a.u}
   if(st.light&&st.grow<0){var s0=spot();
-    if(st.meas){var sm=sample(bottoms(st.layers));if(sm)elec.push({s:s0,u:0,a:1,x:s0.x,y:s0.y,m:1,k:sm.k,E:sm.E});addEvents(140)}
+    if(st.meas){if(st.src==='xray'){var be=sampleX();if(be>=XMIN&&be<XMAX)elec.push({s:s0,u:0,a:1,x:s0.x,y:s0.y,m:1,k:Math.random()*2-1,fx:(XMAX-be)/(XMAX-XMIN),fy:0.9});addXps(110)}
+      else{var sm=sample(bottoms(st.layers));if(sm)elec.push({s:s0,u:0,a:1,x:s0.x,y:s0.y,m:1,k:sm.k,fx:(sm.k+1)/2,fy:(EMAX-sm.E)/(EMAX-EMIN)});addEvents(140)}}
     for(var ne=0;ne<2;ne++)if(Math.random()<0.55){var an=-Math.PI*(0.05+0.9*Math.random());if(Math.abs(an+Math.PI/4)<0.15)continue;var sp0=190+90*Math.random();elec.push({s:s0,u:0,a:0.9,x:s0.x,y:s0.y,m:0,vx:Math.cos(an)*sp0,vy:Math.sin(an)*sp0})}}
   for(var k=elec.length-1;k>=0;k--){var e=elec[k];
     if(e.m){e.u+=dt*0.8;if(e.u>=1){e.u=1;var qe=ePos(e);flashes.push({x:qe.x,y:qe.y,a:1});elec.splice(k,1);continue}var q=ePos(e);e.x=q.x;e.y=q.y}
     else{e.x+=e.vx*dt;e.y+=e.vy*dt;e.a-=dt*1.05;if(e.a<=0)elec.splice(k,1)}}
   for(var fi=flashes.length-1;fi>=0;fi--){flashes[fi].a-=dt*2.4;if(flashes[fi].a<=0)flashes.splice(fi,1)}
-  $('rCounts').textContent=st.counts.toLocaleString('en-US');
+  $('rCounts').textContent=(st.src==='xray'?st.xcounts:st.counts).toLocaleString('en-US');
   draw();if(host._alive)requestAnimationFrame(step);else running=false}
 
 /* ---------- actions ---------- */
 function say(t){$('status').textContent=t}
-function sync(){$('rLayers').textContent=st.layers+' u.c.';$('rBands').textContent=bottoms(st.layers).length;
+function setSrc(s){if(st.src===s){light();return}st.src=s;elec.length=0;if(st.grow>=0)st.lightWas=true;else st.light=true;sync();
+  say(s==='xray'?'X선(Al Kα)으로 바꿨습니다. 같은 분석기로 내각 준위를 재는 XPS입니다. 층을 쌓으면 Ru 피크가 커지고 Ti 피크가 줄어듭니다.':'He 램프로 바꿨습니다. 페르미 준위 근처의 밴드를 보는 ARPES입니다.')}
+function sync(){$('bSrc').textContent='광원: '+(st.src==='he'?'He 램프':'X선');$('rHv').textContent=st.src==='he'?'21.2 eV':'1486.6 eV';$('rHvL').textContent='광자 에너지, '+(st.src==='he'?'He-Iα':'Al Kα');$('rLayers').textContent=st.layers+' u.c.';$('rBands').textContent=bottoms(st.layers).length;
   $('bLight').setAttribute('aria-pressed',st.light);$('bMeas').setAttribute('aria-pressed',st.meas);
   $('bGrow').textContent=st.layers>=MAXL?'최대 두께 도달':'박막 한 층 쌓기';$('bGrow').disabled=st.layers>=MAXL}
 function grow(){if(st.grow>=0)return;if(st.layers>=MAXL){say('최대 '+MAXL+'층입니다. 처음부터를 눌러 다시 시작하세요.');return}
@@ -249,13 +276,13 @@ function grow(){if(st.grow>=0)return;if(st.layers>=MAXL){say('최대 '+MAXL+'층
   st.grow=0;st.lightWas=st.light;st.light=false;sync();elec.length=0;say('MBE로 한 층을 쌓는 중입니다. 성장하는 동안에는 빛을 끕니다.')}
 function light(){if(st.grow>=0){st.lightWas=!st.lightWas;say(st.lightWas?'성장이 끝나면 빛을 켭니다.':'성장이 끝나도 빛을 켜지 않습니다.');return}st.light=!st.light;if(!st.light)elec.length=0;sync();say(st.light?'빛이 박막 표면에서 전자를 떼어 냅니다.':'빛을 껐습니다. 전자가 나오지 않습니다.')}
 function meas(){st.meas=!st.meas;elec.length=0;sync();say(st.meas?'사방으로 나오는 전자 중 렌즈 쪽으로 오는 것만 받아 밴드를 그립니다.':'분석기를 껐습니다. 전자는 계속 사방으로 나옵니다.')}
-function reset(){st.layers=1;st.grow=-1;st.light=true;st.meas=true;atoms.length=0;elec.length=0;rheed.length=0;clearGrid();if(RM)addEvents(60000);sync();say('한 층짜리 박막에서 다시 시작합니다.')}
+function reset(){st.src='he';st.layers=1;st.grow=-1;st.light=true;st.meas=true;atoms.length=0;elec.length=0;rheed.length=0;clearGrid();if(RM)addEvents(60000);sync();say('한 층짜리 박막에서 다시 시작합니다.')}
 var introT=[];function cancelIntro(){introT.forEach(clearTimeout);introT=[]}
 function user(fn){return function(){cancelIntro();fn()}}
-$('bGrow').addEventListener('click',user(grow));$('bLight').addEventListener('click',user(light));$('bMeas').addEventListener('click',user(meas));$('bReset').addEventListener('click',user(reset));
+$('bGrow').addEventListener('click',user(grow));$('bLight').addEventListener('click',user(light));$('bMeas').addEventListener('click',user(meas));$('bReset').addEventListener('click',user(reset));$('bSrc').addEventListener('click',user(function(){setSrc(st.src==='he'?'xray':'he')}));
 
 function hit(ev){var r=cv.getBoundingClientRect(),x=(ev.clientX-r.left)/r.width*W,y=(ev.clientY-r.top)/r.height*H;
-  if(Math.hypot(x-LAMP.x,y-LAMP.y)<40)return'light';
+  if(Math.hypot(x-XRAY.x,y-XRAY.y)<38)return'xray';if(Math.hypot(x-LAMP.x,y-LAMP.y)<40)return'light';
   var sp=spot(),dx=sp.x-LAMP.x,dy=sp.y-LAMP.y-18,L2=dx*dx+dy*dy,t=((x-LAMP.x)*dx+(y-LAMP.y-18)*dy)/L2;
   if(t>0&&t<0.8&&Math.hypot(x-(LAMP.x+dx*t),y-(LAMP.y+18+dy*t))<20)return'light';
   if(x>FX-FW/2-FSK/2-14&&x<FX+FW/2+FSK/2+14&&y>topY(st.layers)-FD-22&&y<FBASE+14)return'film';
@@ -265,7 +292,7 @@ function hit(ev){var r=cv.getBoundingClientRect(),x=(ev.clientX-r.left)/r.width*
   return null}
 cv.addEventListener('mousemove',function(e){st.hover=hit(e);cv.style.cursor=st.hover?'pointer':'default'});
 cv.addEventListener('mouseleave',function(){st.hover=null});
-cv.addEventListener('click',function(e){var h=hit(e);if(!h)return;cancelIntro();if(h==='film')grow();else if(h==='light')light();else meas()});
+cv.addEventListener('click',function(e){var h=hit(e);if(!h)return;cancelIntro();if(h==='film')grow();else if(h==='light')setSrc('he');else if(h==='xray')setSrc('xray');else meas()});
 
 function fit(){var w=cv.clientWidth||W,dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(w*dpr);cv.height=Math.round(w*H/W*dpr);S=cv.width/W;draw()}
 window.addEventListener('resize',fit);
@@ -278,7 +305,7 @@ fit();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(draw);
 var running=false;
 host._start=function(){fit();if(RM||running)return;running=true;last=0;requestAnimationFrame(step)};
-if(RM){setInterval(function(){if(!host._alive)return;$('rCounts').textContent=st.counts.toLocaleString('en-US');draw()},400)}
+if(RM){setInterval(function(){if(!host._alive)return;$('rCounts').textContent=(st.src==='xray'?st.xcounts:st.counts).toLocaleString('en-US');draw()},400)}
 if(window.ResizeObserver)new ResizeObserver(fit).observe(cv.parentNode);
 host._start();
 }
