@@ -57,6 +57,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
   <script src="image-slot.js"></script>
+  <script src="assets/hero-scene.js"></script>
   <script>
   // <video data-poster-time="s">: park on that frame as a thumbnail, rewind to 0 on first play.
   document.addEventListener('loadeddata', function (e) {
@@ -111,6 +112,7 @@
       [data-grid="row3"] { grid-template-columns: 1fr !important; gap: 3px !important; padding-bottom: 14px !important; }
       [data-grid="newsrow"] { grid-template-columns: 1fr !important; gap: 4px !important; }
       [data-row="wrap"] { flex-wrap: wrap !important; }
+      [data-hero-scene] { padding: 8px 14px 0 !important; }
 
       [style*="width: 340px; height: 400px"] { width: 100% !important; max-width: 340px; }
       [style*="min-height: 480px"] { min-height: 260px !important; }
@@ -186,6 +188,11 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- interactive MBE + ARPES scene -->
+      <div data-hero-scene="" style="padding: 12px 64px 0; max-width: 1328px; margin: 0 auto; box-sizing: border-box;">
+        <esc-hero-scene></esc-hero-scene>
       </div>
 
       <!-- group photo band -->
