@@ -595,7 +595,7 @@
       <div style="padding: 20px 0; border-bottom: 1px solid #e4e4dd;">
         <div id="pub-jkps-altermag" style="font-size: 17px; font-weight: 600; line-height: 1.5; margin-bottom: 6px;"><a href="https://doi.org/10.1007/s40042-026-01731-4" target="_blank" style="color: #072b61;" style-hover="text-decoration: underline; text-decoration-color: #8dc63f; text-decoration-thickness: 2px; text-underline-offset: 4px;">Fundamentals and applications of altermagnetism</a></div>
         <div style="font-size: 14px; color: #6b756f; line-height: 1.6;">Seungyun Han†, Hyun-Woo Lee†, Chang-Jong Kang†, Sonny H. Rhim†, Jong Mok Ok†, Changyoung Kim†, Jong Seok Lee†, <strong style="color: #124633;">Byungmin Sohn†</strong>, Hye-Won Ko†, Changhee Sohn†, Kyung-Jin Lee†, OukJae Lee†, Soong-Geun Je†</div>
-        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8b948e; margin-top: 6px;">Journal of the Korean Physical Society (2026) · Review</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8b948e; margin-top: 6px;">Journal of the Korean Physical Society 89, 1043–1063 (2026) · Review</div>
       </div>
       <div style="padding: 20px 0; border-bottom: 1px solid #e4e4dd;">
         <div id="pub-arxiv-cu001" style="font-size: 17px; font-weight: 600; line-height: 1.5; margin-bottom: 6px;"><a href="https://arxiv.org/abs/2610.16421" target="_blank" style="color: #072b61;" style-hover="text-decoration: underline; text-decoration-color: #8dc63f; text-decoration-thickness: 2px; text-underline-offset: 4px;">Angle-resolved photoemission as a sensitive probe of surface quality: sputtered versus annealed Cu(001)</a></div>
@@ -1662,7 +1662,7 @@ class Component extends DCLogic {
         { id: 'p-pohang-apr24-2', title: '포항 가속기 실험', date: '포항 · 2024.04.12', note: '우리 연구실에서 처음으로 함께 간 포항 가속기 실험입니다.' },
       ].map((p) => {
         if (p.file) return Object.assign({}, p, { src: 'assets/photos/' + p.file });
-        const jpg = ['p-shanghai-1','p-newterm-mar25','p-birthday-mar25','p-setup-dec24','p-inaug-sep24','p-snu-aug24','p-dinner-aug24','p-lunch-may24','p-pohang-apr24-1','p-pohang-apr24-2'];
+        const jpg = ['p-shanghai-1','p-beer-jul24','p-busan-feb25','p-dinner-may25','p-endterm-jan25','p-kps-apr25-1','p-kps-apr25-2','p-kps-apr25-3','p-kps-apr25-4','p-moving-aug24','p-physfest-1','p-physfest-2','p-pohang-sep24','p-shanghai-2','p-newterm-mar25','p-birthday-mar25','p-setup-dec24','p-inaug-sep24','p-snu-aug24','p-dinner-aug24','p-lunch-may24','p-pohang-apr24-1','p-pohang-apr24-2'];
         return Object.assign({}, p, { src: 'assets/photos/' + p.id + (jpg.indexOf(p.id) >= 0 ? '.jpg' : '.png') });
       }))),
       homelabPhotos: this.withGallery([
@@ -1698,7 +1698,7 @@ class Component extends DCLogic {
         { id: 'hl-office', title: 'Office', date: 'Feb 8, 2024', note: '물리를 좋아하는 친구들이 모이고 있습니다.' },
       ].map((p) => {
         if (p.id === 'hl-chambers') return Object.assign({}, p, { src: 'assets/homelab/hl-chambers.jpg' });
-        const png = ['hl-fermimap','hl-pes','hl-evk','hl-stage1','hl-bakeout1','hl-bakeout2','hl-filling','hl-dec2024'];
+        const png = ['hl-fermimap','hl-pes','hl-evk'];
         return Object.assign({}, p, { src: 'assets/homelab/' + p.id + (png.indexOf(p.id) >= 0 ? '.png' : '.jpg') });
       })),
       photoTabPhotos: () => this.setState({ photoTab: 'photos' }),
