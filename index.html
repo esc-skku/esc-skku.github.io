@@ -82,11 +82,11 @@
     a:hover { text-decoration: underline; }
 
     [data-hamburger] { display: none; }
-    @media (max-width: 1180px) {
+    @media (max-width: 1290px) {
       nav[style] { padding: 18px 32px !important; }
       [data-nav-links] { gap: 18px !important; }
     }
-    @media (max-width: 1000px) {
+    @media (max-width: 1110px) {
       nav[style] { padding: 14px 20px !important; }
       [data-hamburger] { display: flex !important; }
       [data-nav-links] { display: none !important; }
@@ -1547,6 +1547,7 @@ class Component extends DCLogic {
         mk('photo', 'Photo'),
         mk('video', 'Video'),
         mk('presentations', 'Presentations'),
+        { label: 'Simulations', active: false, go: () => { window.location.href = 'simulations/'; } },
         mk('contact', 'Contact'),
       ],
       menuOpenAttr: String(this.state.menuOpen),
